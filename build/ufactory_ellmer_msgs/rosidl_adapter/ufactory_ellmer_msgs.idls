@@ -1,0 +1,3 @@
+/home/eugene/ufactory_ellmer_ws/build/ufactory_ellmer_msgs/rosidl_adapter/ufactory_ellmer_msgs:msg/TargetCoordinates.idl
+/home/eugene/ufactory_ellmer_ws/build/ufactory_ellmer_msgs/rosidl_adapter/ufactory_ellmer_msgs:msg/TargetCoordinatesArray.idl
+/home/eugene/ufactory_ellmer_ws/build/ufactory_ellmer_msgs/rosidl_adapter/ufactory_ellmer_msgs:srv/SetInt16.idl

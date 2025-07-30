@@ -1,0 +1,8 @@
+{
+  "package_name": "ufactory_ellmer_msgs",
+  "non_idl_tuples": [
+    "/home/eugene/ufactory_ellmer_ws/src/ufactory_ellmer_msgs:msg/TargetCoordinates.msg",
+    "/home/eugene/ufactory_ellmer_ws/src/ufactory_ellmer_msgs:msg/TargetCoordinatesArray.msg",
+    "/home/eugene/ufactory_ellmer_ws/src/ufactory_ellmer_msgs:srv/SetInt16.srv"
+  ]
+}

@@ -1,0 +1,21 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/ufactory_ellmer_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/ufactory_ellmer_msgs/msg/detail/target_coordinates__type_support.c.o"
+  "CMakeFiles/ufactory_ellmer_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/ufactory_ellmer_msgs/msg/detail/target_coordinates__type_support.c.o.d"
+  "CMakeFiles/ufactory_ellmer_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/ufactory_ellmer_msgs/msg/detail/target_coordinates_array__type_support.c.o"
+  "CMakeFiles/ufactory_ellmer_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/ufactory_ellmer_msgs/msg/detail/target_coordinates_array__type_support.c.o.d"
+  "CMakeFiles/ufactory_ellmer_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/ufactory_ellmer_msgs/srv/detail/set_int16__type_support.c.o"
+  "CMakeFiles/ufactory_ellmer_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/ufactory_ellmer_msgs/srv/detail/set_int16__type_support.c.o.d"
+  "libufactory_ellmer_msgs__rosidl_typesupport_introspection_c.pdb"
+  "libufactory_ellmer_msgs__rosidl_typesupport_introspection_c.so"
+  "rosidl_typesupport_introspection_c/ufactory_ellmer_msgs/msg/detail/target_coordinates__rosidl_typesupport_introspection_c.h"
+  "rosidl_typesupport_introspection_c/ufactory_ellmer_msgs/msg/detail/target_coordinates__type_support.c"
+  "rosidl_typesupport_introspection_c/ufactory_ellmer_msgs/msg/detail/target_coordinates_array__rosidl_typesupport_introspection_c.h"
+  "rosidl_typesupport_introspection_c/ufactory_ellmer_msgs/msg/detail/target_coordinates_array__type_support.c"
+  "rosidl_typesupport_introspection_c/ufactory_ellmer_msgs/srv/detail/set_int16__rosidl_typesupport_introspection_c.h"
+  "rosidl_typesupport_introspection_c/ufactory_ellmer_msgs/srv/detail/set_int16__type_support.c"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang C)
+  include(CMakeFiles/ufactory_ellmer_msgs__rosidl_typesupport_introspection_c.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

@@ -1,0 +1,3 @@
+[console_scripts]
+motion_bridge = kortex_examples.ELLMER.motion_bridge:main
+

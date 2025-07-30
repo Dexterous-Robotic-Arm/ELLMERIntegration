@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "ufactory_ellmer_msgs__py",
+		"source" : "/home/eugene/ufactory_ellmer_ws/build/ufactory_ellmer_msgs/ufactory_ellmer_msgs__py"
+	}
+}

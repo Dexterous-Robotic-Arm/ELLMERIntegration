@@ -1,0 +1,233 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-d36640d21d93d7a0b581.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17
+					]
+				},
+				{
+					"build" : "ufactory_ellmer_msgs__py",
+					"jsonFile" : "directory-ufactory_ellmer_msgs__py-96a53c8cde5e8a4ff3ed.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "/home/eugene/ufactory_ellmer_ws/build/ufactory_ellmer_msgs/ufactory_ellmer_msgs__py",
+					"targetIndexes" : 
+					[
+						4
+					]
+				}
+			],
+			"name" : "",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0,
+						1
+					],
+					"name" : "ufactory_ellmer_msgs",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "ament_cmake_python_build_ufactory_ellmer_msgs_egg::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ament_cmake_python_build_ufactory_ellmer_msgs_egg-8e247e2c21185499f1b0.json",
+					"name" : "ament_cmake_python_build_ufactory_ellmer_msgs_egg",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ament_cmake_python_copy_ufactory_ellmer_msgs::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ament_cmake_python_copy_ufactory_ellmer_msgs-934bf0aba2fdb8d6bb5d.json",
+					"name" : "ament_cmake_python_copy_ufactory_ellmer_msgs",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ufactory_ellmer_msgs::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ufactory_ellmer_msgs-3b4362dc8b2310038a30.json",
+					"name" : "ufactory_ellmer_msgs",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ufactory_ellmer_msgs__cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ufactory_ellmer_msgs__cpp-61d13d33a02a447733f5.json",
+					"name" : "ufactory_ellmer_msgs__cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "ufactory_ellmer_msgs__py::@6f45cdbc1f4d30bb4617",
+					"jsonFile" : "target-ufactory_ellmer_msgs__py-208373dc0d0169174f6c.json",
+					"name" : "ufactory_ellmer_msgs__py",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ufactory_ellmer_msgs__rosidl_generator_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ufactory_ellmer_msgs__rosidl_generator_c-01ba9364cfc4d14bd7d2.json",
+					"name" : "ufactory_ellmer_msgs__rosidl_generator_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ufactory_ellmer_msgs__rosidl_generator_py::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ufactory_ellmer_msgs__rosidl_generator_py-a79549f816b00e64aa0b.json",
+					"name" : "ufactory_ellmer_msgs__rosidl_generator_py",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ufactory_ellmer_msgs__rosidl_typesupport_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ufactory_ellmer_msgs__rosidl_typesupport_c-21341edd239cba0ebe8e.json",
+					"name" : "ufactory_ellmer_msgs__rosidl_typesupport_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ufactory_ellmer_msgs__rosidl_typesupport_c__pyext::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ufactory_ellmer_msgs__rosidl_typesupport_c__pyext-f0ea4431f4b6f6315b6d.json",
+					"name" : "ufactory_ellmer_msgs__rosidl_typesupport_c__pyext",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ufactory_ellmer_msgs__rosidl_typesupport_cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ufactory_ellmer_msgs__rosidl_typesupport_cpp-7bbafe2fd91ea001378c.json",
+					"name" : "ufactory_ellmer_msgs__rosidl_typesupport_cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ufactory_ellmer_msgs__rosidl_typesupport_fastrtps_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ufactory_ellmer_msgs__rosidl_typesupport_fastrtps_c-7fa0a797fce23045b395.json",
+					"name" : "ufactory_ellmer_msgs__rosidl_typesupport_fastrtps_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ufactory_ellmer_msgs__rosidl_typesupport_fastrtps_c__pyext::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ufactory_ellmer_msgs__rosidl_typesupport_fastrtps_c__pyext-9c7670f40fd4cad40e98.json",
+					"name" : "ufactory_ellmer_msgs__rosidl_typesupport_fastrtps_c__pyext",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ufactory_ellmer_msgs__rosidl_typesupport_fastrtps_cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ufactory_ellmer_msgs__rosidl_typesupport_fastrtps_cpp-70edf583ed4f449fe8bf.json",
+					"name" : "ufactory_ellmer_msgs__rosidl_typesupport_fastrtps_cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ufactory_ellmer_msgs__rosidl_typesupport_introspection_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ufactory_ellmer_msgs__rosidl_typesupport_introspection_c-8150d1372a68acaa9bfa.json",
+					"name" : "ufactory_ellmer_msgs__rosidl_typesupport_introspection_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ufactory_ellmer_msgs__rosidl_typesupport_introspection_c__pyext::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ufactory_ellmer_msgs__rosidl_typesupport_introspection_c__pyext-5fc5f0f06bb1afac0e2f.json",
+					"name" : "ufactory_ellmer_msgs__rosidl_typesupport_introspection_c__pyext",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ufactory_ellmer_msgs__rosidl_typesupport_introspection_cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ufactory_ellmer_msgs__rosidl_typesupport_introspection_cpp-a3f1e842c5cc65785bd8.json",
+					"name" : "ufactory_ellmer_msgs__rosidl_typesupport_introspection_cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ufactory_ellmer_msgs_uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ufactory_ellmer_msgs_uninstall-0238338adb5770e6acbc.json",
+					"name" : "ufactory_ellmer_msgs_uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-0f8f8ccf07d71d3de258.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/eugene/ufactory_ellmer_ws/build/ufactory_ellmer_msgs",
+		"source" : "/home/eugene/ufactory_ellmer_ws/src/ufactory_ellmer_msgs"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

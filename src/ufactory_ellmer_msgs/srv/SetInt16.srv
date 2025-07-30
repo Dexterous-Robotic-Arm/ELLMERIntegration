@@ -1,0 +1,5 @@
+# SetInt16.srv  (request → response)
+int16 data          # e.g. 0 = READY, 4 = PAUSE …
+---
+int16 ret           # 0 = success,  anything else = xArm error code
+string message      # echoed or diagnostic text
