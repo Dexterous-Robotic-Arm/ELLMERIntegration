@@ -1,0 +1,79 @@
+[1.391s] Invoking command in '/home/eugene/ufactory_ellmer_ws/src/ELLMER/ros_kortex/kortex_examples': CMAKE_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_moveit_config:/home/eugene/ufactory_ellmer_ws/install/xarm_gazebo:/home/eugene/ufactory_ellmer_ws/install/xarm_controller:/home/eugene/ufactory_ellmer_ws/install/xarm_api:/home/eugene/ufactory_ellmer_ws/install/xarm_sdk:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_description:/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins:/home/eugene/ufactory_ellmer_ws/install/gazebo_ros LD_LIBRARY_PATH=/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_gazebo/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_controller/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_api/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_sdk/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/lib:/usr/lib/aarch64-linux-gnu/gazebo-11/plugins:/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib:/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib PYTHONPATH=/home/eugene/ufactory_ellmer_ws/build/kortex_examples/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../../build/kortex_examples build --build-base /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build install --record /home/eugene/ufactory_ellmer_ws/build/kortex_examples/install.log --single-version-externally-managed install_data
+[1.583s] running egg_info
+[1.584s] creating ../../../../build/kortex_examples/kortex_examples.egg-info
+[1.584s] writing ../../../../build/kortex_examples/kortex_examples.egg-info/PKG-INFO
+[1.584s] writing dependency_links to ../../../../build/kortex_examples/kortex_examples.egg-info/dependency_links.txt
+[1.584s] writing entry points to ../../../../build/kortex_examples/kortex_examples.egg-info/entry_points.txt
+[1.584s] writing requirements to ../../../../build/kortex_examples/kortex_examples.egg-info/requires.txt
+[1.584s] writing top-level names to ../../../../build/kortex_examples/kortex_examples.egg-info/top_level.txt
+[1.585s] writing manifest file '../../../../build/kortex_examples/kortex_examples.egg-info/SOURCES.txt'
+[1.586s] reading manifest file '../../../../build/kortex_examples/kortex_examples.egg-info/SOURCES.txt'
+[1.586s] writing manifest file '../../../../build/kortex_examples/kortex_examples.egg-info/SOURCES.txt'
+[1.586s] running build
+[1.586s] running build_py
+[1.586s] creating /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build
+[1.586s] creating /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib
+[1.586s] creating /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples
+[1.587s] copying src/kortex_examples/__init__.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples
+[1.587s] creating /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER
+[1.587s] copying src/kortex_examples/ELLMER/llm_interface.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER
+[1.587s] copying src/kortex_examples/ELLMER/utilities_draw.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER
+[1.587s] copying src/kortex_examples/ELLMER/robot_affordances.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER
+[1.587s] copying src/kortex_examples/ELLMER/utilities.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER
+[1.587s] copying src/kortex_examples/ELLMER/pose_recorder.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER
+[1.587s] copying src/kortex_examples/ELLMER/call_ik.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER
+[1.588s] copying src/kortex_examples/ELLMER/motion_bridge.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER
+[1.588s] copying src/kortex_examples/ELLMER/base.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER
+[1.588s] copying src/kortex_examples/ELLMER/robot_brain.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER
+[1.588s] copying src/kortex_examples/ELLMER/__init__.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER
+[1.588s] copying src/kortex_examples/ELLMER/action_execution.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER
+[1.588s] copying src/kortex_examples/ELLMER/utilities_affordance.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER
+[1.588s] copying src/kortex_examples/ELLMER/EEF_pose.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER
+[1.589s] running install
+[1.589s] running install_lib
+[1.589s] creating /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples
+[1.589s] creating /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER
+[1.589s] copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER/llm_interface.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER
+[1.589s] copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER/utilities_draw.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER
+[1.590s] copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER/robot_affordances.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER
+[1.590s] copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER/utilities.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER
+[1.590s] copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER/pose_recorder.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER
+[1.590s] copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER/call_ik.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER
+[1.590s] copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER/motion_bridge.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER
+[1.590s] copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER/base.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER
+[1.590s] copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER/robot_brain.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER
+[1.590s] copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER/__init__.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER
+[1.590s] copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER/action_execution.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER
+[1.591s] copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER/utilities_affordance.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER
+[1.591s] copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER/EEF_pose.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER
+[1.591s] copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/__init__.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples
+[1.591s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER/llm_interface.py to llm_interface.cpython-310.pyc
+[1.592s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER/utilities_draw.py to utilities_draw.cpython-310.pyc
+[1.592s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER/robot_affordances.py to robot_affordances.cpython-310.pyc
+[1.593s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER/utilities.py to utilities.cpython-310.pyc
+[1.596s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER/pose_recorder.py to pose_recorder.cpython-310.pyc
+[1.596s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER/call_ik.py to call_ik.cpython-310.pyc
+[1.597s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER/motion_bridge.py to motion_bridge.cpython-310.pyc
+[1.597s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER/base.py to base.cpython-310.pyc
+[1.598s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER/robot_brain.py to robot_brain.cpython-310.pyc
+[1.598s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER/__init__.py to __init__.cpython-310.pyc
+[1.598s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER/action_execution.py to action_execution.cpython-310.pyc
+[1.598s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER/utilities_affordance.py to utilities_affordance.cpython-310.pyc
+[1.610s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER/EEF_pose.py to EEF_pose.cpython-310.pyc
+[1.610s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/__init__.py to __init__.cpython-310.pyc
+[1.610s] running install_data
+[1.610s] creating /home/eugene/ufactory_ellmer_ws/install/kortex_examples/share/ament_index
+[1.611s] creating /home/eugene/ufactory_ellmer_ws/install/kortex_examples/share/ament_index/resource_index
+[1.611s] creating /home/eugene/ufactory_ellmer_ws/install/kortex_examples/share/ament_index/resource_index/packages
+[1.611s] copying resource/kortex_examples -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/share/ament_index/resource_index/packages
+[1.612s] copying package.xml -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/share/kortex_examples
+[1.612s] creating /home/eugene/ufactory_ellmer_ws/install/kortex_examples/share/kortex_examples/launch
+[1.612s] copying launch/run_robot_brain.launch.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/share/kortex_examples/launch
+[1.612s] copying launch/record_pose.launch.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/share/kortex_examples/launch
+[1.613s] running install_egg_info
+[1.613s] Copying ../../../../build/kortex_examples/kortex_examples.egg-info to /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples-0.0.1-py3.10.egg-info
+[1.614s] running install_scripts
+[1.650s] Installing pose_recorder script to /home/eugene/ufactory_ellmer_ws/install/kortex_examples/bin
+[1.651s] Installing robot_brain script to /home/eugene/ufactory_ellmer_ws/install/kortex_examples/bin
+[1.652s] writing list of installed files to '/home/eugene/ufactory_ellmer_ws/build/kortex_examples/install.log'
+[1.670s] Invoked command in '/home/eugene/ufactory_ellmer_ws/src/ELLMER/ros_kortex/kortex_examples' returned '0': CMAKE_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_moveit_config:/home/eugene/ufactory_ellmer_ws/install/xarm_gazebo:/home/eugene/ufactory_ellmer_ws/install/xarm_controller:/home/eugene/ufactory_ellmer_ws/install/xarm_api:/home/eugene/ufactory_ellmer_ws/install/xarm_sdk:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_description:/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins:/home/eugene/ufactory_ellmer_ws/install/gazebo_ros LD_LIBRARY_PATH=/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_gazebo/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_controller/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_api/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_sdk/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/lib:/usr/lib/aarch64-linux-gnu/gazebo-11/plugins:/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib:/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib PYTHONPATH=/home/eugene/ufactory_ellmer_ws/build/kortex_examples/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../../build/kortex_examples build --build-base /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build install --record /home/eugene/ufactory_ellmer_ws/build/kortex_examples/install.log --single-version-externally-managed install_data

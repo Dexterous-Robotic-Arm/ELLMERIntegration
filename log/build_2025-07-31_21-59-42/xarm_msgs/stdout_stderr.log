@@ -1,0 +1,8 @@
+[  0%] Built target xarm_msgs__cpp
+[35m[1mConsolidate compiler generated dependencies of target xarm_msgs__rosidl_generator_c[0m
+[ 12%] Built target xarm_msgs__rosidl_generator_c
+[ 12%] Built target ament_cmake_python_copy_xarm_msgs
+[35m[1mConsolidate compiler generated dependencies of target xarm_msgs__rosidl_typesupport_cpp[0m
+gmake[2]: *** [CMakeFiles/xarm_msgs__rosidl_typesupport_cpp.dir/build.make:1323: CMakeFiles/xarm_msgs__rosidl_typesupport_cpp.dir/depend] Interrupt
+gmake[1]: *** [CMakeFiles/Makefile2:394: CMakeFiles/xarm_msgs__rosidl_typesupport_cpp.dir/all] Interrupt
+gmake: *** [Makefile:146: all] Interrupt

@@ -1,0 +1,62 @@
+[1.421s] Invoking command in '/home/eugene/ufactory_ellmer_ws/src/xarm_ros2/uf_ros_lib': PYTHONPATH=/home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/uf_ros_lib build --build-base /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build install --record /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/install.log --single-version-externally-managed install_data
+[2.353s] running egg_info
+[2.358s] creating ../../../build/uf_ros_lib/uf_ros_lib.egg-info
+[2.365s] writing ../../../build/uf_ros_lib/uf_ros_lib.egg-info/PKG-INFO
+[2.368s] writing dependency_links to ../../../build/uf_ros_lib/uf_ros_lib.egg-info/dependency_links.txt
+[2.371s] writing entry points to ../../../build/uf_ros_lib/uf_ros_lib.egg-info/entry_points.txt
+[2.373s] writing requirements to ../../../build/uf_ros_lib/uf_ros_lib.egg-info/requires.txt
+[2.374s] writing top-level names to ../../../build/uf_ros_lib/uf_ros_lib.egg-info/top_level.txt
+[2.378s] writing manifest file '../../../build/uf_ros_lib/uf_ros_lib.egg-info/SOURCES.txt'
+[2.384s] reading manifest file '../../../build/uf_ros_lib/uf_ros_lib.egg-info/SOURCES.txt'
+[2.386s] writing manifest file '../../../build/uf_ros_lib/uf_ros_lib.egg-info/SOURCES.txt'
+[2.387s] running build
+[2.387s] running build_py
+[2.389s] creating /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build
+[2.389s] creating /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib
+[2.389s] creating /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib
+[2.390s] copying uf_ros_lib/parameter_descriptions.py -> /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib
+[2.391s] copying uf_ros_lib/uf_robot_utils.py -> /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib
+[2.393s] copying uf_ros_lib/moveit_configs_builder.py -> /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib
+[2.397s] copying uf_ros_lib/__init__.py -> /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib
+[2.408s] creating /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/substitutions
+[2.410s] copying uf_ros_lib/substitutions/common.py -> /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/substitutions
+[2.412s] copying uf_ros_lib/substitutions/joint_limits.py -> /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/substitutions
+[2.413s] copying uf_ros_lib/substitutions/controllers.py -> /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/substitutions
+[2.414s] copying uf_ros_lib/substitutions/__init__.py -> /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/substitutions
+[2.415s] copying uf_ros_lib/substitutions/planning_pipelines.py -> /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/substitutions
+[2.416s] copying uf_ros_lib/substitutions/kinematics.py -> /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/substitutions
+[2.418s] running install
+[2.420s] running install_lib
+[2.423s] creating /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib
+[2.432s] copying /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/parameter_descriptions.py -> /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib
+[2.432s] copying /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/uf_robot_utils.py -> /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib
+[2.432s] copying /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/moveit_configs_builder.py -> /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib
+[2.432s] creating /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/substitutions
+[2.432s] copying /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/substitutions/common.py -> /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/substitutions
+[2.433s] copying /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/substitutions/joint_limits.py -> /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/substitutions
+[2.433s] copying /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/substitutions/controllers.py -> /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/substitutions
+[2.433s] copying /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/substitutions/__init__.py -> /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/substitutions
+[2.433s] copying /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/substitutions/planning_pipelines.py -> /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/substitutions
+[2.433s] copying /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/substitutions/kinematics.py -> /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/substitutions
+[2.433s] copying /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build/lib/uf_ros_lib/__init__.py -> /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib
+[2.442s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/parameter_descriptions.py to parameter_descriptions.cpython-310.pyc
+[2.450s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/uf_robot_utils.py to uf_robot_utils.cpython-310.pyc
+[2.453s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/moveit_configs_builder.py to moveit_configs_builder.cpython-310.pyc
+[2.473s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/substitutions/common.py to common.cpython-310.pyc
+[2.475s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/substitutions/joint_limits.py to joint_limits.cpython-310.pyc
+[2.476s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/substitutions/controllers.py to controllers.cpython-310.pyc
+[2.477s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/substitutions/__init__.py to __init__.cpython-310.pyc
+[2.477s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/substitutions/planning_pipelines.py to planning_pipelines.cpython-310.pyc
+[2.479s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/substitutions/kinematics.py to kinematics.cpython-310.pyc
+[2.480s] byte-compiling /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib/__init__.py to __init__.cpython-310.pyc
+[2.480s] running install_data
+[2.481s] creating /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/share/ament_index
+[2.481s] creating /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/share/ament_index/resource_index
+[2.481s] creating /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/share/ament_index/resource_index/packages
+[2.482s] copying resource/uf_ros_lib -> /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/share/ament_index/resource_index/packages
+[2.482s] copying package.xml -> /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/share/uf_ros_lib
+[2.482s] running install_egg_info
+[2.484s] Copying ../../../build/uf_ros_lib/uf_ros_lib.egg-info to /home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages/uf_ros_lib-0.0.0-py3.10.egg-info
+[2.486s] running install_scripts
+[2.536s] writing list of installed files to '/home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/install.log'
+[2.581s] Invoked command in '/home/eugene/ufactory_ellmer_ws/src/xarm_ros2/uf_ros_lib' returned '0': PYTHONPATH=/home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/eugene/ufactory_ellmer_ws/install/uf_ros_lib/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/uf_ros_lib build --build-base /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/build install --record /home/eugene/ufactory_ellmer_ws/build/uf_ros_lib/install.log --single-version-externally-managed install_data

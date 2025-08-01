@@ -1,0 +1,125 @@
+[0.080s] Invoking command in '/home/eugene/ufactory_ellmer_ws/build/xarm_api': AMENT_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_description:/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble LD_LIBRARY_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake /home/eugene/ufactory_ellmer_ws/src/xarm_ros2/xarm_api -DCMAKE_INSTALL_PREFIX=/home/eugene/ufactory_ellmer_ws/install/xarm_api
+[0.437s] -- The C compiler identification is GNU 11.4.0
+[0.680s] -- The CXX compiler identification is GNU 11.4.0
+[0.689s] -- Detecting C compiler ABI info
+[0.885s] -- Detecting C compiler ABI info - done
+[0.937s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.938s] -- Detecting C compile features
+[0.943s] -- Detecting C compile features - done
+[0.954s] -- Detecting CXX compiler ABI info
+[1.071s] -- Detecting CXX compiler ABI info - done
+[1.086s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[1.087s] -- Detecting CXX compile features
+[1.087s] -- Detecting CXX compile features - done
+[1.123s] -- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)
+[1.258s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[1.421s] -- Found ament_lint_auto: 0.12.14 (/opt/ros/humble/share/ament_lint_auto/cmake)
+[1.587s] -- Found rclcpp: 16.0.14 (/opt/ros/humble/share/rclcpp/cmake)
+[1.645s] -- Found rosidl_generator_c: 3.1.7 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[1.683s] -- Found rosidl_adapter: 3.1.7 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[1.698s] -- Found rosidl_generator_cpp: 3.1.7 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[1.713s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[1.729s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[1.804s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[1.807s] -- Found rmw_fastrtps_cpp: 6.2.8 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[1.926s] -- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "3.0.2")  
+[1.972s] -- Found FastRTPS: /opt/ros/humble/include  
+[2.015s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[2.030s] -- Looking for pthread.h
+[2.189s] -- Looking for pthread.h - found
+[2.189s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[2.259s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+[2.260s] -- Found Threads: TRUE  
+[2.315s] -- Found rclcpp_action: 16.0.14 (/opt/ros/humble/share/rclcpp_action/cmake)
+[2.354s] -- Found sensor_msgs: 4.9.0 (/opt/ros/humble/share/sensor_msgs/cmake)
+[2.397s] -- Found control_msgs: 4.8.0 (/opt/ros/humble/share/control_msgs/cmake)
+[2.435s] -- Found xarm_msgs: 0.0.0 (/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/share/xarm_msgs/cmake)
+[2.444s] -- Found xarm_sdk: 0.0.0 (/home/eugene/ufactory_ellmer_ws/install/xarm_sdk/share/xarm_sdk/cmake)
+[2.483s] -- Added test 'copyright' to check source files copyright and LICENSE
+[2.485s] -- Added test 'cppcheck' to perform static code analysis on C / C++ code
+[2.486s] -- Configured cppcheck include dirs: /home/eugene/ufactory_ellmer_ws/src/xarm_ros2/xarm_api/include
+[2.486s] -- Configured cppcheck exclude dirs and/or files: 
+[2.487s] -- Added test 'cpplint' to check C / C++ code against the Google style
+[2.487s] -- Configured cpplint exclude dirs and/or files: 
+[2.488s] -- Added test 'flake8' to check Python code syntax and style conventions
+[2.488s] -- Added test 'lint_cmake' to check CMake code style
+[2.489s] -- Added test 'pep257' to check Python code against some of the docstring style conventions in PEP 257
+[2.490s] -- Added test 'uncrustify' to check C / C++ code style
+[2.490s] -- Configured uncrustify additional arguments: 
+[2.491s] -- Added test 'xmllint' to check XML markup files
+[2.497s] -- Configuring done
+[2.536s] -- Generating done
+[2.558s] -- Build files have been written to: /home/eugene/ufactory_ellmer_ws/build/xarm_api
+[2.573s] Invoked command in '/home/eugene/ufactory_ellmer_ws/build/xarm_api' returned '0': AMENT_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_description:/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble LD_LIBRARY_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake /home/eugene/ufactory_ellmer_ws/src/xarm_ros2/xarm_api -DCMAKE_INSTALL_PREFIX=/home/eugene/ufactory_ellmer_ws/install/xarm_api
+[2.598s] Invoking command in '/home/eugene/ufactory_ellmer_ws/build/xarm_api': AMENT_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_description:/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble LD_LIBRARY_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake --build /home/eugene/ufactory_ellmer_ws/build/xarm_api -- -j2 -l2
+[2.635s] [  7%] [32mBuilding CXX object CMakeFiles/xarm_ros_driver.dir/src/xarm_driver.cpp.o[0m
+[13.186s] [ 15%] [32mBuilding CXX object CMakeFiles/xarm_ros_driver.dir/src/xarm_driver_service.cpp.o[0m
+[118.929s] [ 23%] [32m[1mLinking CXX shared library libxarm_ros_driver.so[0m
+[123.136s] [ 23%] Built target xarm_ros_driver
+[123.185s] [ 30%] [32mBuilding CXX object CMakeFiles/xarm_ros_client.dir/src/xarm_ros_client.cpp.o[0m
+[181.867s] [ 38%] [32m[1mLinking CXX shared library libxarm_ros_client.so[0m
+[183.457s] [ 38%] Built target xarm_ros_client
+[183.479s] [ 46%] [32mBuilding CXX object CMakeFiles/test_robot_states.dir/test/test_robot_states.cpp.o[0m
+[200.421s] [ 53%] [32m[1mLinking CXX executable test_robot_states[0m
+[201.227s] [ 53%] Built target test_robot_states
+[201.259s] [ 61%] [32mBuilding CXX object CMakeFiles/xarm_driver_node.dir/src/xarm_driver_node.cpp.o[0m
+[208.653s] [ 69%] [32m[1mLinking CXX executable xarm_driver_node[0m
+[209.729s] [ 69%] Built target xarm_driver_node
+[209.748s] [ 76%] [32mBuilding CXX object CMakeFiles/test_xarm_ros_client.dir/test/test_xarm_ros_client.cpp.o[0m
+[217.912s] [ 84%] [32m[1mLinking CXX executable test_xarm_ros_client[0m
+[218.637s] [ 84%] Built target test_xarm_ros_client
+[218.669s] [ 92%] [32mBuilding CXX object CMakeFiles/test_xarm_velo_move.dir/test/test_xarm_velo_move.cpp.o[0m
+[223.768s] [100%] [32m[1mLinking CXX executable test_xarm_velo_move[0m
+[224.355s] [100%] Built target test_xarm_velo_move
+[224.490s] Invoked command in '/home/eugene/ufactory_ellmer_ws/build/xarm_api' returned '0': AMENT_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_description:/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble LD_LIBRARY_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake --build /home/eugene/ufactory_ellmer_ws/build/xarm_api -- -j2 -l2
+[224.553s] Invoking command in '/home/eugene/ufactory_ellmer_ws/build/xarm_api': AMENT_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_description:/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble LD_LIBRARY_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake --install /home/eugene/ufactory_ellmer_ws/build/xarm_api
+[224.560s] -- Install configuration: ""
+[224.561s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/environment/library_path.sh
+[224.561s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/environment/library_path.dsv
+[224.562s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/include
+[224.562s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/include/xarm_api
+[224.562s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/include/xarm_api/visibility_control.h
+[224.563s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/include/xarm_api/xarm_driver.h
+[224.564s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/include/xarm_api/xarm_msgs.h
+[224.565s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/include/xarm_api/xarm_ros_client.h
+[224.566s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/lib/libxarm_ros_driver.so
+[224.757s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/xarm_api/lib/libxarm_ros_driver.so" to ""
+[224.757s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/lib/libxarm_ros_client.so
+[224.837s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/xarm_api/lib/libxarm_ros_client.so" to ""
+[224.837s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/lib/xarm_api/xarm_driver_node
+[224.837s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/xarm_api/lib/xarm_api/xarm_driver_node" to ""
+[224.837s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/lib/xarm_api/test_xarm_ros_client
+[224.837s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/xarm_api/lib/xarm_api/test_xarm_ros_client" to ""
+[224.837s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/lib/xarm_api/test_xarm_velo_move
+[224.837s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/xarm_api/lib/xarm_api/test_xarm_velo_move" to ""
+[224.837s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/lib/xarm_api/test_robot_states
+[224.845s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/xarm_api/lib/xarm_api/test_robot_states" to ""
+[224.845s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api//launch
+[224.845s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api//launch/lite6_driver.launch.py
+[224.845s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api//launch/lib
+[224.845s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api//launch/lib/robot_api_lib.py
+[224.845s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api//launch/_robot_driver.launch.py
+[224.846s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api//launch/uf850_driver.launch.py
+[224.846s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api//launch/xarm5_driver.launch.py
+[224.846s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api//launch/xarm7_driver.launch.py
+[224.846s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api//launch/xarm6_driver.launch.py
+[224.846s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api//config
+[224.846s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api//config/xarm_params.yaml
+[224.847s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/ament_index/resource_index/package_run_dependencies/xarm_api
+[224.847s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/ament_index/resource_index/parent_prefix_path/xarm_api
+[224.850s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/environment/ament_prefix_path.sh
+[224.850s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/environment/ament_prefix_path.dsv
+[224.851s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/environment/path.sh
+[224.851s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/environment/path.dsv
+[224.851s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/local_setup.bash
+[224.851s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/local_setup.sh
+[224.852s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/local_setup.zsh
+[224.852s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/local_setup.dsv
+[224.852s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/package.dsv
+[224.853s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/ament_index/resource_index/packages/xarm_api
+[224.853s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/cmake/ament_cmake_export_libraries-extras.cmake
+[224.853s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/cmake/ament_cmake_export_include_directories-extras.cmake
+[224.856s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/cmake/xarm_apiConfig.cmake
+[224.856s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/cmake/xarm_apiConfig-version.cmake
+[224.857s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/xarm_api/share/xarm_api/package.xml
+[224.866s] Invoked command in '/home/eugene/ufactory_ellmer_ws/build/xarm_api' returned '0': AMENT_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs:/home/eugene/ufactory_ellmer_ws/install/xarm_description:/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble LD_LIBRARY_PATH=/home/eugene/ufactory_ellmer_ws/install/xarm_sdk/lib:/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/eugene/ufactory_ellmer_ws/install/xarm_msgs/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake --install /home/eugene/ufactory_ellmer_ws/build/xarm_api

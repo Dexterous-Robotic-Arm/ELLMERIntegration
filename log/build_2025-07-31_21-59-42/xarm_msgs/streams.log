@@ -1,0 +1,10 @@
+[0.040s] Invoking command in '/home/eugene/ufactory_ellmer_ws/build/xarm_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble /usr/bin/cmake --build /home/eugene/ufactory_ellmer_ws/build/xarm_msgs -- -j2 -l2
+[0.255s] [  0%] Built target xarm_msgs__cpp
+[0.360s] [35m[1mConsolidate compiler generated dependencies of target xarm_msgs__rosidl_generator_c[0m
+[0.423s] [ 12%] Built target xarm_msgs__rosidl_generator_c
+[0.523s] [ 12%] Built target ament_cmake_python_copy_xarm_msgs
+[0.662s] [35m[1mConsolidate compiler generated dependencies of target xarm_msgs__rosidl_typesupport_cpp[0m
+[0.732s] gmake[2]: *** [CMakeFiles/xarm_msgs__rosidl_typesupport_cpp.dir/build.make:1323: CMakeFiles/xarm_msgs__rosidl_typesupport_cpp.dir/depend] Interrupt
+[0.732s] gmake[1]: *** [CMakeFiles/Makefile2:394: CMakeFiles/xarm_msgs__rosidl_typesupport_cpp.dir/all] Interrupt
+[0.732s] gmake: *** [Makefile:146: all] Interrupt
+[0.736s] Invoked command in '/home/eugene/ufactory_ellmer_ws/build/xarm_msgs' returned '-2': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble /usr/bin/cmake --build /home/eugene/ufactory_ellmer_ws/build/xarm_msgs -- -j2 -l2

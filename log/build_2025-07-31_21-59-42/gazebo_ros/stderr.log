@@ -1,0 +1,3 @@
+gmake[2]: *** [CMakeFiles/gazebo_ros_utils.dir/build.make:213: CMakeFiles/gazebo_ros_utils.dir/depend] Interrupt
+gmake[1]: *** [CMakeFiles/Makefile2:305: CMakeFiles/gazebo_ros_utils.dir/all] Interrupt
+gmake: *** [Makefile:146: all] Interrupt

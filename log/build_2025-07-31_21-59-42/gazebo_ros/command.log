@@ -1,0 +1,1 @@
+Invoking command in '/home/eugene/ufactory_ellmer_ws/build/gazebo_ros': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble /usr/bin/cmake --build /home/eugene/ufactory_ellmer_ws/build/gazebo_ros -- -j2 -l2

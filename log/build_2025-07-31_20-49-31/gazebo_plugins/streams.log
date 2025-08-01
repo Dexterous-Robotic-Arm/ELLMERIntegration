@@ -1,0 +1,388 @@
+[0.020s] Invoking command in '/home/eugene/ufactory_ellmer_ws/build/gazebo_plugins': AMENT_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros:/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble LD_LIBRARY_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake /home/eugene/ufactory_ellmer_ws/src/gazebo_ros_pkgs/gazebo_plugins -DCMAKE_INSTALL_PREFIX=/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins
+[0.074s] -- The C compiler identification is GNU 11.4.0
+[0.115s] -- The CXX compiler identification is GNU 11.4.0
+[0.119s] -- Detecting C compiler ABI info
+[0.167s] -- Detecting C compiler ABI info - done
+[0.169s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.169s] -- Detecting C compile features
+[0.169s] -- Detecting C compile features - done
+[0.172s] -- Detecting CXX compiler ABI info
+[0.233s] -- Detecting CXX compiler ABI info - done
+[0.240s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.240s] -- Detecting CXX compile features
+[0.241s] -- Detecting CXX compile features - done
+[0.246s] -- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.352s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[0.415s] -- Found camera_info_manager: 3.1.12 (/opt/ros/humble/share/camera_info_manager/cmake)
+[0.462s] -- Found rosidl_generator_c: 3.1.7 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[0.467s] -- Found rosidl_adapter: 3.1.7 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[0.472s] -- Found rosidl_generator_cpp: 3.1.7 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[0.479s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.488s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.527s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[0.530s] -- Found rmw_fastrtps_cpp: 6.2.8 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[0.583s] -- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "3.0.2")  
+[0.600s] -- Found FastRTPS: /opt/ros/humble/include  
+[0.634s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[0.652s] -- Looking for pthread.h
+[0.726s] -- Looking for pthread.h - found
+[0.726s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[0.881s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+[0.883s] -- Found Threads: TRUE  
+[1.066s] -- Found gazebo_dev: 3.9.0 (/opt/ros/humble/share/gazebo_dev/cmake)
+[1.087s] -- Found PkgConfig: /usr/bin/pkg-config (found version "0.29.2") 
+[1.088s] -- Checking for module 'bullet>=2.82'
+[1.105s] --   Found bullet, version 3.05
+[1.205s] -- Found fcl: /usr/include (found suitable version "0.7.0", minimum required is "0.5.0") 
+[1.373s] -- Found assimp: /usr/include (found version "5.2.0") 
+[1.427s] -- Found DART: /usr/include (Required is at least version "6.6") found components: dart 
+[1.526s] -- Found Boost: /usr/lib/aarch64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found suitable version "1.74.0", minimum required is "1.40.0") found components: thread system filesystem program_options regex iostreams date_time 
+[1.611s] -- Found Protobuf: /usr/lib/aarch64-linux-gnu/libprotobuf.so (found version "3.12.4") 
+[1.630s] -- Looking for ignition-math6 -- found version 6.15.1
+[1.673s] -- Searching for dependencies of ignition-math6
+[1.676s] -- Looking for OGRE...
+[1.676s] -- OGRE_PREFIX_WATCH changed.
+[1.686s] -- Checking for module 'OGRE'
+[1.706s] --   Found OGRE, version 1.9.0
+[1.762s] -- Found Ogre Ghadamon (1.9.0)
+[1.767s] -- Found OGRE: optimized;/usr/lib/aarch64-linux-gnu/libOgreMain.so;debug;/usr/lib/aarch64-linux-gnu/libOgreMain.so
+[1.775s] -- Looking for OGRE_Paging...
+[1.779s] -- Found OGRE_Paging: optimized;/usr/lib/aarch64-linux-gnu/libOgrePaging.so;debug;/usr/lib/aarch64-linux-gnu/libOgrePaging.so
+[1.779s] -- Looking for OGRE_Terrain...
+[1.783s] -- Found OGRE_Terrain: optimized;/usr/lib/aarch64-linux-gnu/libOgreTerrain.so;debug;/usr/lib/aarch64-linux-gnu/libOgreTerrain.so
+[1.783s] -- Looking for OGRE_Property...
+[1.794s] -- Found OGRE_Property: optimized;/usr/lib/aarch64-linux-gnu/libOgreProperty.so;debug;/usr/lib/aarch64-linux-gnu/libOgreProperty.so
+[1.794s] -- Looking for OGRE_RTShaderSystem...
+[1.797s] -- Found OGRE_RTShaderSystem: optimized;/usr/lib/aarch64-linux-gnu/libOgreRTShaderSystem.so;debug;/usr/lib/aarch64-linux-gnu/libOgreRTShaderSystem.so
+[1.797s] -- Looking for OGRE_Volume...
+[1.800s] -- Found OGRE_Volume: optimized;/usr/lib/aarch64-linux-gnu/libOgreVolume.so;debug;/usr/lib/aarch64-linux-gnu/libOgreVolume.so
+[1.800s] -- Looking for OGRE_Overlay...
+[1.803s] -- Found OGRE_Overlay: optimized;/usr/lib/aarch64-linux-gnu/libOgreOverlay.so;debug;/usr/lib/aarch64-linux-gnu/libOgreOverlay.so
+[1.949s] -- Looking for ignition-math6 -- found version 6.15.1
+[1.952s] -- Looking for ignition-transport8 -- found version 8.2.1
+[1.953s] -- Searching for dependencies of ignition-transport8
+[1.965s] -- Found Protobuf: /usr/lib/aarch64-linux-gnu/libprotobuf.so (found suitable version "3.12.4", minimum required is "3") 
+[1.980s] -- Config-file not installed for ZeroMQ -- checking for pkg-config
+[1.982s] -- Checking for module 'libzmq >= 4'
+[2.008s] --   Found libzmq , version 4.3.4
+[2.042s] -- Found ZeroMQ: TRUE (Required is at least version "4") 
+[2.054s] -- Checking for module 'uuid'
+[2.074s] --   Found uuid, version 2.37.2
+[2.086s] -- Found UUID: TRUE  
+[2.089s] -- Looking for ignition-msgs5 -- found version 5.8.1
+[2.091s] -- Searching for dependencies of ignition-msgs5
+[2.112s] -- Looking for ignition-math6 -- found version 6.15.1
+[2.132s] -- Checking for module 'tinyxml2'
+[2.157s] --   Found tinyxml2, version 9.0.0
+[2.205s] -- Looking for ignition-msgs5 -- found version 5.8.1
+[2.209s] -- Looking for ignition-common3 -- found version 3.14.0
+[2.209s] -- Searching for dependencies of ignition-common3
+[2.210s] -- Looking for dlfcn.h - found
+[2.211s] -- Looking for libdl - found
+[2.212s] -- Found DL: TRUE  
+[2.237s] -- Found tinyobjloader: /usr/lib/aarch64-linux-gnu/cmake/tinyobjloader/tinyobjloader-config.cmake (found version "2.0.0") 
+[2.239s] -- Searching for <ignition-common3> component [graphics]
+[2.241s] -- Looking for ignition-common3-graphics -- found version 3.14.0
+[2.241s] -- Searching for dependencies of ignition-common3-graphics
+[2.246s] -- Looking for ignition-math6 -- found version 6.15.1
+[2.251s] -- Looking for ignition-fuel_tools4 -- found version 4.4.0
+[2.252s] -- Searching for dependencies of ignition-fuel_tools4
+[2.331s] -- Found CURL: /usr/lib/aarch64-linux-gnu/libcurl.so (found version "7.81.0")  
+[2.352s] -- Checking for module 'jsoncpp'
+[2.361s] --   Found jsoncpp, version 1.9.5
+[2.385s] -- Found JSONCPP: TRUE  
+[2.388s] -- Checking for module 'libzip'
+[2.393s] --   Found libzip, version 1.7.3
+[2.437s] -- Found ZIP: TRUE  
+[2.438s] -- Looking for ignition-common3 -- found version 3.14.0
+[2.438s] -- Looking for ignition-math6 -- found version 6.15.1
+[2.440s] -- Looking for ignition-msgs5 -- found version 5.8.1
+[2.454s] -- Gazebo version: 11.10
+[2.454s] -- Checking for module 'tbb'
+[2.477s] --   Found tbb, version 2021.5.0
+[2.493s] -- Found gazebo_msgs: 3.9.0 (/opt/ros/humble/share/gazebo_msgs/cmake)
+[2.567s] -- Found gazebo_ros: 3.9.0 (/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/share/gazebo_ros/cmake)
+[2.575s] -- Found image_transport: 3.1.12 (/opt/ros/humble/share/image_transport/cmake)
+[2.622s] -- Found cv_bridge: 3.2.1 (/opt/ros/humble/share/cv_bridge/cmake)
+[2.649s] -- Found nav_msgs: 4.9.0 (/opt/ros/humble/share/nav_msgs/cmake)
+[2.682s] -- Found std_srvs: 4.9.0 (/opt/ros/humble/share/std_srvs/cmake)
+[2.705s] -- Found tf2: 0.25.15 (/opt/ros/humble/share/tf2/cmake)
+[2.711s] -- Found tf2_geometry_msgs: 0.25.15 (/opt/ros/humble/share/tf2_geometry_msgs/cmake)
+[2.726s] -- Found eigen3_cmake_module: 0.1.1 (/opt/ros/humble/share/eigen3_cmake_module/cmake)
+[2.728s] -- Found Eigen3: TRUE (found version "3.4.0") 
+[2.728s] -- Ensuring Eigen3 include directory is part of orocos-kdl CMake target
+[2.972s] -- Found ament_cmake_gtest: 1.3.12 (/opt/ros/humble/share/ament_cmake_gtest/cmake)
+[2.980s] -- Found gtest sources under '/opt/ros/humble/src/gtest_vendor': C++ tests using 'Google Test' will be built
+[3.131s] -- Found ament_lint_auto: 0.12.14 (/opt/ros/humble/share/ament_lint_auto/cmake)
+[3.272s] -- Added test 'copyright' to check source files copyright and LICENSE
+[3.276s] -- Added test 'cppcheck' to perform static code analysis on C / C++ code
+[3.279s] -- Configured cppcheck include dirs: /home/eugene/ufactory_ellmer_ws/src/gazebo_ros_pkgs/gazebo_plugins/include
+[3.279s] -- Configured cppcheck exclude dirs and/or files: 
+[3.280s] -- Added test 'flake8' to check Python code syntax and style conventions
+[3.282s] -- Added test 'lint_cmake' to check CMake code style
+[3.283s] -- Added test 'pep257' to check Python code against some of the docstring style conventions in PEP 257
+[3.287s] -- Added test 'uncrustify' to check C / C++ code style
+[3.287s] -- Configured uncrustify additional arguments: 
+[3.287s] -- Added test 'xmllint' to check XML markup files
+[3.289s] -- Configuring done
+[3.955s] -- Generating done
+[4.026s] -- Build files have been written to: /home/eugene/ufactory_ellmer_ws/build/gazebo_plugins
+[4.072s] Invoked command in '/home/eugene/ufactory_ellmer_ws/build/gazebo_plugins' returned '0': AMENT_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros:/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble LD_LIBRARY_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake /home/eugene/ufactory_ellmer_ws/src/gazebo_ros_pkgs/gazebo_plugins -DCMAKE_INSTALL_PREFIX=/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins
+[4.082s] Invoking command in '/home/eugene/ufactory_ellmer_ws/build/gazebo_plugins': AMENT_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros:/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble LD_LIBRARY_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake --build /home/eugene/ufactory_ellmer_ws/build/gazebo_plugins -- -j2 -l2
+[4.144s] [  1%] [32mBuilding CXX object CMakeFiles/gazebo_ros_joint_state_publisher.dir/src/gazebo_ros_joint_state_publisher.cpp.o[0m
+[14.404s] [  2%] [32m[1mLinking CXX shared library libgazebo_ros_joint_state_publisher.so[0m
+[14.746s] [  2%] Built target gazebo_ros_joint_state_publisher
+[14.762s] [  3%] [32mBuilding CXX object CMakeFiles/gazebo_ros_diff_drive.dir/src/gazebo_ros_diff_drive.cpp.o[0m
+[29.248s] [  4%] [32m[1mLinking CXX shared library libgazebo_ros_diff_drive.so[0m
+[29.883s] [  4%] Built target gazebo_ros_diff_drive
+[29.894s] [  5%] [32mBuilding CXX object CMakeFiles/gazebo_ros_force.dir/src/gazebo_ros_force.cpp.o[0m
+[42.558s] [  6%] [32m[1mLinking CXX shared library libgazebo_ros_force.so[0m
+[43.029s] [  6%] Built target gazebo_ros_force
+[43.039s] [  8%] [32mBuilding CXX object CMakeFiles/gazebo_ros_template.dir/src/gazebo_ros_template.cpp.o[0m
+[51.227s] [  9%] [32m[1mLinking CXX shared library libgazebo_ros_template.so[0m
+[51.494s] [  9%] Built target gazebo_ros_template
+[51.516s] [ 10%] [32mBuilding CXX object CMakeFiles/multi_camera_plugin.dir/src/multi_camera_plugin.cpp.o[0m
+[61.881s] [ 11%] [32m[1mLinking CXX shared library libmulti_camera_plugin.so[0m
+[62.038s] [ 11%] Built target multi_camera_plugin
+[62.049s] [ 12%] [32mBuilding CXX object CMakeFiles/gazebo_ros_imu_sensor.dir/src/gazebo_ros_imu_sensor.cpp.o[0m
+[70.119s] [ 13%] [32m[1mLinking CXX shared library libgazebo_ros_imu_sensor.so[0m
+[70.470s] [ 13%] Built target gazebo_ros_imu_sensor
+[70.491s] [ 15%] [32mBuilding CXX object CMakeFiles/gazebo_ros_gps_sensor.dir/src/gazebo_ros_gps_sensor.cpp.o[0m
+[78.423s] [ 16%] [32m[1mLinking CXX shared library libgazebo_ros_gps_sensor.so[0m
+[78.756s] [ 16%] Built target gazebo_ros_gps_sensor
+[78.770s] [ 17%] [32mBuilding CXX object CMakeFiles/gazebo_ros_ray_sensor.dir/src/gazebo_ros_ray_sensor.cpp.o[0m
+[89.349s] [ 18%] [32m[1mLinking CXX shared library libgazebo_ros_ray_sensor.so[0m
+[89.759s] [ 18%] Built target gazebo_ros_ray_sensor
+[89.773s] [ 19%] [32mBuilding CXX object CMakeFiles/gazebo_ros_p3d.dir/src/gazebo_ros_p3d.cpp.o[0m
+[99.512s] [ 20%] [32m[1mLinking CXX shared library libgazebo_ros_p3d.so[0m
+[99.859s] [ 20%] Built target gazebo_ros_p3d
+[99.875s] [ 22%] [32mBuilding CXX object CMakeFiles/gazebo_ros_tricycle_drive.dir/src/gazebo_ros_tricycle_drive.cpp.o[0m
+[119.180s] [ 23%] [32m[1mLinking CXX shared library libgazebo_ros_tricycle_drive.so[0m
+[120.027s] [ 23%] Built target gazebo_ros_tricycle_drive
+[120.043s] [ 24%] [32mBuilding CXX object CMakeFiles/gazebo_ros_video.dir/src/gazebo_ros_video.cpp.o[0m
+[152.281s] [ 25%] [32m[1mLinking CXX shared library libgazebo_ros_video.so[0m
+[152.839s] [ 25%] Built target gazebo_ros_video
+[152.848s] [ 26%] [32mBuilding CXX object CMakeFiles/gazebo_ros_ft_sensor.dir/src/gazebo_ros_ft_sensor.cpp.o[0m
+[161.534s] [ 27%] [32m[1mLinking CXX shared library libgazebo_ros_ft_sensor.so[0m
+[162.060s] [ 27%] Built target gazebo_ros_ft_sensor
+[162.069s] [ 29%] [32mBuilding CXX object CMakeFiles/gazebo_ros_bumper.dir/src/gazebo_ros_bumper.cpp.o[0m
+[171.341s] [ 30%] [32m[1mLinking CXX shared library libgazebo_ros_bumper.so[0m
+[171.951s] [ 30%] Built target gazebo_ros_bumper
+[171.961s] [ 31%] [32mBuilding CXX object CMakeFiles/gazebo_ros_harness.dir/src/gazebo_ros_harness.cpp.o[0m
+[184.505s] [ 32%] [32m[1mLinking CXX shared library libgazebo_ros_harness.so[0m
+[185.053s] [ 32%] Built target gazebo_ros_harness
+[185.062s] [ 33%] [32mBuilding CXX object CMakeFiles/gazebo_ros_hand_of_god.dir/src/gazebo_ros_hand_of_god.cpp.o[0m
+[193.302s] [ 34%] [32m[1mLinking CXX shared library libgazebo_ros_hand_of_god.so[0m
+[193.676s] [ 34%] Built target gazebo_ros_hand_of_god
+[193.686s] [ 36%] [32mBuilding CXX object CMakeFiles/gazebo_ros_ackermann_drive.dir/src/gazebo_ros_ackermann_drive.cpp.o[0m
+[210.736s] [ 37%] [32m[1mLinking CXX shared library libgazebo_ros_ackermann_drive.so[0m
+[211.358s] [ 37%] Built target gazebo_ros_ackermann_drive
+[211.367s] [ 38%] [32mBuilding CXX object CMakeFiles/gazebo_ros_elevator.dir/src/gazebo_ros_elevator.cpp.o[0m
+[220.871s] [ 39%] [32m[1mLinking CXX shared library libgazebo_ros_elevator.so[0m
+[221.318s] [ 39%] Built target gazebo_ros_elevator
+[221.332s] [ 40%] [32mBuilding CXX object CMakeFiles/gazebo_ros_vacuum_gripper.dir/src/gazebo_ros_vacuum_gripper.cpp.o[0m
+[231.723s] [ 41%] [32m[1mLinking CXX shared library libgazebo_ros_vacuum_gripper.so[0m
+[232.059s] [ 41%] Built target gazebo_ros_vacuum_gripper
+[232.068s] [ 43%] [32mBuilding CXX object CMakeFiles/gazebo_ros_joint_pose_trajectory.dir/src/gazebo_ros_joint_pose_trajectory.cpp.o[0m
+[244.454s] [ 44%] [32m[1mLinking CXX shared library libgazebo_ros_joint_pose_trajectory.so[0m
+[244.983s] [ 44%] Built target gazebo_ros_joint_pose_trajectory
+[244.992s] [ 45%] [32mBuilding CXX object CMakeFiles/gazebo_ros_planar_move.dir/src/gazebo_ros_planar_move.cpp.o[0m
+[261.306s] [ 46%] [32m[1mLinking CXX shared library libgazebo_ros_planar_move.so[0m
+[261.942s] [ 46%] Built target gazebo_ros_planar_move
+[261.954s] [ 47%] [32mBuilding CXX object CMakeFiles/gazebo_ros_projector.dir/src/gazebo_ros_projector.cpp.o[0m
+[278.350s] [ 48%] [32m[1mLinking CXX shared library libgazebo_ros_projector.so[0m
+[278.877s] [ 48%] Built target gazebo_ros_projector
+[278.886s] [ 50%] [32mBuilding CXX object CMakeFiles/gazebo_ros_wheel_slip.dir/src/gazebo_ros_wheel_slip.cpp.o[0m
+[295.066s] [ 51%] [32m[1mLinking CXX shared library libgazebo_ros_wheel_slip.so[0m
+[295.617s] [ 51%] Built target gazebo_ros_wheel_slip
+[295.631s] [ 52%] [32mBuilding CXX object gtest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o[0m
+[295.972s] [ 53%] [32m[1mLinking CXX static library libgtest_main.a[0m
+[295.990s] [ 53%] Built target gtest_main
+[295.998s] [ 54%] [32mBuilding CXX object gtest/CMakeFiles/gtest.dir/src/gtest-all.cc.o[0m
+[297.393s] [ 55%] [32m[1mLinking CXX static library libgtest.a[0m
+[297.426s] [ 55%] Built target gtest
+[297.436s] [ 56%] [32mBuilding CXX object CMakeFiles/gazebo_ros_camera.dir/src/gazebo_ros_camera.cpp.o[0m
+[325.885s] [ 58%] [32m[1mLinking CXX shared library libgazebo_ros_camera.so[0m
+[326.589s] [ 58%] Built target gazebo_ros_camera
+[326.599s] [ 59%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_ackermann_drive.dir/test_gazebo_ros_ackermann_drive.cpp.o[0m
+[358.007s] [ 60%] [32m[1mLinking CXX executable test_gazebo_ros_ackermann_drive[0m
+[359.630s] [ 60%] Built target test_gazebo_ros_ackermann_drive
+[359.641s] [ 61%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_bumper.dir/test_gazebo_ros_bumper.cpp.o[0m
+[381.496s] [ 62%] [32m[1mLinking CXX executable test_gazebo_ros_bumper[0m
+[382.543s] [ 62%] Built target test_gazebo_ros_bumper
+[382.561s] [ 63%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_diff_drive.dir/test_gazebo_ros_diff_drive.cpp.o[0m
+[412.871s] [ 65%] [32m[1mLinking CXX executable test_gazebo_ros_diff_drive[0m
+[414.182s] [ 65%] Built target test_gazebo_ros_diff_drive
+[414.194s] [ 66%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_elevator.dir/test_gazebo_ros_elevator.cpp.o[0m
+[435.145s] [ 67%] [32m[1mLinking CXX executable test_gazebo_ros_elevator[0m
+[436.218s] [ 67%] Built target test_gazebo_ros_elevator
+[436.237s] [ 68%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_force.dir/test_gazebo_ros_force.cpp.o[0m
+[457.849s] [ 69%] [32m[1mLinking CXX executable test_gazebo_ros_force[0m
+[458.812s] [ 69%] Built target test_gazebo_ros_force
+[458.823s] [ 70%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_ft_sensor.dir/test_gazebo_ros_ft_sensor.cpp.o[0m
+[486.382s] [ 72%] [32m[1mLinking CXX executable test_gazebo_ros_ft_sensor[0m
+[487.396s] [ 72%] Built target test_gazebo_ros_ft_sensor
+[487.407s] [ 73%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_hand_of_god.dir/test_gazebo_ros_hand_of_god.cpp.o[0m
+[510.667s] [ 74%] [32m[1mLinking CXX executable test_gazebo_ros_hand_of_god[0m
+[511.680s] [ 74%] Built target test_gazebo_ros_hand_of_god
+[511.696s] [ 75%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_harness.dir/test_gazebo_ros_harness.cpp.o[0m
+[539.704s] [ 76%] [32m[1mLinking CXX executable test_gazebo_ros_harness[0m
+[540.887s] [ 76%] Built target test_gazebo_ros_harness
+[540.902s] [ 77%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_imu_sensor.dir/test_gazebo_ros_imu_sensor.cpp.o[0m
+[576.577s] [ 79%] [32m[1mLinking CXX executable test_gazebo_ros_imu_sensor[0m
+[577.601s] [ 79%] Built target test_gazebo_ros_imu_sensor
+[577.613s] [ 80%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_gps_sensor.dir/test_gazebo_ros_gps_sensor.cpp.o[0m
+[608.580s] [ 81%] [32m[1mLinking CXX executable test_gazebo_ros_gps_sensor[0m
+[610.125s] [ 81%] Built target test_gazebo_ros_gps_sensor
+[610.160s] [ 82%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_joint_pose_trajectory.dir/test_gazebo_ros_joint_pose_trajectory.cpp.o[0m
+[634.754s] [ 83%] [32m[1mLinking CXX executable test_gazebo_ros_joint_pose_trajectory[0m
+[635.817s] [ 83%] Built target test_gazebo_ros_joint_pose_trajectory
+[635.828s] [ 84%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_joint_state_publisher.dir/test_gazebo_ros_joint_state_publisher.cpp.o[0m
+[661.268s] [ 86%] [32m[1mLinking CXX executable test_gazebo_ros_joint_state_publisher[0m
+[662.350s] [ 86%] Built target test_gazebo_ros_joint_state_publisher
+[662.363s] [ 87%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_p3d.dir/test_gazebo_ros_p3d.cpp.o[0m
+[690.145s] [ 88%] [32m[1mLinking CXX executable test_gazebo_ros_p3d[0m
+[691.545s] [ 88%] Built target test_gazebo_ros_p3d
+[691.558s] [ 89%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_planar_move.dir/test_gazebo_ros_planar_move.cpp.o[0m
+[720.817s] [ 90%] [32m[1mLinking CXX executable test_gazebo_ros_planar_move[0m
+[721.904s] [ 90%] Built target test_gazebo_ros_planar_move
+[721.922s] [ 91%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_ray_sensor.dir/test_gazebo_ros_ray_sensor.cpp.o[0m
+[757.694s] [ 93%] [32m[1mLinking CXX executable test_gazebo_ros_ray_sensor[0m
+[760.059s] [ 93%] Built target test_gazebo_ros_ray_sensor
+[760.077s] [ 94%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_tricycle_drive.dir/test_gazebo_ros_tricycle_drive.cpp.o[0m
+[784.060s] [ 95%] [32m[1mLinking CXX executable test_gazebo_ros_tricycle_drive[0m
+[785.368s] [ 95%] Built target test_gazebo_ros_tricycle_drive
+[785.378s] [ 96%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_vacuum_gripper.dir/test_gazebo_ros_vacuum_gripper.cpp.o[0m
+[804.154s] [ 97%] [32m[1mLinking CXX executable test_gazebo_ros_vacuum_gripper[0m
+[805.067s] [ 97%] Built target test_gazebo_ros_vacuum_gripper
+[805.081s] [ 98%] [32mBuilding CXX object test/CMakeFiles/test_gazebo_ros_wheelslip.dir/test_gazebo_ros_wheelslip.cpp.o[0m
+[831.984s] [100%] [32m[1mLinking CXX executable test_gazebo_ros_wheelslip[0m
+[833.332s] [100%] Built target test_gazebo_ros_wheelslip
+[833.414s] Invoked command in '/home/eugene/ufactory_ellmer_ws/build/gazebo_plugins' returned '0': AMENT_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros:/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble LD_LIBRARY_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake --build /home/eugene/ufactory_ellmer_ws/build/gazebo_plugins -- -j2 -l2
+[833.432s] Invoking command in '/home/eugene/ufactory_ellmer_ws/build/gazebo_plugins': AMENT_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros:/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble LD_LIBRARY_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake --install /home/eugene/ufactory_ellmer_ws/build/gazebo_plugins
+[833.448s] -- Install configuration: ""
+[833.457s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/environment/library_path.sh
+[833.458s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/environment/library_path.dsv
+[833.458s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/environment/gazebo_plugins.sh
+[833.459s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/environment/gazebo_plugins.dsv
+[833.459s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/ament_index/resource_index/package_run_dependencies/gazebo_plugins
+[833.460s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/ament_index/resource_index/parent_prefix_path/gazebo_plugins
+[833.462s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/environment/ament_prefix_path.sh
+[833.462s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/environment/ament_prefix_path.dsv
+[833.462s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/environment/path.sh
+[833.463s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/environment/path.dsv
+[833.463s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/local_setup.bash
+[833.463s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/local_setup.sh
+[833.463s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/local_setup.zsh
+[833.463s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/local_setup.dsv
+[833.463s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/package.dsv
+[833.464s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/ament_index/resource_index/packages/gazebo_plugins
+[833.464s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/cmake/ament_cmake_export_libraries-extras.cmake
+[833.464s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/cmake/ament_cmake_export_include_directories-extras.cmake
+[833.464s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/cmake/ament_cmake_export_dependencies-extras.cmake
+[833.464s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/cmake/gazebo_pluginsConfig.cmake
+[833.465s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/cmake/gazebo_pluginsConfig-version.cmake
+[833.465s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins/package.xml
+[833.465s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include
+[833.465s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins
+[833.465s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_planar_move.hpp
+[833.466s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_joint_state_publisher.hpp
+[833.466s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_vacuum_gripper.hpp
+[833.466s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_video.hpp
+[833.466s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_tricycle_drive.hpp
+[833.466s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_harness.hpp
+[833.466s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_force.hpp
+[833.467s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_hand_of_god.hpp
+[833.467s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_elevator.hpp
+[833.467s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_diff_drive.hpp
+[833.467s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_p3d.hpp
+[833.468s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_imu_sensor.hpp
+[833.468s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_camera.hpp
+[833.468s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_ft_sensor.hpp
+[833.468s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_gps_sensor.hpp
+[833.468s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_projector.hpp
+[833.468s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_template.hpp
+[833.468s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_joint_pose_trajectory.hpp
+[833.468s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_ray_sensor.hpp
+[833.469s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/multi_camera_plugin.hpp
+[833.469s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_bumper.hpp
+[833.469s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_wheel_slip.hpp
+[833.469s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/include/gazebo_plugins/gazebo_ros_ackermann_drive.hpp
+[833.469s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_ackermann_drive.so
+[833.480s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_ackermann_drive.so" to ""
+[833.480s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_bumper.so
+[833.486s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_bumper.so" to ""
+[833.486s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_camera.so
+[833.529s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_camera.so" to ""
+[833.529s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_diff_drive.so
+[833.547s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_diff_drive.so" to ""
+[833.547s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_elevator.so
+[833.557s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_elevator.so" to ""
+[833.557s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_force.so
+[833.574s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_force.so" to ""
+[833.575s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_ft_sensor.so
+[833.583s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_ft_sensor.so" to ""
+[833.583s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_hand_of_god.so
+[833.592s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_hand_of_god.so" to ""
+[833.592s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_harness.so
+[833.620s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_harness.so" to ""
+[833.620s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_imu_sensor.so
+[833.625s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_imu_sensor.so" to ""
+[833.625s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_gps_sensor.so
+[833.632s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_gps_sensor.so" to ""
+[833.633s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_joint_pose_trajectory.so
+[833.653s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_joint_pose_trajectory.so" to ""
+[833.653s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_joint_state_publisher.so
+[833.666s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_joint_state_publisher.so" to ""
+[833.666s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_planar_move.so
+[833.690s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_planar_move.so" to ""
+[833.690s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_projector.so
+[833.702s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_projector.so" to ""
+[833.702s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_ray_sensor.so
+[833.717s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_ray_sensor.so" to ""
+[833.718s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_p3d.so
+[833.724s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_p3d.so" to ""
+[833.724s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_template.so
+[833.728s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_template.so" to ""
+[833.728s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_tricycle_drive.so
+[833.766s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_tricycle_drive.so" to ""
+[833.766s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_vacuum_gripper.so
+[833.779s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_vacuum_gripper.so" to ""
+[833.779s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_video.so
+[833.818s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_video.so" to ""
+[833.819s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libmulti_camera_plugin.so
+[833.825s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libmulti_camera_plugin.so" to ""
+[833.825s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_wheel_slip.so
+[833.873s] -- Set runtime path of "/home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/libgazebo_ros_wheel_slip.so" to ""
+[833.874s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/lib/gazebo_plugins/wheel_slip_drawbar_pull_publisher.py
+[833.877s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds
+[833.877s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_multicamera_demo.world
+[833.881s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_camera_demo.world
+[833.881s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_joint_pose_trajectory_demo.world
+[833.882s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_skid_steer_drive_demo.world
+[833.882s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_force_demo.world
+[833.882s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_tricycle_drive_demo.world
+[833.883s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_joint_state_publisher_demo.world
+[833.883s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_camera_distortion_pincushion_demo.world
+[833.883s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_ackermann_drive_demo.world
+[833.886s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_wheel_slip_drawbar_pull_demo.world
+[833.886s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_gps_sensor_demo.world
+[833.886s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_vacuum_gripper_demo.world
+[833.886s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_multi_camera_demo.world
+[833.887s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_harness_demo.world
+[833.887s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_ft_sensor_demo.world
+[833.888s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_hand_of_god_demo.world
+[833.888s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_video_demo.world
+[833.888s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_p3d_demo.world
+[833.888s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_template_demo.world
+[833.889s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_elevator_demo.world
+[833.889s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_camera_triggered_demo.world
+[833.889s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_wheel_slip_demo.world
+[833.889s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_depth_camera_demo.world
+[833.889s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_ray_sensor_demo.world
+[833.890s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_diff_drive_demo.world
+[833.890s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_planar_move_demo.world
+[833.890s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_camera_distortion_barrel_demo.world
+[833.891s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_projector_demo.world
+[833.891s] -- Installing: /home/eugene/ufactory_ellmer_ws/install/gazebo_plugins/share/gazebo_plugins//worlds/gazebo_ros_bumper_demo.world
+[833.900s] Invoked command in '/home/eugene/ufactory_ellmer_ws/build/gazebo_plugins' returned '0': AMENT_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros:/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble LD_LIBRARY_PATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/eugene/ufactory_ellmer_ws/install/gazebo_ros/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake --install /home/eugene/ufactory_ellmer_ws/build/gazebo_plugins

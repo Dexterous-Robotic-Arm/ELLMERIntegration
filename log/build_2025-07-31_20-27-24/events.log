@@ -1,0 +1,74 @@
+[0.000000] (-) TimerEvent: {}
+[0.000600] (-) JobUnselected: {'identifier': 'd435i_xarm_setup'}
+[0.000671] (-) JobUnselected: {'identifier': 'gazebo_dev'}
+[0.000742] (-) JobUnselected: {'identifier': 'gazebo_msgs'}
+[0.000992] (-) JobUnselected: {'identifier': 'gazebo_plugins'}
+[0.001065] (-) JobUnselected: {'identifier': 'gazebo_ros'}
+[0.001132] (-) JobUnselected: {'identifier': 'gazebo_ros_pkgs'}
+[0.001197] (-) JobUnselected: {'identifier': 'gen3_lite_gen3_lite_2f_move_it_config'}
+[0.001333] (-) JobUnselected: {'identifier': 'gen3_move_it_config'}
+[0.001393] (-) JobUnselected: {'identifier': 'gen3_robotiq_2f_140_move_it_config'}
+[0.001436] (-) JobUnselected: {'identifier': 'gen3_robotiq_2f_85_move_it_config'}
+[0.001478] (-) JobUnselected: {'identifier': 'kortex_control'}
+[0.001519] (-) JobUnselected: {'identifier': 'kortex_description'}
+[0.001580] (-) JobUnselected: {'identifier': 'kortex_driver'}
+[0.001698] (-) JobUnselected: {'identifier': 'kortex_gazebo'}
+[0.001821] (-) JobUnselected: {'identifier': 'kortex_move_it_config'}
+[0.002065] (-) JobUnselected: {'identifier': 'mbot_demo'}
+[0.002290] (-) JobUnselected: {'identifier': 'netft_rdt_driver'}
+[0.002356] (-) JobUnselected: {'identifier': 'realsense_gazebo_plugin'}
+[0.002665] (-) JobUnselected: {'identifier': 'robotiq_2f_140_gripper_visualization'}
+[0.003161] (-) JobUnselected: {'identifier': 'robotiq_2f_85_gripper_visualization'}
+[0.003479] (-) JobUnselected: {'identifier': 'robotiq_2f_gripper_control'}
+[0.003538] (-) JobUnselected: {'identifier': 'robotiq_2f_gripper_msgs'}
+[0.003787] (-) JobUnselected: {'identifier': 'robotiq_ethercat'}
+[0.003845] (-) JobUnselected: {'identifier': 'robotiq_modbus_rtu'}
+[0.004744] (-) JobUnselected: {'identifier': 'robotiq_vacuum_gripper_description'}
+[0.004817] (-) JobUnselected: {'identifier': 'robotiq_vacuum_grippers_control'}
+[0.005199] (-) JobUnselected: {'identifier': 'third_party'}
+[0.005336] (-) JobUnselected: {'identifier': 'uf_ros_lib'}
+[0.005484] (-) JobUnselected: {'identifier': 'ufactory_ellmer_msgs'}
+[0.006608] (-) JobUnselected: {'identifier': 'xarm_api'}
+[0.006619] (-) JobUnselected: {'identifier': 'xarm_controller'}
+[0.006626] (-) JobUnselected: {'identifier': 'xarm_description'}
+[0.006633] (-) JobUnselected: {'identifier': 'xarm_gazebo'}
+[0.006640] (-) JobUnselected: {'identifier': 'xarm_moveit_config'}
+[0.006647] (-) JobUnselected: {'identifier': 'xarm_moveit_servo'}
+[0.006654] (-) JobUnselected: {'identifier': 'xarm_msgs'}
+[0.006661] (-) JobUnselected: {'identifier': 'xarm_planner'}
+[0.006668] (-) JobUnselected: {'identifier': 'xarm_sdk'}
+[0.006677] (kortex_examples) JobQueued: {'identifier': 'kortex_examples', 'dependencies': OrderedDict([('ufactory_ellmer_msgs', '/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs')])}
+[0.006696] (kortex_examples) JobStarted: {'identifier': 'kortex_examples'}
+[0.100027] (-) TimerEvent: {}
+[0.200866] (-) TimerEvent: {}
+[0.301941] (-) TimerEvent: {}
+[0.402278] (-) TimerEvent: {}
+[0.468457] (kortex_examples) Command: {'cmd': ['/usr/bin/python3', '-W', 'ignore:setup.py install is deprecated', '-W', 'ignore:easy_install command is deprecated', 'setup.py', 'egg_info', '--egg-base', '../../../../build/kortex_examples', 'build', '--build-base', '/home/eugene/ufactory_ellmer_ws/build/kortex_examples/build', 'install', '--record', '/home/eugene/ufactory_ellmer_ws/build/kortex_examples/install.log', '--single-version-externally-managed', 'install_data'], 'cwd': '/home/eugene/ufactory_ellmer_ws/src/ELLMER/ros_kortex/kortex_examples', 'env': {'GJS_DEBUG_TOPICS': 'JS ERROR;JS LOG', 'LESSOPEN': '| /usr/bin/lesspipe %s', 'USER': 'eugene', 'XDG_SESSION_TYPE': 'wayland', 'GIT_ASKPASS': '/usr/share/code/resources/app/extensions/git/dist/askpass.sh', 'SHLVL': '1', 'LD_LIBRARY_PATH': '/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib', 'HOME': '/home/eugene', 'CHROME_DESKTOP': 'code.desktop', 'TERM_PROGRAM_VERSION': '1.102.3', 'DESKTOP_SESSION': 'ubuntu', 'GIO_LAUNCHED_DESKTOP_FILE': '/usr/share/applications/code.desktop', 'ROS_PYTHON_VERSION': '3', 'GNOME_SHELL_SESSION_MODE': 'ubuntu', 'GTK_MODULES': 'gail:atk-bridge', 'VSCODE_GIT_ASKPASS_MAIN': '/usr/share/code/resources/app/extensions/git/dist/askpass-main.js', 'VSCODE_GIT_ASKPASS_NODE': '/usr/share/code/code', 'MANAGERPID': '2615', 'PYDEVD_DISABLE_FILE_VALIDATION': '1', 'SYSTEMD_EXEC_PID': '2722', 'BUNDLED_DEBUGPY_PATH': '/home/eugene/.vscode/extensions/ms-python.debugpy-2025.10.0-linux-arm64/bundled/libs/debugpy', 'IM_CONFIG_CHECK_ENV': '1', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'COLORTERM': 'truecolor', 'GIO_LAUNCHED_DESKTOP_FILE_PID': '3188', 'IM_CONFIG_PHASE': '1', 'WAYLAND_DISPLAY': 'wayland-0', 'COLCON_PREFIX_PATH': '/home/eugene/ufactory_ellmer_ws/install', 'ROS_DISTRO': 'humble', 'LOGNAME': 'eugene', 'JOURNAL_STREAM': '8:31234', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'XDG_SESSION_CLASS': 'user', 'USERNAME': 'eugene', 'TERM': 'xterm-256color', 'GNOME_DESKTOP_SESSION_ID': 'this-is-deprecated', 'ROS_LOCALHOST_ONLY': '0', 'PATH': '/home/eugene/ufactory_ellmer_ws/install/kortex_examples/bin:/home/eugene/.local/bin:/opt/ros/humble/bin:/home/eugene/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/home/eugene/.vscode/extensions/ms-python.debugpy-2025.10.0-linux-arm64/bundled/scripts/noConfigScripts:/home/eugene/.config/Code/User/globalStorage/github.copilot-chat/debugCommand', 'SESSION_MANAGER': 'local/eugene:@/tmp/.ICE-unix/2698,unix/eugene:/tmp/.ICE-unix/2698', 'INVOCATION_ID': '6de02b2cc41b4cb19454daae2b13be7b', 'XDG_MENU_PREFIX': 'gnome-', 'GNOME_SETUP_DISPLAY': ':1', 'XDG_RUNTIME_DIR': '/run/user/1000', 'GDK_BACKEND': 'x11', 'DISPLAY': ':0', 'VSCODE_DEBUGPY_ADAPTER_ENDPOINTS': '/home/eugene/.vscode/extensions/ms-python.debugpy-2025.10.0-linux-arm64/.noConfigDebugAdapterEndpoints/endpoint-3cc40f26d82751b3.txt', 'LANG': 'en_US.UTF-8', 'XDG_CURRENT_DESKTOP': 'Unity', 'XMODIFIERS': '@im=ibus', 'XDG_SESSION_DESKTOP': 'ubuntu', 'XAUTHORITY': '/run/user/1000/.mutter-Xwaylandauth.W8N692', 'LS_COLORS': 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:', 'VSCODE_GIT_IPC_HANDLE': '/run/user/1000/vscode-git-44b40e2f26.sock', 'TERM_PROGRAM': 'vscode', 'SSH_AGENT_LAUNCHER': 'gnome-keyring', 'SSH_AUTH_SOCK': '/run/user/1000/keyring/ssh', 'AMENT_PREFIX_PATH': '/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs:/opt/ros/humble', 'ORIGINAL_XDG_CURRENT_DESKTOP': 'ubuntu:GNOME', 'SHELL': '/bin/bash', 'QT_ACCESSIBILITY': '1', 'GDMSESSION': 'ubuntu', 'LESSCLOSE': '/usr/bin/lesspipe %s %s', 'GJS_DEBUG_OUTPUT': 'stderr', 'VSCODE_GIT_ASKPASS_EXTRA_ARGS': '', 'QT_IM_MODULE': 'ibus', 'PWD': '/home/eugene/ufactory_ellmer_ws/build/kortex_examples', 'LC_ALL': 'en_US.UTF-8', 'XDG_CONFIG_DIRS': '/etc/xdg/xdg-ubuntu:/etc/xdg', 'XDG_DATA_DIRS': '/usr/share/ubuntu:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop', 'PYTHONPATH': '/home/eugene/ufactory_ellmer_ws/build/kortex_examples/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages:/home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages:/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs/local/lib/python3.10/dist-packages:/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages', 'COLCON': '1', 'CMAKE_PREFIX_PATH': '/home/eugene/ufactory_ellmer_ws/install/ufactory_ellmer_msgs', 'GOOGLE_API_KEY': 'AIzaSyBVTtIECu5DbGyONas6MlcPyWEIzRPStMg'}, 'shell': False}
+[0.502459] (-) TimerEvent: {}
+[0.602925] (-) TimerEvent: {}
+[0.655471] (kortex_examples) StdoutLine: {'line': b'running egg_info\n'}
+[0.655939] (kortex_examples) StdoutLine: {'line': b'writing ../../../../build/kortex_examples/kortex_examples.egg-info/PKG-INFO\n'}
+[0.655995] (kortex_examples) StdoutLine: {'line': b'writing dependency_links to ../../../../build/kortex_examples/kortex_examples.egg-info/dependency_links.txt\n'}
+[0.656762] (kortex_examples) StdoutLine: {'line': b'writing entry points to ../../../../build/kortex_examples/kortex_examples.egg-info/entry_points.txt\n'}
+[0.656786] (kortex_examples) StdoutLine: {'line': b'writing requirements to ../../../../build/kortex_examples/kortex_examples.egg-info/requires.txt\n'}
+[0.656810] (kortex_examples) StdoutLine: {'line': b'writing top-level names to ../../../../build/kortex_examples/kortex_examples.egg-info/top_level.txt\n'}
+[0.657000] (kortex_examples) StdoutLine: {'line': b"reading manifest file '../../../../build/kortex_examples/kortex_examples.egg-info/SOURCES.txt'\n"}
+[0.657496] (kortex_examples) StdoutLine: {'line': b"writing manifest file '../../../../build/kortex_examples/kortex_examples.egg-info/SOURCES.txt'\n"}
+[0.657570] (kortex_examples) StdoutLine: {'line': b'running build\n'}
+[0.657595] (kortex_examples) StdoutLine: {'line': b'running build_py\n'}
+[0.657796] (kortex_examples) StdoutLine: {'line': b'copying src/kortex_examples/ELLMER/robot_brain.py -> /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER\n'}
+[0.658093] (kortex_examples) StdoutLine: {'line': b'running install\n'}
+[0.658223] (kortex_examples) StdoutLine: {'line': b'running install_lib\n'}
+[0.658619] (kortex_examples) StdoutLine: {'line': b'copying /home/eugene/ufactory_ellmer_ws/build/kortex_examples/build/lib/kortex_examples/ELLMER/robot_brain.py -> /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER\n'}
+[0.659123] (kortex_examples) StdoutLine: {'line': b'byte-compiling /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples/ELLMER/robot_brain.py to robot_brain.cpython-310.pyc\n'}
+[0.660341] (kortex_examples) StdoutLine: {'line': b'running install_data\n'}
+[0.660395] (kortex_examples) StdoutLine: {'line': b'running install_egg_info\n'}
+[0.660791] (kortex_examples) StdoutLine: {'line': b"removing '/home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples-2.2.2-py3.10.egg-info' (and everything under it)\n"}
+[0.661023] (kortex_examples) StdoutLine: {'line': b'Copying ../../../../build/kortex_examples/kortex_examples.egg-info to /home/eugene/ufactory_ellmer_ws/install/kortex_examples/lib/python3.10/site-packages/kortex_examples-2.2.2-py3.10.egg-info\n'}
+[0.661358] (kortex_examples) StdoutLine: {'line': b'running install_scripts\n'}
+[0.672746] (kortex_examples) StdoutLine: {'line': b'Installing motion_bridge script to /home/eugene/ufactory_ellmer_ws/install/kortex_examples/bin\n'}
+[0.673032] (kortex_examples) StdoutLine: {'line': b'Installing robot_brain script to /home/eugene/ufactory_ellmer_ws/install/kortex_examples/bin\n'}
+[0.673134] (kortex_examples) StdoutLine: {'line': b"writing list of installed files to '/home/eugene/ufactory_ellmer_ws/build/kortex_examples/install.log'\n"}
+[0.690172] (kortex_examples) CommandEnded: {'returncode': 0}
+[0.696114] (kortex_examples) JobEnded: {'identifier': 'kortex_examples', 'rc': 0}
+[0.696886] (-) EventReactorShutdown: {}

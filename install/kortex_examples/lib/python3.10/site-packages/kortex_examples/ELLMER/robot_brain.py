@@ -1,152 +1,88 @@
 #!/usr/bin/env python3
-import rospy
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy
+from std_msgs.msg import String, Float32MultiArray
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+from ufactory_ellmer_msgs.msg import TargetCoordinatesArray
+from kortex_examples.ELLMER.llm_interface import call_llm
 
-from kortex_driver.srv import *
-from kortex_driver.msg import *
-from std_msgs.msg import String
-
-from base import ExampleMoveItTrajectories
-import numpy as np
-
-from kortex_driver.srv import *
-from kortex_driver.msg import *
-from geometry_msgs.msg import WrenchStamped
-
-import rospy
-import requests
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-from action_execution import *
-from std_msgs.msg import Float32MultiArray
-
-class Brain:
-    
+class RobotBrain(Node):
     def __init__(self):
-        self.robot = ExampleMoveItTrajectories()
-        self.eef_pose = None
-        self.objects_positions = None
-        self.object_labels = ["red cup"]
+        super().__init__('robot_brain')
 
-        self.current_pose = None
+        # — State —
+        self.latest_joints = [0.0]*6
+        self.objects = []  # always set to a list
 
-        self.class_publisher = rospy.Publisher('/update_classes', String, queue_size=10)
+        # — Trajectory publisher —
+        self.traj_pub = self.create_publisher(
+            JointTrajectory,
+            '/ufactory/joint_trajectory_controller/joint_trajectory',
+            10
+        )
 
-        history_size = 40
-        self.history_size = history_size
-        self.force_history_x = np.zeros(history_size)
-        self.force_history_y = np.zeros(history_size)
-        self.force_history_z = np.zeros(history_size)
+        # — Joint feedback subscriber —
+        self.create_subscription(
+            Float32MultiArray,
+            '/ufactory/joint_feedback',
+            self.joints_cb,
+            10
+        )
 
-        self.rotational_matrix = None
-        self.objects = None
-        self.avg_force_y = None
+        # — User command subscriber —
+        self.create_subscription(
+            String,
+            '/user_command',
+            self.command_cb,
+            10
+        )
 
+        # — Object‐position subscriber with transient‐local QoS —
+        qos = QoSProfile(
+            depth=1,
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL
+        )
+        self.create_subscription(
+            TargetCoordinatesArray,
+            '/target_coordinates',
+            self.targets_cb,
+            qos_profile=qos
+        )
 
-    def update_classes(self, updated_classes=["red cup"]):
-        self.object_labels = updated_classes 
-        classes_str = ", ".join(updated_classes)
-        rospy.set_param('/classes', updated_classes)
-        rospy.loginfo(classes_str)
-        self.class_publisher.publish(classes_str)
+        # — Periodically re‐print what we have —
+        self.create_timer(1.0, self._debug_objects)
 
+        self.get_logger().info('RobotBrain ready, waiting for /user_command and /target_coordinates')
 
-    def rotation_matrix_callback(self, msg):
-        flat_matrix = msg.data
-        dim = int(np.sqrt(len(flat_matrix)))
-        self.rotation_matrix = np.array(flat_matrix).reshape(dim, dim)
+    def joints_cb(self, msg: Float32MultiArray):
+        if len(msg.data) >= 6:
+            self.latest_joints = list(msg.data[:6])
 
-    def target_coordinates_callback(self, data):
-        coordinates_list = []
-        for coord in data.targetcoordinates:
-            coordinates_list.append([coord.x, coord.y, coord.z])
-        
-        target_positions = np.array(coordinates_list)
-        target_positions_labeled = {label: position for label, position in zip(self.object_labels, target_positions)}
-        self.objects = target_positions_labeled
+    def targets_cb(self, msg: TargetCoordinatesArray):
+        self.objects = [
+            [t.position.x, t.position.y, t.position.z]
+            for t in msg.targets
+        ]
+        self.get_logger().info(f"[targets_cb] got {len(self.objects)} object(s): {self.objects}")
 
+    def _debug_objects(self):
+        # this will print every second so you can watch self.objects change
+        self.get_logger().info(f"[DEBUG] current objects list: {self.objects}")
 
-    def EEF_pose_callback(self, data):
+    def command_cb(self, msg: String):
+        # ... your existing planning & publishing logic ...
+        pass
 
-        self.eef_pose = {
-            "x": data.base.commanded_tool_pose_x,
-            "y": data.base.commanded_tool_pose_y,
-            "z": data.base.commanded_tool_pose_z,
-            "theta_x": data.base.commanded_tool_pose_theta_x,
-            "theta_y": data.base.commanded_tool_pose_theta_y,
-            "theta_z": data.base.commanded_tool_pose_theta_z
-        }
+def main(args=None):
+    rclpy.init(args=args)
+    node = RobotBrain()
+    try:
+        rclpy.spin(node)
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
-        self.current_pose = [self.eef_pose["x"], self.eef_pose["y"], self.eef_pose["z"], \
-                        self.eef_pose["theta_x"], self.eef_pose["theta_y"], self.eef_pose["theta_z"]]
-        self.current_position = self.current_pose[:3]
-
-    
-
-    def global_force_callback(self, data_global):
-        # Shift history and add the newest data point at the end for each component
-
-        self.wrench_global = data_global.wrench
-
-        self.force_history_x = np.roll(self.force_history_x, -1)
-        self.force_history_y = np.roll(self.force_history_y, -1)
-        self.force_history_z = np.roll(self.force_history_z, -1)
-
-        self.force_history_x[-1] = data_global.wrench.force.x
-        self.force_history_y[-1] = data_global.wrench.force.y
-        self.force_history_z[-1] = data_global.wrench.force.z
-
-        self.avg_force_x = np.mean(self.force_history_x)
-        self.avg_force_y = np.mean(self.force_history_y)
-        self.avg_force_z = np.mean(self.force_history_z)
-
-        self.force_up = self.avg_force_y
-
-
-    def fetch_action(self):
-        """Fetches an action (code snippet) from the Flask server and returns it."""
-        response = requests.get('https://kinovaapi.com/get_action', verify=False)
-        if response.status_code == 200:
-            action_code = response.json()
-            return action_code
-        return None
-
-    def action_listener(self):
-        """Executes commands based on the fetched action code in a safe, controlled environment."""
-        rate = rospy.Rate(2)
-        print('listening')
-        while not rospy.is_shutdown():
-            action_code = self.fetch_action()
-            if action_code:
-                action = action_code.get('action')
-                print(f'action {action}')
-                if action['type'] == 'run_code':
-                    code_str = action['payload'].get('code') 
-                    print(code_str)
-                    run_with_timeout(self, code_str)
-
-            rate.sleep()
-    
-
-interface = Brain()
-
-# interface.robot.example_send_gripper_open()
-# interface.robot.reach_named_position("home")
-# interface.robot.reach_named_position("home")
-# rospy.sleep(0.5)
-# interface.robot.example_send_gripper_close(force=1)
-
-rospy.Subscriber("/my_gen3/base_feedback", BaseCyclic_Feedback, interface.EEF_pose_callback)
-rospy.Subscriber('/my_gen3/global_force', WrenchStamped, interface.global_force_callback)
-rospy.Subscriber('/target_coordinates', TargetCoordinatesArray, interface.target_coordinates_callback)
-rospy.Subscriber('/my_gen3/rotation_matrix_topic', Float32MultiArray, interface.rotation_matrix_callback)
-
-
-while interface.avg_force_y is None:
-    rospy.sleep(0.1)
-
-while interface.objects is None:
-    rospy.sleep(0.1)
-
-interface.action_listener()
-
-rospy.spin()
+if __name__=='__main__':
+    main()
