@@ -1,9 +1,0 @@
-google-generativeai
-ikpy
-numpy
-opencv-python
-pyrealsense2
-scipy
-setuptools
-ultralytics
-xarm-sdk
