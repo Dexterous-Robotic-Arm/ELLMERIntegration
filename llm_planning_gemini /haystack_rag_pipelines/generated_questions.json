@@ -1,0 +1,8 @@
+{
+  "questions": [
+    "What is the sequence to grasp a tool using the robot gripper?",
+    "How should the robot behave in a cluttered environment?",
+    "What are safety checks before executing a pick-and-place task?",
+    "Describe the correct action sequence for moving an object from A to B."
+  ]
+}
