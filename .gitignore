@@ -14,3 +14,11 @@ __pycache__/
 .DS_Store
 *.log
 build_*/
+
+# Generated files from llm_planning_gemini
+*.json
+results.md
+responses/
+
+# Environment variables
+.env
