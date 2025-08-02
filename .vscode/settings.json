@@ -1,0 +1,7 @@
+{
+    "python.analysis.extraPaths": [
+        "./ros_xarm",
+        "./llm_planning_gemini /custom_gemini_examples",
+        "./llm_planning_gemini/custom_gemini_examples"
+    ]
+}

@@ -1,24 +1,53 @@
-# Build artifacts
-build/
-install/
-log/
-
-# Python cache
+# ---- Python basics ----
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
 *.egg-info/
+*.egg
+dist/
+build/           # (python packaging; not ROS build/)
 
-# Ignore user-specific files
-.DS_Store
-*.log
-build_*/
+# ---- Virtual envs ----
+.venv/
+venv/
+env/
+ENV/
 
-# Generated files from llm_planning_gemini
-*.json
-results.md
-responses/
-
-# Environment variables
+# ---- Dotenv / secrets ----
 .env
+.env.*           # keep secrets out of git
+# commit an example instead:
+# .env.example
+
+# ---- ROS 2 / colcon workspace ----
+build/           # ROS2 build
+install/         # ROS2 install
+log/             # ROS2 logs
+.colcon_ignore
+.colcon.lck
+
+# ---- Ultralytics / YOLO outputs ----
+runs/
+**/runs/
+# (keep weights out; track with LFS or download at runtime)
+*.pt
+*.onnx
+
+# ---- OpenCV / datasets / cache (optional) ----
+data/
+datasets/
+.cache/
+**/.cache/
+
+# ---- Editor / OS noise ----
+.vscode/         # keep if you have portable, team-usable settings (see note below)
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- Jupyter (if any) ----
+.ipynb_checkpoints/
+
+# ---- Realsense / camera caches (optional) ----
+~/.config/Ultralytics/
+ultralytics_settings.yaml

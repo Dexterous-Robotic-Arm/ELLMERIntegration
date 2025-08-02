@@ -1,0 +1,13 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from ufactory_ellmer_msgs/msg/TargetCoordinatesArray.msg
+// generated code does not contain a copyright notice
+
+#include "ufactory_ellmer_msgs/msg/TargetCoordinates.idl"
+
+module ufactory_ellmer_msgs {
+  module msg {
+    struct TargetCoordinatesArray {
+      sequence<ufactory_ellmer_msgs::msg::TargetCoordinates> targets;
+    };
+  };
+};
