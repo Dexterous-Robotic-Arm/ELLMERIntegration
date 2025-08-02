@@ -1,5 +1,0 @@
-[  0%] Built target xarm_msgs__cpp
-[35m[1mConsolidate compiler generated dependencies of target xarm_msgs__rosidl_generator_c[0m
-[ 12%] Built target xarm_msgs__rosidl_generator_c
-[ 12%] Built target ament_cmake_python_copy_xarm_msgs
-[35m[1mConsolidate compiler generated dependencies of target xarm_msgs__rosidl_typesupport_cpp[0m

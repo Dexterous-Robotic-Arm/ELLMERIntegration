@@ -1,4 +1,0 @@
-[console_scripts]
-pose_recorder = kortex_examples.ELLMER.pose_recorder:main
-robot_brain = kortex_examples.ELLMER.robot_brain:main
-

@@ -1,6 +1,0 @@
-setup.py
-ufactory_ellmer_msgs/__init__.py
-ufactory_ellmer_msgs.egg-info/PKG-INFO
-ufactory_ellmer_msgs.egg-info/SOURCES.txt
-ufactory_ellmer_msgs.egg-info/dependency_links.txt
-ufactory_ellmer_msgs.egg-info/top_level.txt

@@ -1,8 +1,0 @@
-[0.025s] Invoking command in '/home/eugene/ufactory_ellmer_ws/build/gazebo_ros': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/eugene/ufactory_ellmer_ws/install/kortex_examples:/opt/ros/humble /usr/bin/cmake --build /home/eugene/ufactory_ellmer_ws/build/gazebo_ros -- -j2 -l2
-[0.101s] [  0%] Built target ament_cmake_python_copy_scripts
-[0.118s] [35m[1mConsolidate compiler generated dependencies of target gazebo_ros_node[0m
-[0.201s] [  6%] Built target gazebo_ros_node
-[0.269s] [35m[1mConsolidate compiler generated dependencies of target gazebo_ros_utils[0m
-[0.300s] gmake[2]: *** [CMakeFiles/gazebo_ros_utils.dir/build.make:213: CMakeFiles/gazebo_ros_utils.dir/depend] Interrupt
-[0.301s] gmake[1]: *** [CMakeFiles/Makefile2:305: CMakeFiles/gazebo_ros_utils.dir/all] Interrupt
-[0.301s] gmake: *** [Makefile:146: all] Interrupt

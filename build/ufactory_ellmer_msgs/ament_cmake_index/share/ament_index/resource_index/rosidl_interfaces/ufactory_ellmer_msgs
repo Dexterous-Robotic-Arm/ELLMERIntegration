@@ -1,8 +1,0 @@
-msg/TargetCoordinates.idl
-msg/TargetCoordinates.msg
-msg/TargetCoordinatesArray.idl
-msg/TargetCoordinatesArray.msg
-srv/SetInt16.idl
-srv/SetInt16.srv
-srv/SetInt16_Request.msg
-srv/SetInt16_Response.msg
