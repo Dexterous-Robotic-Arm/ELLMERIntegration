@@ -1,0 +1,29 @@
+# world_model.yaml (generic / action-agnostic)
+
+meta:
+  units: mm              # linear units for all XYZ values
+  angles: deg            # degrees for RPY
+
+frames:
+  base: base_link        # name of the robot base frame (informational)
+
+motion:
+  cartesian_speed: 100   # mm/s (default linear speed for any move)
+  cartesian_acc:   200   # mm/s^2 (default linear acceleration)
+  orientation_rpy_deg: [180, 0, 0]  # default tool orientation (RPY in deg)
+  dz_default_mm: 80      # a generic vertical distance default (if needed)
+
+workspace:
+  # Soft bounds in base frame (generic constraints; executor may enforce)
+  x_mm: [150, 650]
+  y_mm: [-300, 300]
+  z_mm: [  40, 500]
+
+poses:
+  home:
+    xyz_mm:  [300, 0, 300]
+    rpy_deg: [180, 0, 0]
+
+  staging:
+    xyz_mm:  [450, -150, 150]
+    rpy_deg: [180, 0, 0]
