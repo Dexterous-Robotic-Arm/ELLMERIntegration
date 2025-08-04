@@ -4,11 +4,23 @@ planner_llm.py - LLM-based task planning
 
 Provides functions for generating robot action plans using Google Gemini LLM
 or fallback planning when LLM is not available.
+
+This planner reads the action schema from config/llm/action_schema.md and
+generates plans in the format expected by the executor:
+{
+  "goal": "task description",
+  "steps": [
+    {"action": "MOVE_TO_NAMED", "name": "home"},
+    {"action": "OPEN_GRIPPER", "gripper": {"position": 850}}
+  ]
+}
 """
 
 import os
 import json
 import logging
+import re
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 # Optional imports
@@ -21,66 +33,104 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# Default action schema for the LLM
-DEFAULT_ACTION_SCHEMA = """
-# Robot Action Schema
 
-The robot can perform these actions:
+def load_action_schema() -> str:
+    """
+    Load the action schema from config/llm/action_schema.md.
+    
+    Returns:
+        Action schema content as string
+    """
+    schema_path = Path("config/llm/action_schema.md")
+    
+    if not schema_path.exists():
+        logger.error(f"Action schema file not found: {schema_path}")
+        return get_fallback_schema()
+    
+    try:
+        with open(schema_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        logger.info(f"Loaded action schema from {schema_path}")
+        return content
+    except Exception as e:
+        logger.error(f"Failed to load action schema: {e}")
+        return get_fallback_schema()
 
-## Movement Actions
-- MOVE_TO_NAMED: Move to a predefined named pose
-  - pose_name: string (e.g., "home", "staging")
-- APPROACH_NAMED: Move to a position above a named pose
-  - pose_name: string
-  - hover_mm: number (default: 80)
-- MOVE_TO_OBJECT: Move directly to a detected object
-  - label: string (object class name)
-  - offset_mm: [x, y, z] (default: [0, 0, 0])
-- APPROACH_OBJECT: Move to a position above a detected object
-  - label: string
-  - hover_mm: number (default: 80)
-  - offset_mm: [x, y, z] (default: [0, 0, 0])
-- MOVE_TO_POSE: Move to specific coordinates
-  - xyz_mm: [x, y, z] in millimeters
-  - rpy_deg: [roll, pitch, yaw] in degrees
-- RETREAT_Z: Move up by a specified distance
-  - distance_mm: number
 
-## Gripper Actions
-- OPEN_GRIPPER: Open the gripper
-  - position: number (default: 850)
-  - speed: number (default: 200)
-  - force: number (default: 50)
-- CLOSE_GRIPPER: Close the gripper
-  - position: number (default: 200)
-  - speed: number (default: 200)
-  - force: number (default: 50)
-- SET_GRIPPER_POSITION: Set gripper to specific position
-  - position: number (0-850)
-  - speed: number (default: 200)
-  - force: number (default: 50)
-- GRIPPER_GRASP: Grasp with force feedback
-  - target_position: number (default: 200)
-  - speed: number (default: 200)
-  - force: number (default: 50)
-  - timeout: number (default: 5.0)
-- GRIPPER_RELEASE: Release grasped object
-  - target_position: number (default: 850)
-  - speed: number (default: 200)
-  - force: number (default: 50)
+def get_fallback_schema() -> str:
+    """
+    Get a fallback action schema if the file cannot be loaded.
+    
+    Returns:
+        Basic action schema as string
+    """
+    return """
+# xArm Action Plan Contract (LLM-Facing)
 
-## Utility Actions
-- SLEEP: Wait for specified time
-  - seconds: number
+## Output Rules
+- Output must be a single, valid **JSON object**.
+- **Do not** wrap the JSON in markdown fences or add text before/after.
+- JSON **must** conform to the schema below.
 
-## Plan Format
-Return a JSON array of action objects, each with:
-- action: string (action name)
-- params: object (action parameters)
+## Actions (Verbs) — Movement and Gripper Control
+- `MOVE_TO_NAMED` — Move to a named pose from the world model.  
+  - **fields:** `name` (string)
+- `APPROACH_NAMED` — Move to a hover position above a named pose.  
+  - **fields:** `name` (string), `hover_mm` (number, optional; default **80**)
+- `MOVE_TO_OBJECT` — Move to a position derived from a detected object label.  
+  - **fields:** `label` (string) or `labels` (array), `offset_mm` ([x,y,z] mm, optional; default **[0,0,0]**), `timeout_sec` (number, optional; default **5**)
+- `APPROACH_OBJECT` — Move to a hover position above a detected object label.  
+  - **fields:** `label` (string) or `labels` (array), `hover_mm` (number, optional; default **80**), `timeout_sec` (number, optional; default **5**)
+- `RETREAT_Z` — Move upward along Z by `dz_mm` (positive).  
+  - **fields:** `dz_mm` (number > 0)
+- `MOVE_TO_POSE` — Move to an explicit numeric pose.  
+  - **fields:** `pose` (object: `xyz_mm` [x,y,z], `rpy_deg` [r,p,y])
+- `SLEEP` — Wait for a number of seconds.  
+  - **fields:** `seconds` (number)
+
+### Gripper Actions
+- `OPEN_GRIPPER` — Open the gripper to specified position or fully open.  
+  - **fields:** `gripper` (object, optional: `position` (number, 0-850), `speed` (number, optional; default **200**), `force` (number, optional; default **50**))
+- `CLOSE_GRIPPER` — Close the gripper to specified position or fully closed.  
+  - **fields:** `gripper` (object, optional: `position` (number, 0-850), `speed` (number, optional; default **100**), `force` (number, optional; default **50**))
+- `SET_GRIPPER_POSITION` — Set gripper to a specific position.  
+  - **fields:** `position` (number, 0-850), `speed` (number, optional; default **150**), `force` (number, optional; default **50**)
+- `GRIPPER_GRASP` — Perform a grasp operation with force feedback.  
+  - **fields:** `target_position` (number, optional; default **200**), `speed` (number, optional; default **100**), `force` (number, optional; default **50**), `timeout` (number, optional; default **5.0**)
+- `GRIPPER_RELEASE` — Release grasped object by opening gripper.  
+  - **fields:** `target_position` (number, optional; default **850**), `speed` (number, optional; default **200**), `force` (number, optional; default **50**)
+- `GRIPPER_HALF_OPEN` — Open gripper to half position.  
+  - **fields:** `speed` (number, optional; default **150**), `force` (number, optional; default **50**)
+- `GRIPPER_SOFT_CLOSE` — Close gripper gently with low force.  
+  - **fields:** `speed` (number, optional; default **50**), `force` (number, optional; default **30**)
+- `GRIPPER_TEST` — Test gripper by cycling open/close.  
+  - **fields:** `cycles` (number, optional; default **3**), `delay` (number, optional; default **1.0**)
+
+## Required Top-Level Keys
+- `goal` (string): the user's task in natural language.
+- `steps` (array): ordered list of action objects.
+
+## Valid JSON Example - Pick and Place with Gripper
+```json
+{
+  "goal": "Pick up the cup and place it in the bin",
+  "steps": [
+    { "action": "MOVE_TO_NAMED", "name": "home" },
+    { "action": "OPEN_GRIPPER", "gripper": {"position": 850, "speed": 200} },
+    { "action": "APPROACH_OBJECT", "label": "cup", "hover_mm": 80, "timeout_sec": 5 },
+    { "action": "MOVE_TO_OBJECT", "label": "cup", "offset_mm": [0, 0, 0], "timeout_sec": 5 },
+    { "action": "GRIPPER_GRASP", "target_position": 200, "speed": 100, "force": 50 },
+    { "action": "RETREAT_Z", "dz_mm": 80 },
+    { "action": "MOVE_TO_NAMED", "name": "bin_drop" },
+    { "action": "GRIPPER_RELEASE", "target_position": 850, "speed": 200 },
+    { "action": "MOVE_TO_NAMED", "name": "home" }
+  ]
+}
+```
 """
 
 
-def plan_with_gemini(task: str, pose_names: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+def plan_with_gemini(task: str, pose_names: Optional[List[str]] = None) -> Dict[str, Any]:
     """
     Generate a robot action plan using Google Gemini LLM.
     
@@ -89,7 +139,7 @@ def plan_with_gemini(task: str, pose_names: Optional[List[str]] = None) -> List[
         pose_names: List of available named poses
         
     Returns:
-        List of action dictionaries
+        Plan dictionary with 'goal' and 'steps' keys
     """
     if not GEMINI_AVAILABLE:
         logger.warning("Google Gemini not available, using fallback plan")
@@ -106,29 +156,25 @@ def plan_with_gemini(task: str, pose_names: Optional[List[str]] = None) -> List[
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-pro')
         
+        # Load action schema
+        action_schema = load_action_schema()
+        
         # Build prompt
         pose_context = ""
         if pose_names:
             pose_context = f"\nAvailable named poses: {', '.join(pose_names)}"
         
         prompt = f"""
-{DEFAULT_ACTION_SCHEMA}
+{action_schema}
 
 {pose_context}
 
 Task: {task}
 
 Generate a JSON plan for the robot to complete this task. 
-Return ONLY valid JSON array of action objects, no other text.
+Return ONLY valid JSON object with 'goal' and 'steps' keys, no other text.
 
-Example plan format:
-[
-  {{"action": "MOVE_TO_NAMED", "params": {{"pose_name": "home"}}}},
-  {{"action": "OPEN_GRIPPER", "params": {{}}}},
-  {{"action": "MOVE_TO_OBJECT", "params": {{"label": "cup"}}}},
-  {{"action": "CLOSE_GRIPPER", "params": {{}}}},
-  {{"action": "MOVE_TO_NAMED", "params": {{"pose_name": "home"}}}}
-]
+Important: Return ONLY the JSON object, no markdown fences, no explanations.
 """
         
         # Generate plan
@@ -136,15 +182,32 @@ Example plan format:
         
         # Parse JSON response
         try:
-            plan = json.loads(response.text)
-            if isinstance(plan, list):
-                logger.info(f"Generated plan with {len(plan)} actions")
+            # Clean the response text to extract JSON
+            response_text = response.text.strip()
+            
+            # Remove markdown code fences if present
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.startswith('```'):
+                response_text = response_text[3:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            
+            response_text = response_text.strip()
+            
+            plan = json.loads(response_text)
+            
+            # Validate plan structure
+            if isinstance(plan, dict) and "goal" in plan and "steps" in plan:
+                logger.info(f"Generated plan with {len(plan['steps'])} steps")
                 return plan
             else:
-                logger.error("LLM response is not a list")
+                logger.error("LLM response is not a valid plan structure")
                 return plan_fallback(task)
+                
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse LLM response as JSON: {e}")
+            logger.error(f"Response text: {response.text}")
             return plan_fallback(task)
             
     except Exception as e:
@@ -152,7 +215,7 @@ Example plan format:
         return plan_fallback(task)
 
 
-def plan_fallback(task: str) -> List[Dict[str, Any]]:
+def plan_fallback(task: str) -> Dict[str, Any]:
     """
     Generate a fallback plan when LLM is not available.
     
@@ -160,7 +223,7 @@ def plan_fallback(task: str) -> List[Dict[str, Any]]:
         task: Natural language task description
         
     Returns:
-        List of action dictionaries
+        Plan dictionary with 'goal' and 'steps' keys
     """
     logger.info("Using fallback plan generator")
     
@@ -168,76 +231,144 @@ def plan_fallback(task: str) -> List[Dict[str, Any]]:
     task_lower = task.lower()
     
     if "home" in task_lower or "go home" in task_lower:
-        return [
-            {"action": "MOVE_TO_NAMED", "params": {"pose_name": "home"}}
-        ]
+        return {
+            "goal": task,
+            "steps": [
+                {"action": "MOVE_TO_NAMED", "name": "home"}
+            ]
+        }
     
     elif "pick" in task_lower and ("cup" in task_lower or "object" in task_lower):
-        return [
-            {"action": "MOVE_TO_NAMED", "params": {"pose_name": "home"}},
-            {"action": "OPEN_GRIPPER", "params": {}},
-            {"action": "MOVE_TO_OBJECT", "params": {"label": "cup"}},
-            {"action": "CLOSE_GRIPPER", "params": {}},
-            {"action": "MOVE_TO_NAMED", "params": {"pose_name": "home"}}
-        ]
+        return {
+            "goal": task,
+            "steps": [
+                {"action": "MOVE_TO_NAMED", "name": "home"},
+                {"action": "OPEN_GRIPPER", "gripper": {"position": 850}},
+                {"action": "APPROACH_OBJECT", "label": "cup", "hover_mm": 80, "timeout_sec": 5},
+                {"action": "MOVE_TO_OBJECT", "label": "cup", "offset_mm": [0, 0, 0], "timeout_sec": 5},
+                {"action": "GRIPPER_GRASP", "target_position": 200, "speed": 100, "force": 50},
+                {"action": "RETREAT_Z", "dz_mm": 80},
+                {"action": "MOVE_TO_NAMED", "name": "home"}
+            ]
+        }
     
     elif "place" in task_lower or "drop" in task_lower:
-        return [
-            {"action": "MOVE_TO_NAMED", "params": {"pose_name": "home"}},
-            {"action": "OPEN_GRIPPER", "params": {}},
-            {"action": "MOVE_TO_NAMED", "params": {"pose_name": "home"}}
-        ]
+        return {
+            "goal": task,
+            "steps": [
+                {"action": "MOVE_TO_NAMED", "name": "home"},
+                {"action": "GRIPPER_RELEASE", "target_position": 850, "speed": 200},
+                {"action": "MOVE_TO_NAMED", "name": "home"}
+            ]
+        }
     
     elif "gripper" in task_lower:
         if "open" in task_lower:
-            return [{"action": "OPEN_GRIPPER", "params": {}}]
+            return {
+                "goal": task,
+                "steps": [
+                    {"action": "OPEN_GRIPPER", "gripper": {"position": 850}}
+                ]
+            }
         elif "close" in task_lower:
-            return [{"action": "CLOSE_GRIPPER", "params": {}}]
+            return {
+                "goal": task,
+                "steps": [
+                    {"action": "CLOSE_GRIPPER", "gripper": {"position": 200}}
+                ]
+            }
+        elif "test" in task_lower:
+            return {
+                "goal": task,
+                "steps": [
+                    {"action": "GRIPPER_TEST", "cycles": 3, "delay": 1.0}
+                ]
+            }
         else:
-            return [
-                {"action": "OPEN_GRIPPER", "params": {}},
-                {"action": "SLEEP", "params": {"seconds": 1}},
-                {"action": "CLOSE_GRIPPER", "params": {}}
-            ]
+            return {
+                "goal": task,
+                "steps": [
+                    {"action": "OPEN_GRIPPER", "gripper": {"position": 850}},
+                    {"action": "SLEEP", "seconds": 1},
+                    {"action": "CLOSE_GRIPPER", "gripper": {"position": 200}}
+                ]
+            }
     
     else:
         # Default plan
-        return [
-            {"action": "MOVE_TO_NAMED", "params": {"pose_name": "home"}},
-            {"action": "SLEEP", "params": {"seconds": 1}}
-        ]
+        return {
+            "goal": task,
+            "steps": [
+                {"action": "MOVE_TO_NAMED", "name": "home"},
+                {"action": "SLEEP", "seconds": 1}
+            ]
+        }
 
 
-def validate_plan(plan: List[Dict[str, Any]]) -> bool:
+def validate_plan(plan: Dict[str, Any]) -> bool:
     """
     Validate that a plan has the correct structure.
     
     Args:
-        plan: List of action dictionaries
+        plan: Plan dictionary with 'goal' and 'steps' keys
         
     Returns:
         True if valid, False otherwise
     """
-    if not isinstance(plan, list):
+    if not isinstance(plan, dict):
+        return False
+    
+    if "goal" not in plan or "steps" not in plan:
+        return False
+    
+    if not isinstance(plan["goal"], str):
+        return False
+    
+    if not isinstance(plan["steps"], list):
         return False
     
     valid_actions = {
         "MOVE_TO_NAMED", "APPROACH_NAMED", "MOVE_TO_OBJECT", "APPROACH_OBJECT",
         "MOVE_TO_POSE", "RETREAT_Z", "OPEN_GRIPPER", "CLOSE_GRIPPER",
         "SET_GRIPPER_POSITION", "GRIPPER_GRASP", "GRIPPER_RELEASE",
-        "SLEEP"
+        "GRIPPER_HALF_OPEN", "GRIPPER_SOFT_CLOSE", "GRIPPER_TEST", "SLEEP"
     }
     
-    for action in plan:
-        if not isinstance(action, dict):
+    for step in plan["steps"]:
+        if not isinstance(step, dict):
             return False
-        if "action" not in action:
+        if "action" not in step:
             return False
-        if action["action"] not in valid_actions:
-            return False
-        if "params" not in action:
-            return False
-        if not isinstance(action["params"], dict):
+        if step["action"] not in valid_actions:
             return False
     
-    return True 
+    return True
+
+
+def convert_old_format_to_new(old_plan: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Convert old plan format (list of actions with params) to new format (goal + steps).
+    
+    Args:
+        old_plan: Old format plan as list of action dictionaries
+        
+    Returns:
+        New format plan as dictionary with 'goal' and 'steps' keys
+    """
+    steps = []
+    
+    for action in old_plan:
+        if "action" in action and "params" in action:
+            # Convert from old format to new format
+            new_step = {"action": action["action"]}
+            
+            # Flatten params into the step
+            for key, value in action["params"].items():
+                new_step[key] = value
+            
+            steps.append(new_step)
+    
+    return {
+        "goal": "Converted from old format",
+        "steps": steps
+    } 

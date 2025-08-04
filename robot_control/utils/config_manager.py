@@ -4,10 +4,9 @@ Configuration Manager
 Handles loading and validation of configuration files for the robot control system.
 """
 
-import os
 import yaml
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 
 class ConfigManager:
@@ -56,10 +55,6 @@ class ConfigManager:
     def get_vision_config(self) -> Dict[str, Any]:
         """Load vision configuration."""
         return self.load_config("vision", "camera_config.yaml")
-        
-    def get_llm_config(self) -> Dict[str, Any]:
-        """Load LLM configuration."""
-        return self.load_config("llm", "action_schema.md")
         
     def get_all_configs(self) -> Dict[str, Any]:
         """Load all configuration files."""

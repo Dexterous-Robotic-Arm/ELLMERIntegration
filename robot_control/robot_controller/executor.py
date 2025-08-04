@@ -3,13 +3,18 @@ import time, threading
 import json
 import logging
 
+# Initialize fallback values BEFORE try-except
+ROS2_AVAILABLE = False
+Node = object  # Fallback for when ROS2 is not available
+StringMsg = str  # Fallback for when ROS2 is not available
+
+# Optional ROS2 imports - only import if available
 try:
     import rclpy
     from rclpy.node import Node
     from std_msgs.msg import String as StringMsg
     ROS2_AVAILABLE = True
 except ImportError:
-    ROS2_AVAILABLE = False
     print("Warning: ROS2 not available, running in simulation mode")
 
 from .actions_xarm import XArmRunner

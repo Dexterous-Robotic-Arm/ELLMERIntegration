@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-app.py — LLM-only planner with interactive input
+llm_planner.py — LLM-only planner with interactive input
 
 - Reads the LLM contract (.md) via planner_llm
 - Calls Gemini to generate a strict-JSON plan (or uses fallback)
@@ -39,7 +39,7 @@ def _pose_names_from_world(world_yaml: str | None) -> list[str]:
 
 def _emit_json(obj) -> None:
     """Write ONLY JSON to stdout."""
-    sys.stdout.write(json.dumps(obj))
+    sys.stdout.write(json.dumps(obj, indent=2))
     sys.stdout.flush()
 
 
@@ -66,7 +66,7 @@ def main():
                     help="Interactive loop: keep asking for tasks until empty line or Ctrl-C")
     ap.add_argument("--use-fallback", action="store_true",
                     help="Bypass LLM and use a canned plan")
-    ap.add_argument("--world", default=os.environ.get("WORLD_YAML", "world_model.yaml"),
+    ap.add_argument("--world", default=os.environ.get("WORLD_YAML", "config/robot/world_model.yaml"),
                     help="Optional: world_model.yaml to harvest named pose names for the LLM prompt")
     ap.add_argument("--pose-names", default="",
                     help='Optional: comma-separated pose names (overrides --world), e.g. "home,bin_drop,table_pick_blue"')
@@ -102,14 +102,13 @@ def main():
             try:
                 task = _prompt_once("Task: ")
                 if not task:
-                    sys.stderr.write("Bye.\n")
                     break
                 plan = generate_plan(task, pose_names=pose_names, use_fallback=args.use_fallback)
                 _emit_json(plan)
-                sys.stdout.write("\n")  # separate multiple JSON objects with newlines
-                sys.stdout.flush()
-            except (KeyboardInterrupt, EOFError):
-                sys.stderr.write("\nBye.\n")
+                sys.stdout.write("\n")  # Add newline between plans
+            except KeyboardInterrupt:
+                break
+            except EOFError:
                 break
 
 

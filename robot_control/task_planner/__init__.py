@@ -1,10 +1,15 @@
+#!/usr/bin/env python3
 """
-Task Planner Module
+Task Planner Package
 
-Provides high-level task planning using Google Gemini LLM
-and plan validation capabilities.
+Provides LLM-based task planning for robot control.
 """
 
-from .planner_llm import plan_with_gemini, plan_fallback, validate_plan
+from .planner_llm import plan_with_gemini, plan_fallback, validate_plan, convert_old_format_to_new
 
-__all__ = ['plan_with_gemini', 'plan_fallback', 'validate_plan'] 
+__all__ = [
+    'plan_with_gemini',
+    'plan_fallback', 
+    'validate_plan',
+    'convert_old_format_to_new'
+] 

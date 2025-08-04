@@ -237,7 +237,7 @@ class TaskPlanner:
             log_file="logs/task_planner.log"
         )
         
-    def plan_task(self, task: str, world_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def plan_task(self, task: str, world_config: Dict[str, Any]) -> Dict[str, Any]:
         """Generate a plan for the given task."""
         try:
             self.logger.info(f"Planning task: {task}")
@@ -253,7 +253,7 @@ class TaskPlanner:
             # Generate plan using LLM or fallback
             plan = plan_with_gemini(task, pose_names)
             
-            self.logger.info(f"Generated plan with {len(plan)} actions")
+            self.logger.info(f"Generated plan with {len(plan['steps'])} steps")
             return plan
             
         except Exception as e:
@@ -274,19 +274,20 @@ class TaskExecutor:
             log_file="logs/task_executor.log"
         )
         
-    def execute_plan(self, plan: List[Dict[str, Any]], world_config: Dict[str, Any]):
+    def execute_plan(self, plan: Dict[str, Any], world_config: Dict[str, Any]):
         """Execute the given plan."""
         try:
-            self.logger.info(f"Executing plan with {len(plan)} steps")
+            self.logger.info(f"Executing plan: {plan.get('goal', 'Unknown task')}")
+            self.logger.info(f"Plan has {len(plan.get('steps', []))} steps")
             
             if self.config.dry_run:
                 self.logger.info("DRY RUN - No robot movements will be executed")
                 
-            # Create executor instance
-            from robot_control.task_planner import plan_with_gemini, plan_fallback
-            
             # Use the TaskExecutor from robot_controller
-            executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run)
+            from robot_control.robot_controller.executor import TaskExecutor as RobotTaskExecutor
+            
+            # Create executor instance
+            executor = RobotTaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run)
             
             # Execute the plan
             executor.execute(plan)

@@ -1,41 +1,42 @@
-# Robot Control System
+# ELLMER Integration - Robot Control System
 
-A comprehensive robot control system for the ufactory850 robotic arm with Intel RealSense D435 camera, designed for real-world autonomous tasks using LLM planning.
+A comprehensive robot control system for the ufactory850 robotic arm with Intel RealSense D435 camera, designed for real-world autonomous tasks using LLM planning and computer vision.
 
 ## 🤖 System Overview
 
-This system enables autonomous robot control for complex tasks like:
-- **Pick and place operations**
-- **Object manipulation**
-- **Assembly tasks**
-- **Sorting and organizing**
-- **Custom task execution via natural language**
+This system enables autonomous robot control for complex tasks using:
+- **Natural Language Planning**: Google Gemini LLM for task understanding and planning
+- **Computer Vision**: YOLO object detection with RealSense depth sensing
+- **Direct Robot Control**: XArm Python SDK for precise robot manipulation
+- **Safety First**: Comprehensive safety limits and emergency stop functionality
+- **Modular Architecture**: Clean separation of planning, vision, and execution
 
 ### Key Features
 - ✅ **Real Hardware Support**: ufactory850 robot arm + RealSense D435 camera
-- ✅ **LLM Task Planning**: Google Gemini integration for natural language task planning
-- ✅ **Computer Vision**: YOLO object detection with RealSense depth sensing
-- ✅ **Safety First**: Comprehensive safety limits and emergency stop functionality
-- ✅ **Modular Design**: Clean separation of robot control, vision, and planning
-- ✅ **ROS2 Integration**: Full ROS2 Humble support for inter-process communication
+- ✅ **LLM Task Planning**: Google Gemini integration with fallback planning
+- ✅ **Computer Vision**: YOLO + RealSense for 3D object detection
+- ✅ **Gripper Control**: Full gripper manipulation with force feedback
+- ✅ **Safety Monitoring**: Real-time safety checks and limits
+- ✅ **ROS2 Integration**: Optional ROS2 support for vision data
+- ✅ **Simulation Mode**: Test without hardware connection
 
 ## 🛠️ System Requirements
 
 ### Hardware
 - **Robot**: ufactory850 6-DOF robotic arm
 - **Camera**: Intel RealSense D435 or D435i
-- **Computer**: Ubuntu 22.04 LTS with sufficient USB ports
+- **Computer**: Ubuntu 22.04 LTS (ARM64 or x86_64)
 - **Network**: Robot and computer on same network (default: 192.168.1.241)
 
 ### Software Prerequisites
 - **Ubuntu 22.04 LTS**
 - **Python 3.8+**
-- **ROS2 Humble**
+- **ROS2 Humble** (optional, for vision data)
 - **Intel RealSense SDK**
 
 ## 🚀 Quick Installation
 
-### One-Command Installation
+### One-Command Installation (Ubuntu 22.04)
 ```bash
 # Clone the repository
 git clone <your-repo-url> ELLMERIntegration
@@ -46,19 +47,32 @@ chmod +x scripts/install_dependencies.sh
 ./scripts/install_dependencies.sh
 ```
 
-### Manual Installation
-If you prefer step-by-step installation:
+### Manual Installation Steps
 
 1. **Install ROS2 Humble**:
    ```bash
-   sudo apt update
+   # Set locale
+   sudo apt update && sudo apt install locales
+   sudo locale-gen en_US en_US.UTF-8
+   sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+   export LANG=en_US.UTF-8
+
+   # Setup sources
    sudo apt install software-properties-common
    sudo add-apt-repository universe
    sudo apt update && sudo apt install curl
    sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
    sudo apt update
-   sudo apt install ros-humble-desktop
+
+   # Install ROS2
+   sudo apt install ros-humble-desktop ros-dev-tools python3-rclpy python3-ros2cli python3-ros2cli-common-extensions python3-colcon-common-extensions ros-humble-std-msgs ros-humble-geometry-msgs ros-humble-sensor-msgs ros-humble-nav-msgs ros-humble-tf2-ros ros-humble-tf2-msgs ros-humble-visualization-msgs ros-humble-cv-bridge build-essential cmake python3-pip python3-rosdep
+
+   # Setup environment
+   echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+   source /opt/ros/humble/setup.bash
+   sudo rosdep init
+   rosdep update
    ```
 
 2. **Install RealSense SDK**:
@@ -76,7 +90,7 @@ If you prefer step-by-step installation:
    pip install -r requirements.txt
    ```
 
-4. **Build ROS workspace**:
+4. **Build ROS workspace** (optional):
    ```bash
    cd ros_workspace
    source /opt/ros/humble/setup.bash
@@ -86,22 +100,26 @@ If you prefer step-by-step installation:
 
 ## 🎯 Quick Start
 
-### 1. Setup Environment
+### 1. Environment Setup
 ```bash
 # Set your API key and robot IP
 export GEMINI_API_KEY="your-gemini-api-key"
 export XARM_IP="192.168.1.241"
 
 # Setup environment
-source setup_env.sh
+source scripts/setup_env.sh
 ```
 
-### 2. Test Robot Connection
+### 2. Test System (No Hardware Required)
 ```bash
-./quick_start.sh
+# Test in simulation mode
+python3 robot_control/main.py --task "move to home" --sim --dry-run
+
+# Test LLM planning
+python3 robot_control/task_planner/llm_planner.py --task "pick up the cup" --use-fallback
 ```
 
-### 3. Run Your First Task
+### 3. Run with Real Hardware
 ```bash
 # Simple pick and place
 python3 robot_control/main.py --task "pick up the red cup"
@@ -120,25 +138,36 @@ ELLMERIntegration/
 ├── robot_control/              # Main application package
 │   ├── main.py                # Main orchestrator
 │   ├── robot_controller/      # Robot control module
+│   │   ├── actions_xarm.py    # XArm robot interface
+│   │   └── executor.py        # Plan execution engine
 │   ├── vision_system/         # Computer vision module
+│   │   └── pose_recorder.py   # YOLO + RealSense integration
 │   ├── task_planner/          # LLM planning module
+│   │   ├── planner_llm.py     # LLM integration
+│   │   └── llm_planner.py     # Standalone planner
 │   └── utils/                 # Utilities
+│       └── config_manager.py  # Configuration management
 ├── config/                    # Configuration files
 │   ├── robot/                 # Robot configuration
+│   │   ├── world_model.yaml   # Named poses and workspace
+│   │   └── safety_config.yaml # Safety limits
 │   ├── vision/                # Vision configuration
 │   └── llm/                   # LLM configuration
-├── ros_workspace/             # Standard ROS2 workspace
+│       └── action_schema.md   # LLM action definitions
+├── ros_workspace/             # ROS2 workspace
 │   └── src/                   # ROS2 packages
 ├── scripts/                   # Utility scripts
-├── docs/                      # Documentation
+│   ├── install_dependencies.sh # Installation script
+│   ├── setup_env.sh           # Environment setup
+│   └── quick_start.sh         # Quick test script
 └── tests/                     # Test files
 ```
 
 ## 🔧 Configuration
 
 ### Robot Configuration
-- **Safety Limits**: `config/robot/safety_config.yaml`
-- **World Model**: `config/robot/world_model.yaml`
+- **World Model**: `config/robot/world_model.yaml` - Named poses and workspace
+- **Safety Limits**: `config/robot/safety_config.yaml` - Movement and force limits
 - **Default IP**: 192.168.1.241 (configurable via `XARM_IP` env var)
 
 ### Vision Configuration
@@ -147,7 +176,7 @@ ELLMERIntegration/
 - **Detection Thresholds**: Configurable in vision system
 
 ### LLM Configuration
-- **Action Schema**: `config/llm/action_schema.md`
+- **Action Schema**: `config/llm/action_schema.md` - Complete action definitions
 - **API Key**: Set via `GEMINI_API_KEY` environment variable
 
 ## 🎮 Usage Examples
@@ -167,16 +196,28 @@ python3 robot_control/main.py --interactive
 python3 robot_control/main.py --task "sort objects" --loop
 ```
 
+### Simulation and Testing
+```bash
+# Test without hardware (simulation mode)
+python3 robot_control/main.py --task "pick up cup" --sim --dry-run
+
+# Test LLM planning only
+python3 robot_control/task_planner/llm_planner.py --task "pick up the cup" --use-fallback
+
+# Test with custom world configuration
+python3 robot_control/main.py --task "pick up cup" --world config/robot/my_workspace.yaml
+```
+
 ### Advanced Options
 ```bash
-# Use custom world configuration
-python3 robot_control/main.py --task "pick up cup" --world config/robot/my_workspace.yaml
-
 # Wait for minimum detections
 python3 robot_control/main.py --task "pick up object" --wait-detections --min-detection-items 3
 
 # Use custom vision script
 python3 robot_control/main.py --task "detect objects" --vision-script custom_vision.py
+
+# Loop mode with custom task
+python3 robot_control/main.py --task "sort objects by color" --loop
 ```
 
 ## 🛡️ Safety Features
@@ -187,6 +228,8 @@ python3 robot_control/main.py --task "detect objects" --vision-script custom_vis
 - **Velocity Limits**: Maximum speed restrictions
 - **Emergency Stop**: Immediate halt capability
 - **Collision Detection**: Real-time monitoring
+- **Force Limits**: Maximum force and torque limits
+- **Timeout Protection**: Automatic timeout for long operations
 
 ### Safety Configuration
 ```yaml
@@ -202,17 +245,23 @@ workspace_limits:
 
 ## 🔍 Testing
 
-### Basic Tests
+### Basic Tests (No Hardware Required)
 ```bash
-# Run structure tests
+# Test system structure
 python3 tests/test_basic_structure.py
 
-# Test robot connection
-python3 -c "from robot_control.robot_controller import XArmRunner; runner = XArmRunner(); print('Connected:', runner.connect())"
+# Test LLM planning
+python3 robot_control/task_planner/llm_planner.py --task "pick up cup" --use-fallback
+
+# Test in simulation mode
+python3 robot_control/main.py --task "move to home" --sim --dry-run
 ```
 
 ### Hardware Testing
 ```bash
+# Test robot connection
+python3 -c "from robot_control.robot_controller import XArmRunner; runner = XArmRunner('192.168.1.241'); print('Connected successfully')"
+
 # Test robot movement
 python3 robot_control/main.py --task "move to home" --dry-run
 
@@ -220,7 +269,7 @@ python3 robot_control/main.py --task "move to home" --dry-run
 python3 robot_control/vision_system/pose_recorder.py
 
 # Test gripper
-python3 -c "from robot_control.robot_controller import XArmRunner; runner = XArmRunner(); runner.connect(); runner.open_gripper()"
+python3 -c "from robot_control.robot_controller import XArmRunner; runner = XArmRunner('192.168.1.241'); runner.open_gripper()"
 ```
 
 ## 🐛 Troubleshooting
@@ -254,17 +303,46 @@ source /opt/ros/humble/setup.bash
 ros2 --version
 ```
 
+**Import Errors**
+```bash
+# Clear Python cache
+find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+
+# Check Python path
+echo $PYTHONPATH
+```
+
 ### Getting Help
 - Check logs for detailed error messages
 - Verify all dependencies are installed
 - Ensure hardware is properly connected
 - Review configuration files
 
-## 📚 Documentation
+## 📚 How It Works
 
-- **Testing Guide**: `docs/testing_guide.md` - Detailed testing instructions
-- **Configuration**: `config/` - Configuration examples and documentation
-- **API Reference**: Code documentation in respective modules
+### 1. Task Planning
+- User provides natural language task
+- LLM (Gemini) generates structured action plan
+- Plan includes movement, gripper, and vision actions
+- Fallback planning available without API key
+
+### 2. Vision System
+- YOLO detects objects in camera feed
+- RealSense provides depth information
+- 3D pose estimation for detected objects
+- Publishes object data via ROS2 (optional)
+
+### 3. Robot Control
+- Direct XArm SDK integration
+- Safety monitoring and limits
+- Gripper control with force feedback
+- Emergency stop capability
+
+### 4. Execution Engine
+- Step-by-step plan execution
+- Safety checks between steps
+- Error handling and recovery
+- Real-time monitoring
 
 ## 🤝 Contributing
 
@@ -289,3 +367,5 @@ For issues and questions:
 ---
 
 **🎯 Ready to automate your robot tasks with AI-powered planning!**
+
+The system is now fully functional with proper LLM integration, comprehensive safety features, and support for both simulation and real hardware operation.
