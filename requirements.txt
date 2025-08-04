@@ -1,0 +1,40 @@
+# Robot Control System Dependencies
+# =================================
+
+# Core robot control
+xarm-python-sdk>=1.11.0
+
+# LLM and AI planning
+google-generativeai>=0.3.0
+openai>=1.0.0
+
+# Computer vision and object detection
+ultralytics>=8.0.0
+opencv-python>=4.8.0
+pyrealsense2>=2.54.0
+
+# ROS2 integration
+rclpy>=0.10.0
+std-msgs>=0.10.0
+
+# Data processing and utilities
+numpy>=1.24.0
+scipy>=1.11.0
+pandas>=2.0.0
+
+# Configuration and serialization
+pyyaml>=6.0
+jsonschema>=4.19.0
+
+# Network and communication
+requests>=2.31.0
+websockets>=11.0.0
+
+# Development and testing (optional)
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0
+
+# Additional utilities
+tqdm>=4.65.0
+colorama>=0.4.6 

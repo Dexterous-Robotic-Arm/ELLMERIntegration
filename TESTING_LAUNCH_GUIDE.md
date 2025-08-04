@@ -2,6 +2,20 @@
 
 This guide provides step-by-step instructions for safely testing the ufactory850 robot with RealSense D435 camera and enhanced gripper control.
 
+## Quick Installation
+
+### **One-Command Setup**
+```bash
+# Linux/macOS: Install all dependencies
+./install_dependencies.sh
+```
+
+### **Set API Key**
+```bash
+# Linux/macOS:
+export GEMINI_API_KEY="your_api_key_here"
+```
+
 ## Table of Contents
 - [Prerequisites](#prerequisites)
 - [Safety Preparation](#safety-preparation)
@@ -50,40 +64,16 @@ Before any testing, ensure:
 
 ## Environment Setup
 
-### 1. Install Dependencies
+### 1. Setup Environment
 ```bash
-# Install Python packages
-pip install xarm-python-sdk google-generativeai pyyaml rclpy ultralytics pyrealsense2
+# Activate environment (Linux/macOS)
+source setup_env.sh
 
-# Download YOLO model
-wget https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt
+# Activate environment (Windows)
+. .\setup_env.ps1
 ```
 
-### 2. Build ROS Messages
-```bash
-# Navigate to ros_xarm directory
-cd ros_xarm
-
-# Build custom messages
-colcon build --packages-select ufactory_ellmer_msgs
-
-# Source the workspace
-source install/setup.bash
-```
-
-### 3. Configure Environment Variables (Optional)
-```bash
-# Set Gemini API key (required)
-export GEMINI_API_KEY="your_api_key_here"
-
-# Set world configuration (optional)
-export WORLD_YAML="arm_config/world_model.yaml"
-
-# Set custom robot IP (optional - defaults to 192.168.1.241)
-export XARM_IP="192.168.1.241"
-```
-
-### 4. Configure Safety Limits
+### 2. Configure Safety Limits
 Edit `arm_config/safety_config.yaml` for your workspace:
 
 ```yaml
@@ -249,6 +239,9 @@ python main.py --task "pick up the cup" --wait-detections 10 --min-detection-ite
 
 # With fallback planning
 python main.py --task "move object" --use-fallback
+
+# With custom vision script
+python main.py --task "detect and pick" --vision-script custom_vision.py
 
 # With custom robot IP
 python main.py --task "pick up cup" --ip 192.168.1.200
@@ -670,3 +663,5 @@ python main.py --task "test gripper" --ip 192.168.1.200
 - **Software Issues**: Review error logs and documentation
 
 ---
+
+**Remember**: Safety first! Always test in a controlled environment with proper supervision and emergency procedures in place.
