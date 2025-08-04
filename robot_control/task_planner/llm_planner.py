@@ -14,7 +14,7 @@ import json
 import argparse
 from pathlib import Path
 
-from planner_llm import plan_with_gemini, plan_fallback
+from .planner_llm import plan_with_gemini, plan_fallback
 
 # Optional: load pose names from world_model.yaml to give LLM better context
 try:

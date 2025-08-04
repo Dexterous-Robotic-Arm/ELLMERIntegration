@@ -3,7 +3,6 @@ import time, threading
 import json
 import logging
 
-# Optional ROS2 imports - only import if available
 try:
     import rclpy
     from rclpy.node import Node
@@ -30,7 +29,7 @@ WORLD_POSES = {
     "table_pick_blue":  {"xyz_mm": [400,-150,  45], "rpy_deg": [180, 0, 0]},
 }
 
-class ObjectIndex:
+class ObjectIndex(Node if ROS2_AVAILABLE else object):
     """Caches latest pose per label (mm) from /detected_objects."""
     def __init__(self):
         self._lock = threading.Lock()

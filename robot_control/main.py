@@ -14,6 +14,7 @@ import signal
 import argparse
 import subprocess
 import threading
+import logging
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Any
 
@@ -22,7 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from robot_control.robot_controller import XArmRunner, TaskExecutor
 from robot_control.vision_system import PoseRecorder
-from robot_control.task_planner import TaskPlanner
+# TaskPlanner is defined in this file, no import needed
 from robot_control.utils import ConfigManager, setup_logging
 
 
@@ -240,13 +241,26 @@ class TaskPlanner:
         """Generate a plan for the given task."""
         try:
             self.logger.info(f"Planning task: {task}")
-            # TODO: Implement LLM planning integration
-            # For now, return a simple plan
-            return [{"action": "MOVE_TO_HOME", "params": {}}]
+            
+            # Import planning functions
+            from robot_control.task_planner import plan_with_gemini, plan_fallback
+            
+            # Get pose names from world config
+            pose_names = []
+            if world_config and 'poses' in world_config:
+                pose_names = list(world_config['poses'].keys())
+            
+            # Generate plan using LLM or fallback
+            plan = plan_with_gemini(task, pose_names)
+            
+            self.logger.info(f"Generated plan with {len(plan)} actions")
+            return plan
             
         except Exception as e:
             self.logger.error(f"Failed to plan task: {e}")
-            raise
+            # Use fallback plan
+            from robot_control.task_planner import plan_fallback
+            return plan_fallback(task)
 
 
 class TaskExecutor:
@@ -268,12 +282,15 @@ class TaskExecutor:
             if self.config.dry_run:
                 self.logger.info("DRY RUN - No robot movements will be executed")
                 
-            executor = TaskExecutor(self.runner, world_config, sim=self.config.sim, dry_run=self.config.dry_run)
+            # Create executor instance
+            from robot_control.task_planner import plan_with_gemini, plan_fallback
             
-            for i, step in enumerate(plan):
-                self.logger.info(f"Executing step {i+1}/{len(plan)}: {step}")
-                executor.execute_step(step)
-                
+            # Use the TaskExecutor from robot_controller
+            executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run)
+            
+            # Execute the plan
+            executor.execute(plan)
+            
             self.logger.info("Plan execution completed")
             
         except Exception as e:
