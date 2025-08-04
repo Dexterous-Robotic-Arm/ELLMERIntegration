@@ -1,0 +1,33 @@
+# Camera Configuration for RealSense D435
+camera:
+  type: "RealSense D435"
+  streams:
+    color:
+      width: 640
+      height: 480
+      format: "bgr8"
+      fps: 30
+    depth:
+      width: 640
+      height: 480
+      format: "z16"
+      fps: 30
+  
+  # Camera offset from robot flange (meters)
+  offset:
+    x: 0.0
+    y: 0.0
+    z: 0.0225  # 22.5mm
+
+# Object Detection Settings
+detection:
+  model: "yolov8n.pt"
+  confidence_threshold: 0.35
+  max_objects: 10
+  
+# Vision Processing
+processing:
+  enable_depth_filtering: true
+  min_depth: 0.1  # meters
+  max_depth: 2.0  # meters
+  enable_pose_estimation: true 

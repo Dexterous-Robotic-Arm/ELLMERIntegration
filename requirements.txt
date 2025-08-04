@@ -1,40 +1,46 @@
-# Robot Control System Dependencies
-# =================================
+# Robot Control System - Python Dependencies
+# For Ubuntu 22.04 with real hardware (ufactory850 + RealSense D435)
 
-# Core robot control
+# Core dependencies
+numpy>=1.21.0
+scipy>=1.7.0
+matplotlib>=3.5.0
+pillow>=8.3.0
+requests>=2.25.0
+pyyaml>=6.0
+python-dotenv>=0.19.0
+
+# Robot control
 xarm-python-sdk>=1.11.0
 
-# LLM and AI planning
+# LLM and AI
 google-generativeai>=0.3.0
 openai>=1.0.0
 
-# Computer vision and object detection
-ultralytics>=8.0.0
+# Computer Vision
 opencv-python>=4.8.0
+ultralytics>=8.0.0
 pyrealsense2>=2.54.0
 
-# ROS2 integration
+# ROS2 Python client
 rclpy>=0.10.0
 std-msgs>=0.10.0
+geometry-msgs>=0.10.0
+sensor-msgs>=0.10.0
+nav-msgs>=0.10.0
+tf2-ros>=0.10.0
+tf2-msgs>=0.10.0
+visualization-msgs>=0.10.0
 
-# Data processing and utilities
-numpy>=1.24.0
-scipy>=1.11.0
-pandas>=2.0.0
+# Data processing
+pandas>=1.3.0
+scikit-learn>=1.0.0
 
-# Configuration and serialization
-pyyaml>=6.0
-jsonschema>=4.19.0
-
-# Network and communication
-requests>=2.31.0
-websockets>=11.0.0
-
-# Development and testing (optional)
-pytest>=7.4.0
-black>=23.0.0
-flake8>=6.0.0
+# Development tools
+pytest>=6.0.0
+black>=21.0.0
+flake8>=3.9.0
 
 # Additional utilities
-tqdm>=4.65.0
-colorama>=0.4.6 
+psutil>=5.8.0
+tqdm>=4.62.0 

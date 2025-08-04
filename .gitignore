@@ -1,53 +1,96 @@
 # ---- Python basics ----
 __pycache__/
 *.py[cod]
-*.egg-info/
-*.egg
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
 dist/
-build/           # (python packaging; not ROS build/)
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# ---- Virtual envs ----
-.venv/
+# ---- Virtual environments ----
 venv/
 env/
 ENV/
+env.bak/
+venv.bak/
 
-# ---- Dotenv / secrets ----
+# ---- ROS2 workspace ----
+ros_workspace/build/
+ros_workspace/install/
+ros_workspace/log/
+
+# ---- Robot control system ----
+logs/
+*.log
+*.csv
+
+# ---- Configuration and secrets ----
 .env
-.env.*           # keep secrets out of git
-# commit an example instead:
-# .env.example
+.env.local
+*.key
+secrets/
 
-# ---- ROS 2 / colcon workspace ----
-build/           # ROS2 build
-install/         # ROS2 install
-log/             # ROS2 logs
-.colcon_ignore
-.colcon.lck
-
-# ---- Ultralytics / YOLO outputs ----
-runs/
-**/runs/
-# (keep weights out; track with LFS or download at runtime)
-*.pt
-*.onnx
-
-# ---- OpenCV / datasets / cache (optional) ----
-data/
-datasets/
-.cache/
-**/.cache/
-
-# ---- Editor / OS noise ----
-.vscode/         # keep if you have portable, team-usable settings (see note below)
+# ---- IDE and editor files ----
+.vscode/
 .idea/
 *.swp
+*.swo
+*~
+
+# ---- OS generated files ----
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# ---- Jupyter (if any) ----
-.ipynb_checkpoints/
+# ---- Temporary files ----
+*.tmp
+*.temp
+*.bak
+*.backup
 
-# ---- Realsense / camera caches (optional) ----
-~/.config/Ultralytics/
-ultralytics_settings.yaml
+# ---- YOLO model (large file) ----
+yolov8n.pt
+
+# ---- Test coverage ----
+.coverage
+htmlcov/
+.pytest_cache/
+
+# ---- Documentation builds ----
+docs/_build/
+docs/build/
+
+# ---- Jupyter notebooks ----
+.ipynb_checkpoints/
+*.ipynb
+
+# ---- Data files ----
+data/
+datasets/
+*.pkl
+*.pickle
+
+# ---- Model files ----
+models/
+*.h5
+*.pth
+*.onnx
+*.tflite
