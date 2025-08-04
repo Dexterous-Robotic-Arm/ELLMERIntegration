@@ -1,5 +1,6 @@
 # Robot Control System - Python Dependencies
 # For Ubuntu 22.04 with real hardware (ufactory850 + RealSense D435)
+# Note: ROS2 packages are installed via apt, not pip
 
 # Core dependencies
 numpy>=1.21.0
@@ -22,15 +23,15 @@ opencv-python>=4.8.0
 ultralytics>=8.0.0
 pyrealsense2>=2.54.0
 
-# ROS2 Python client
-rclpy>=0.10.0
-std-msgs>=0.10.0
-geometry-msgs>=0.10.0
-sensor-msgs>=0.10.0
-nav-msgs>=0.10.0
-tf2-ros>=0.10.0
-tf2-msgs>=0.10.0
-visualization-msgs>=0.10.0
+# ROS2 Python client (optional - installed via apt on Ubuntu)
+# rclpy>=0.10.0
+# std-msgs>=0.10.0
+# geometry-msgs>=0.10.0
+# sensor-msgs>=0.10.0
+# nav-msgs>=0.10.0
+# tf2-ros>=0.10.0
+# tf2-msgs>=0.10.0
+# visualization-msgs>=0.10.0
 
 # Data processing
 pandas>=1.3.0
@@ -43,4 +44,8 @@ flake8>=3.9.0
 
 # Additional utilities
 psutil>=5.8.0
-tqdm>=4.62.0 
+tqdm>=4.62.0
+colorama>=0.4.4
+
+# Testing and simulation
+empy>=4.2.0 

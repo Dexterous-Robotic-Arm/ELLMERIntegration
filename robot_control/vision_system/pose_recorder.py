@@ -5,24 +5,59 @@ Publishes YOLO+RealSense detections (meters, base frame) to /detected_objects.
 Also logs joints/EEF to CSV. No planning/motion here.
 """
 
-import rclpy
-from rclpy.node import Node
-from std_msgs.msg import String
 import json
 import time
 import os
 import csv
 import numpy as np
-import pyrealsense2 as rs
-from ultralytics import YOLO
-from xarm.wrapper import XArmAPI
-from scipy.spatial.transform import Rotation as R
+import logging
+
+# Optional imports - only import if available
+try:
+    import rclpy
+    from rclpy.node import Node
+    from std_msgs.msg import String
+    ROS2_AVAILABLE = True
+except ImportError:
+    ROS2_AVAILABLE = False
+    print("Warning: ROS2 not available, running in simulation mode")
+
+try:
+    import pyrealsense2 as rs
+    REALSENSE_AVAILABLE = True
+except ImportError:
+    REALSENSE_AVAILABLE = False
+    print("Warning: RealSense SDK not available")
+
+try:
+    from ultralytics import YOLO
+    YOLO_AVAILABLE = True
+except ImportError:
+    YOLO_AVAILABLE = False
+    print("Warning: YOLO not available")
+
+try:
+    from xarm.wrapper import XArmAPI
+    XARM_AVAILABLE = True
+except ImportError:
+    XARM_AVAILABLE = False
+    print("Warning: XArm SDK not available")
+
+try:
+    from scipy.spatial.transform import Rotation as R
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+    print("Warning: SciPy not available")
 
 CAMERA_OFFSET_MM = [0.0, 0.0, 22.5]            # camera vs flange along tool Z
 CAMERA_OFFSET_M  = [x/1000.0 for x in CAMERA_OFFSET_MM]
 CONF_MIN = 0.35
 
 def get_transform_matrix(tx, ty, tz, rpy_xyz_rad):
+    if not SCIPY_AVAILABLE:
+        print("Warning: SciPy not available, using identity matrix")
+        return np.eye(4)
     rot = R.from_euler("xyz", rpy_xyz_rad).as_matrix()
     T = np.eye(4)
     T[:3, :3] = rot
@@ -31,6 +66,9 @@ def get_transform_matrix(tx, ty, tz, rpy_xyz_rad):
 
 def pose_to_transform(pose):
     # pose: (code, [x(mm),y(mm),z(mm),roll,pitch,yaw] deg)
+    if not SCIPY_AVAILABLE:
+        print("Warning: SciPy not available, using identity matrix")
+        return np.eye(4)
     vals = pose[1]
     x,y,z,roll,pitch,yaw = vals if len(vals)==6 else (*vals,0,0,0)
     x/=1000.0; y/=1000.0; z/=1000.0
@@ -41,28 +79,45 @@ def pose_to_transform(pose):
     T[:3,3]  = [x,y,z]
     return T
 
-class PoseRecorder(Node):
+class PoseRecorder(Node if ROS2_AVAILABLE else object):
     def __init__(self):
-        super().__init__('pose_recorder')
-        self.det_pub = self.create_publisher(String, '/detected_objects', 10)
+        # Initialize ROS2 node if available
+        if ROS2_AVAILABLE:
+            super().__init__('pose_recorder')
+            self.det_pub = self.create_publisher(String, '/detected_objects', 10)
+        else:
+            self.det_pub = None
+            print("Running in simulation mode - no ROS2 publisher")
 
-        # xArm
-        self.arm = XArmAPI(os.environ.get("XARM_IP", "192.168.1.241"))
-        self.arm.connect()
-        self.arm.motion_enable(True)
-        self.arm.set_mode(0)
-        self.arm.set_state(0)
-        self.arm.move_gohome(wait=True)
+        # xArm - only if available
+        if XARM_AVAILABLE:
+            self.arm = XArmAPI(os.environ.get("XARM_IP", "192.168.1.241"))
+            self.arm.connect()
+            self.arm.motion_enable(True)
+            self.arm.set_mode(0)
+            self.arm.set_state(0)
+            self.arm.move_gohome(wait=True)
+        else:
+            self.arm = None
+            print("Running in simulation mode - no XArm connection")
 
-        # RealSense
-        self.pipeline = rs.pipeline()
-        cfg = rs.config()
-        cfg.enable_stream(rs.stream.color, 640,480,rs.format.bgr8,30)
-        cfg.enable_stream(rs.stream.depth, 640,480,rs.format.z16,30)
-        self.pipeline.start(cfg)
+        # RealSense - only if available
+        if REALSENSE_AVAILABLE:
+            self.pipeline = rs.pipeline()
+            cfg = rs.config()
+            cfg.enable_stream(rs.stream.color, 640,480,rs.format.bgr8,30)
+            cfg.enable_stream(rs.stream.depth, 640,480,rs.format.z16,30)
+            self.pipeline.start(cfg)
+        else:
+            self.pipeline = None
+            print("Running in simulation mode - no RealSense camera")
 
-        # YOLO
-        self.model = YOLO("yolov8n.pt")
+        # YOLO - only if available
+        if YOLO_AVAILABLE:
+            self.model = YOLO("yolov8n.pt")
+        else:
+            self.model = None
+            print("Running in simulation mode - no YOLO model")
 
         # CSV logging
         self.csv_path = os.path.expanduser("~/arm_pose_log.csv")

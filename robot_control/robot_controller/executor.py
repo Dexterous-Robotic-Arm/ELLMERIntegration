@@ -1,11 +1,19 @@
 # executor.py
 import time, threading
-import rclpy
-from rclpy.node import Node
-from std_msgs.msg import String as StringMsg
 import json
+import logging
 
-from actions_xarm import XArmRunner
+# Optional ROS2 imports - only import if available
+try:
+    import rclpy
+    from rclpy.node import Node
+    from std_msgs.msg import String as StringMsg
+    ROS2_AVAILABLE = True
+except ImportError:
+    ROS2_AVAILABLE = False
+    print("Warning: ROS2 not available, running in simulation mode")
+
+from .actions_xarm import XArmRunner
 
 DEFAULT_HOVER_MM = 80
 DEFAULT_PICK_RPY = [180, 0, 0]
@@ -22,17 +30,25 @@ WORLD_POSES = {
     "table_pick_blue":  {"xyz_mm": [400,-150,  45], "rpy_deg": [180, 0, 0]},
 }
 
-class ObjectIndex(Node):
+class ObjectIndex:
     """Caches latest pose per label (mm) from /detected_objects."""
     def __init__(self):
-        super().__init__('object_index')
         self._lock = threading.Lock()
         self.latest_mm = {}  # label -> [x_mm, y_mm, z_mm]
-        self.sub = self.create_subscription(StringMsg, '/detected_objects', self._on_msg, 10)
+        
+        # Only setup ROS2 subscription if available
+        if ROS2_AVAILABLE:
+            super().__init__('object_index')
+            self.sub = self.create_subscription(StringMsg, '/detected_objects', self._on_msg, 10)
+        else:
+            self.sub = None
 
-    def _on_msg(self, msg: StringMsg):
+    def _on_msg(self, msg):
         try:
-            data = json.loads(msg.data)
+            if hasattr(msg, 'data'):
+                data = json.loads(msg.data)
+            else:
+                data = msg  # Handle direct dict input
             units = data.get("units", "m")
             k = 1000.0 if units == "m" else 1.0
             items = data.get("items", [])
@@ -42,7 +58,8 @@ class ObjectIndex(Node):
                     pos = it.get("pos", [0,0,0])
                     if lab and isinstance(pos, list) and len(pos) == 3:
                         self.latest_mm[lab] = [float(pos[0])*k, float(pos[1])*k, float(pos[2])*k]
-        except Exception:
+        except Exception as e:
+            print(f"Error processing message: {e}")
             pass
 
     def wait_for(self, label: str, timeout=5.0):
@@ -55,7 +72,7 @@ class ObjectIndex(Node):
             time.sleep(0.05)
         raise TimeoutError(f"Object '{label}' not seen on /detected_objects within {timeout}s")
 
-class Executor:
+class TaskExecutor:
     def __init__(self, arm_ip: str, world_yaml: str = None, sim: bool = False, dry_run: bool = False):
         self.runner = XArmRunner(arm_ip)
         self.world = WORLD_POSES
@@ -85,10 +102,15 @@ class Executor:
             except Exception as e:
                 print(f"[WARN] Failed to load world YAML {world_yaml}: {e}")
 
-        rclpy.init(args=None)
-        self.obj_index = ObjectIndex()
-        self._spin_thread = threading.Thread(target=rclpy.spin, args=(self.obj_index,), daemon=True)
-        self._spin_thread.start()
+        # Initialize ROS2 only if available
+        if ROS2_AVAILABLE:
+            rclpy.init(args=None)
+            self.obj_index = ObjectIndex()
+            self._spin_thread = threading.Thread(target=rclpy.spin, args=(self.obj_index,), daemon=True)
+            self._spin_thread.start()
+        else:
+            self.obj_index = ObjectIndex()
+            self._spin_thread = None
 
     def _named(self, name: str):
         if name not in self.world:
@@ -358,7 +380,8 @@ class Executor:
 
     def shutdown(self):
         try:
-            rclpy.shutdown()
+            if ROS2_AVAILABLE:
+                rclpy.shutdown()
         except Exception:
             pass
         self.runner.disconnect()
