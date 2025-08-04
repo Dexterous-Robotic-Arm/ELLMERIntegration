@@ -45,6 +45,35 @@ def eprint(msg: str):
     sys.stderr.write(msg.rstrip() + "\n")
     sys.stderr.flush()
 
+def get_robot_ip():
+    """Get robot IP address - defaults to 192.168.1.241"""
+    # Check environment variable first
+    env_ip = os.environ.get("XARM_IP")
+    if env_ip:
+        eprint(f"[Config] Using IP from environment: {env_ip}")
+        return env_ip
+    
+    # Default IP for ufactory850
+    default_ip = "192.168.1.241"
+    eprint(f"[Config] Using default robot IP: {default_ip}")
+    return default_ip
+
+def test_robot_connection(ip: str):
+    """Test if we can connect to the robot"""
+    try:
+        from xarm.wrapper import XArmAPI
+        arm = XArmAPI(ip)
+        if arm.connect():
+            eprint(f"[Connection] Successfully connected to robot at {ip}")
+            arm.disconnect()
+            return True
+        else:
+            eprint(f"[Connection] Failed to connect to robot at {ip}")
+            return False
+    except Exception as e:
+        eprint(f"[Connection] Error connecting to {ip}: {e}")
+        return False
+
 class DetectionWaiter(Node):
     def __init__(self, topic="/detected_objects", min_items=0):
         super().__init__('detection_waiter')
@@ -133,7 +162,7 @@ def main():
     ap.add_argument("--world", default=os.environ.get("WORLD_YAML", "world_model.yaml"))
     ap.add_argument("--contract", default=os.environ.get("ACTION_CONTRACT_MD", "llm_planning_gemini/custom_gemini_examples/custom_gpt_action_schema.md"))
     ap.add_argument("--no-validate", action="store_true")
-    ap.add_argument("--ip", default=os.environ.get("XARM_IP", "192.168.1.241"))
+    ap.add_argument("--ip", help="Robot IP address (defaults to 192.168.1.241)")
     ap.add_argument("--sim", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--spawn-vision", dest="spawn_vision", action="store_true", default=True)
@@ -142,6 +171,23 @@ def main():
     ap.add_argument("--wait-detections", type=float, default=6.0)
     ap.add_argument("--min-detection-items", type=int, default=0)
     args = ap.parse_args()
+
+    # Get robot IP
+    if args.ip:
+        robot_ip = args.ip
+        eprint(f"[Config] Using specified robot IP: {robot_ip}")
+    else:
+        robot_ip = get_robot_ip()
+    
+    # Test robot connection (unless in sim or dry-run mode)
+    if not args.sim and not args.dry_run:
+        if not test_robot_connection(robot_ip):
+            eprint("[Error] Cannot connect to robot. Please check:")
+            eprint("  1. Robot is powered on and connected to network")
+            eprint("  2. Robot IP is correct (set XARM_IP environment variable)")
+            eprint("  3. Network connection is working")
+            eprint("  4. Try --sim or --dry-run mode for testing without robot")
+            return
 
     # Determine task mode
     if not args.task and not args.interactive and not args.loop:
@@ -220,7 +266,7 @@ def main():
 
             print(json.dumps(plan, indent=2))  # show plan
 
-            exe = build_executor(args.ip, args.world, args.sim, args.dry_run)
+            exe = build_executor(robot_ip, args.world, args.sim, args.dry_run)
             try:
                 eprint("[Exec] Starting execution…")
                 exe.execute(plan)

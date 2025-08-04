@@ -1,0 +1,70 @@
+# Safety Configuration for ufactory850 Robot
+# Adjust these values based on your specific setup and safety requirements
+
+# Robot Speed Limits (conservative for real-life testing)
+speed_limits:
+  max_cartesian_speed: 150      # mm/s - maximum linear movement speed
+  max_joint_speed: 30           # deg/s - maximum joint rotation speed
+  max_acceleration: 1000        # mm/s² - maximum acceleration
+  max_force: 100                # N - maximum force limit
+  max_torque: 50                # Nm - maximum torque limit
+
+# Workspace Safety Limits (adjust for your robot's workspace)
+workspace_limits:
+  x_min: 150                    # mm - minimum X position (front limit)
+  x_max: 650                    # mm - maximum X position (back limit)
+  y_min: -300                   # mm - minimum Y position (left limit)
+  y_max: 300                    # mm - maximum Y position (right limit)
+  z_min: 50                     # mm - minimum Z position (down limit)
+  z_max: 500                    # mm - maximum Z position (up limit)
+
+# Gripper Safety Limits
+gripper_limits:
+  max_speed: 300                # mm/s - maximum gripper speed
+  max_force: 100                # N - maximum gripper force
+  min_position: 0               # mm - minimum gripper position (fully closed)
+  max_position: 850             # mm - maximum gripper position (fully open)
+  position_open: 850            # mm - fully open position
+  position_closed: 200          # mm - fully closed position
+  position_half: 525            # mm - half-open position
+
+# Execution Safety Limits
+execution_limits:
+  max_execution_time: 300       # seconds - maximum time for any plan
+  max_steps_per_plan: 50        # maximum number of steps in a plan
+  max_consecutive_errors: 3     # stop after this many consecutive errors
+  safety_check_interval: 0.5    # seconds between safety checks
+
+# Movement Safety Limits
+movement_limits:
+  max_retreat_distance: 150     # mm - maximum Z retreat distance
+  max_hover_distance: 200       # mm - maximum hover height above objects
+  max_offset_distance: 100      # mm - maximum offset from detected objects
+  max_movement_distance: 200    # mm - maximum single movement distance
+  min_movement_distance: 10     # mm - minimum movement to trigger collision check
+
+# Timeout Limits
+timeout_limits:
+  max_sleep_time: 30            # seconds - maximum sleep duration
+  max_grasp_timeout: 10         # seconds - maximum grasp operation timeout
+  max_object_wait_time: 5       # seconds - maximum wait for object detection
+
+# Emergency Stop Configuration
+emergency_stop:
+  enabled: true                 # enable emergency stop functionality
+  auto_open_gripper: true       # automatically open gripper on emergency stop
+  stop_all_movement: true       # stop all robot movement on emergency stop
+
+# Safety Warnings (set to true to enable warnings)
+safety_warnings:
+  warn_large_movements: true    # warn about movements > 200mm
+  warn_high_speeds: true        # warn about speeds > 200mm/s
+  warn_workspace_limits: true   # warn about workspace boundary violations
+  warn_gripper_force: true      # warn about high gripper forces
+
+# Testing Mode Configuration
+testing_mode:
+  dry_run_enabled: false        # enable dry-run mode (no actual movement)
+  simulation_mode: false        # enable simulation mode
+  verbose_logging: true         # enable detailed logging
+  safety_checks_enabled: true   # enable all safety checks 
