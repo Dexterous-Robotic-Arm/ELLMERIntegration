@@ -2,6 +2,9 @@
 import time, threading
 import json
 import logging
+import subprocess
+import sys
+import os
 
 # Initialize fallback values BEFORE try-except
 ROS2_AVAILABLE = False
@@ -92,6 +95,10 @@ class TaskExecutor:
         self.error_count = 0
         self.max_errors = 3  # Stop after this many consecutive errors
 
+        # Initialize vision system if needed
+        self.vision_process = None
+        self._start_vision_system()
+
         # Load world poses from YAML if provided
         if world_yaml:
             try:
@@ -113,9 +120,32 @@ class TaskExecutor:
             self.obj_index = ObjectIndex()
             self._spin_thread = threading.Thread(target=rclpy.spin, args=(self.obj_index,), daemon=True)
             self._spin_thread.start()
+            
+            # Wait for vision system to initialize
+            if self.vision_process:
+                print("[Vision] Waiting for vision system to initialize...")
+                time.sleep(3)
         else:
             self.obj_index = ObjectIndex()
             self._spin_thread = None
+
+    def _start_vision_system(self):
+        """Start the vision system for object detection."""
+        try:
+            vision_script = os.path.join(os.path.dirname(__file__), "..", "vision_system", "pose_recorder.py")
+            
+            if os.path.exists(vision_script):
+                print("[Vision] Starting vision system for object detection...")
+                self.vision_process = subprocess.Popen([
+                    sys.executable, vision_script
+                ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                print("[Vision] Vision system started successfully")
+            else:
+                print("[Vision] Vision script not found, object detection may not work")
+                self.vision_process = None
+        except Exception as e:
+            print(f"[Vision] Error starting vision system: {e}")
+            self.vision_process = None
 
     def _named(self, name: str):
         if name not in self.world:
@@ -471,4 +501,15 @@ class TaskExecutor:
                 rclpy.shutdown()
         except Exception:
             pass
+        
+        # Stop vision system if running
+        if self.vision_process:
+            print("[Vision] Stopping vision system...")
+            try:
+                self.vision_process.terminate()
+                self.vision_process.wait(timeout=5)
+                print("[Vision] Vision system stopped")
+            except Exception as e:
+                print(f"[Vision] Error stopping vision system: {e}")
+        
         self.runner.disconnect()
