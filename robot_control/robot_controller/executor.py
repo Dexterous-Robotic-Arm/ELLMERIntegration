@@ -520,8 +520,15 @@ class TaskExecutor:
             print("[Vision] Stopping vision system...")
             try:
                 self.vision_process.terminate()
-                self.vision_process.wait(timeout=5)
-                print("[Vision] Vision system stopped")
+                # Use a shorter timeout and force kill if needed
+                try:
+                    self.vision_process.wait(timeout=2)
+                    print("[Vision] Vision system stopped gracefully")
+                except:
+                    print("[Vision] Force killing vision system...")
+                    self.vision_process.kill()
+                    self.vision_process.wait(timeout=1)
+                    print("[Vision] Vision system force stopped")
             except Exception as e:
                 print(f"[Vision] Error stopping vision system: {e}")
         
