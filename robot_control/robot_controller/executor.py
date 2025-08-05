@@ -111,6 +111,27 @@ class TaskExecutor:
         self.sim = sim
         self.dry_run = dry_run
         
+        # Constant J5 position for all movements (except home)
+        # J5 at 90 degrees = camera pointing up for scanning
+        self.constant_j5_rpy = [0, 90, 0]  # Roll=0, Pitch=90, Yaw=0
+        
+        # Optionally get current J5 position and use it as constant
+        if not self.sim and not self.dry_run:
+            try:
+                current_joints = self.runner.arm.get_servo_angle()
+                if current_joints[0] == 0:
+                    current_j5 = current_joints[1][4]  # J5 is index 4
+                    print(f"[J5] Current J5 position: {current_j5} degrees")
+                    # Convert J5 angle to RPY (simplified conversion)
+                    if abs(current_j5 - 90) < 10:  # If J5 is close to 90 degrees
+                        self.constant_j5_rpy = [0, 90, 0]
+                        print(f"[J5] Using J5=90° (camera pointing up) as constant position")
+                    else:
+                        print(f"[J5] Using default J5=90° as constant position")
+            except Exception as e:
+                print(f"[J5] Could not get current J5 position: {e}")
+                print(f"[J5] Using default J5=90° as constant position")
+        
         # Safety monitoring
         self.execution_start_time = None
         self.step_count = 0
@@ -281,7 +302,17 @@ class TaskExecutor:
                 elif act == "MOVE_TO_POSE":
                     pose = step["pose"]
                     if not self.dry_run:
-                        self.runner.move_pose(pose["xyz_mm"], pose["rpy_deg"])
+                        # Check if this is a home movement - allow original orientation
+                        pose_name = step.get("pose_name", "").lower()
+                        if "home" in pose_name:
+                            # Use original pose orientation for home
+                            rpy = pose["rpy_deg"]
+                            print(f"[MOVE] Moving to home with original orientation: {rpy}")
+                        else:
+                            # Use constant J5 position for all other movements
+                            rpy = self.constant_j5_rpy
+                            print(f"[MOVE] Moving to pose with constant J5 position: {rpy}")
+                        self.runner.move_pose(pose["xyz_mm"], rpy)
 
                 elif act == "RETREAT_Z":
                     dz_mm = float(step["dz_mm"])
@@ -405,7 +436,8 @@ class TaskExecutor:
                                 obj[1] + float(offset[1]),
                                 obj[2] + float(offset[2]),
                             ]
-                            rpy = self.pick_rpy
+                            # Use constant J5 position for all movements (except home)
+                            rpy = self.constant_j5_rpy
                             if act == "APPROACH_OBJECT":
                                 target[2] += hover
                             self.runner.move_pose(target, rpy)
@@ -443,7 +475,7 @@ class TaskExecutor:
                         print(f"[SCAN] Moving to scan center: {scan_center}")
                         
                         try:
-                            self.runner.move_pose(scan_center, self.pick_rpy)
+                            self.runner.move_pose(scan_center, self.constant_j5_rpy)
                             print(f"[SCAN] Arrived at scan center")
                         except Exception as e:
                             print(f"[SCAN] Failed to move to scan center: {e}")
@@ -471,7 +503,7 @@ class TaskExecutor:
                             print(f"[SCAN] Moving to scan position {j+1}/{steps}: {target}")
                             
                             try:
-                                self.runner.move_pose(target, self.pick_rpy)
+                                self.runner.move_pose(target, self.constant_j5_rpy)
                                 print(f"[SCAN] Pausing {pause_sec}s for detection...")
                                 time.sleep(pause_sec)
                             except Exception as e:
