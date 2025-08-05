@@ -445,45 +445,19 @@ class TaskExecutor:
                                 print(f"[DEBUG] Object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}, Z={obj[2]:.1f}")
                                 print(f"[DEBUG] Robot coordinates: X={current_pos[0]:.1f}, Y={current_pos[1]:.1f}, Z={current_pos[2]:.1f}")
                             
-                            # PRECISE CENTER-TO-CENTER ALIGNMENT
-                            # Goal: Align robot's center point with object's center point
+                            # DIRECT OBJECT COORDINATE ALIGNMENT
+                            # Simply move robot to the detected object's X and Y coordinates
                             
-                            # Based on detection patterns, we need to map camera coordinates to robot workspace
-                            # From your logs: object Y ranges from ~0 to ~900, robot Y from -300 to 300
+                            print(f"[DIRECT] Moving robot to object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}")
                             
-                            if abs(obj[1]) > 100:  # Different coordinate system detected
-                                # PRECISE MAPPING: Map object center to robot center
-                                # Camera Y coordinate to Robot Y coordinate
-                                
-                                # From logs analysis:
-                                # - Object Y=0 maps to robot Y=-300 (left edge)
-                                # - Object Y=900 maps to robot Y=300 (right edge)
-                                # - Object Y=450 maps to robot Y=0 (center)
-                                
-                                # Linear mapping: robot_y = (obj[1] - 450) * (600/900) + 0
-                                # Simplified: robot_y = (obj[1] - 450) * 0.667
-                                robot_y = (obj[1] - 450) * 0.667
-                                
-                                # Clamp to robot workspace bounds
-                                robot_y = max(-300, min(300, robot_y))
-                                
-                                print(f"[PRECISE] Object center Y={obj[1]:.1f} -> Robot center Y={robot_y:.1f}")
-                                
-                                # Move robot center to object center (no offset for center alignment)
-                                target = [
-                                    current_pos[0],  # Keep current X
-                                    robot_y,         # Align center to center
-                                    current_pos[2]   # Keep current Z
-                                ]
-                                print(f"[CENTER] Moving robot center to object center: Y={robot_y:.1f}mm")
-                            else:
-                                # Same coordinate system - direct center alignment
-                                target = [
-                                    current_pos[0],  # Keep current X
-                                    obj[1],          # Direct center alignment
-                                    current_pos[2]   # Keep current Z
-                                ]
-                                print(f"[CENTER] Direct center alignment: Y={obj[1]:.1f}mm")
+                            # Move robot directly to object's X and Y coordinates
+                            target = [
+                                obj[0],           # Move to object's X coordinate
+                                obj[1],           # Move to object's Y coordinate  
+                                current_pos[2]    # Keep current Z height
+                            ]
+                            
+                            print(f"[ALIGN] Robot moving to: X={target[0]:.1f}, Y={target[1]:.1f}, Z={target[2]:.1f}")
                             
                             # Use constant J5 position (90° - camera pointing up)
                             rpy = self.constant_j5_rpy
