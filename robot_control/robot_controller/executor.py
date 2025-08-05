@@ -445,39 +445,45 @@ class TaskExecutor:
                                 print(f"[DEBUG] Object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}, Z={obj[2]:.1f}")
                                 print(f"[DEBUG] Robot coordinates: X={current_pos[0]:.1f}, Y={current_pos[1]:.1f}, Z={current_pos[2]:.1f}")
                             
-                            # Transform object coordinates to robot workspace coordinates
-                            # Based on the detection patterns, object Y coordinates seem to be in a different scale
-                            # Let's map the object Y to robot Y workspace
-                            robot_y_min = -300  # Robot Y workspace minimum
-                            robot_y_max = 300   # Robot Y workspace maximum
+                            # PRECISE CENTER-TO-CENTER ALIGNMENT
+                            # Goal: Align robot's center point with object's center point
                             
-                            # Simple coordinate transformation for Y axis
-                            # Object Y seems to be in a different coordinate system
-                            # Let's use a simple mapping based on the detection patterns
-                            if abs(obj[1]) > 100:  # If object Y is in different system
-                                # Map object Y to robot Y workspace
-                                # From the logs, object Y ranges from ~0 to ~900
-                                # Map this to robot Y range of -300 to 300
-                                object_y_normalized = (obj[1] - 0) / (900 - 0)  # Normalize to 0-1
-                                robot_y = robot_y_min + object_y_normalized * (robot_y_max - robot_y_min)
+                            # Based on detection patterns, we need to map camera coordinates to robot workspace
+                            # From your logs: object Y ranges from ~0 to ~900, robot Y from -300 to 300
+                            
+                            if abs(obj[1]) > 100:  # Different coordinate system detected
+                                # PRECISE MAPPING: Map object center to robot center
+                                # Camera Y coordinate to Robot Y coordinate
                                 
-                                print(f"[TRANSFORM] Object Y {obj[1]:.1f} -> Robot Y {robot_y:.1f}")
+                                # From logs analysis:
+                                # - Object Y=0 maps to robot Y=-300 (left edge)
+                                # - Object Y=900 maps to robot Y=300 (right edge)
+                                # - Object Y=450 maps to robot Y=0 (center)
                                 
-                                # Align Y to transformed object position while keeping current X and Z
+                                # Linear mapping: robot_y = (obj[1] - 450) * (600/900) + 0
+                                # Simplified: robot_y = (obj[1] - 450) * 0.667
+                                robot_y = (obj[1] - 450) * 0.667
+                                
+                                # Clamp to robot workspace bounds
+                                robot_y = max(-300, min(300, robot_y))
+                                
+                                print(f"[PRECISE] Object center Y={obj[1]:.1f} -> Robot center Y={robot_y:.1f}")
+                                
+                                # Move robot center to object center (no offset for center alignment)
                                 target = [
                                     current_pos[0],  # Keep current X
-                                    robot_y + float(offset[1]),  # Align Y to transformed object
-                                    current_pos[2]  # Keep current Z
+                                    robot_y,         # Align center to center
+                                    current_pos[2]   # Keep current Z
                                 ]
-                                print(f"[ALIGN] Aligning Y to object: current Y={current_pos[1]:.1f}mm, transformed object Y={robot_y:.1f}mm, target Y={target[1]:.1f}mm")
+                                print(f"[CENTER] Moving robot center to object center: Y={robot_y:.1f}mm")
                             else:
-                                # Object coordinates seem to be in same system
+                                # Same coordinate system - direct center alignment
                                 target = [
                                     current_pos[0],  # Keep current X
-                                    obj[1] + float(offset[1]),  # Align Y to object
-                                    current_pos[2]  # Keep current Z
+                                    obj[1],          # Direct center alignment
+                                    current_pos[2]   # Keep current Z
                                 ]
-                                print(f"[ALIGN] Aligning Y to object: current Y={current_pos[1]:.1f}mm, object Y={obj[1]:.1f}mm, target Y={target[1]:.1f}mm")
+                                print(f"[CENTER] Direct center alignment: Y={obj[1]:.1f}mm")
                             
                             # Use constant J5 position (90° - camera pointing up)
                             rpy = self.constant_j5_rpy
