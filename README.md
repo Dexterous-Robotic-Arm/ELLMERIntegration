@@ -288,6 +288,30 @@ python3 robot_control/main.py --interactive
 python3 robot_control/main.py --task "sort objects" --loop
 ```
 
+### Camera-Mounted Commands (Recommended)
+```bash
+# Detect objects from current position (no movement)
+python3 robot_control/main.py --task "detect objects" --ip 192.168.1.241 --wait-detections --dry-run
+
+# Approach detected object (keeps camera position)
+python3 robot_control/main.py --task "approach the can" --ip 192.168.1.241 --wait-detections
+
+# Scan for objects if not detected initially
+python3 robot_control/main.py --task "scan for objects" --ip 192.168.1.241
+
+# Move directly to detected object
+python3 robot_control/main.py --task "move to the can" --ip 192.168.1.241 --wait-detections
+```
+
+### Fixed Camera Commands (Legacy)
+```bash
+# Pick and place with home movement (for fixed camera setups)
+python3 robot_control/main.py --task "pick up the cup" --ip 192.168.1.241 --wait-detections
+
+# Go home then approach (for fixed camera setups)
+python3 robot_control/main.py --task "go home, then approach the can" --ip 192.168.1.241 --wait-detections
+```
+
 ### Simulation and Testing
 ```bash
 # Test without hardware (simulation mode)
@@ -310,6 +334,89 @@ python3 robot_control/main.py --task "detect objects" --vision-script custom_vis
 
 # Loop mode with custom task
 python3 robot_control/main.py --task "sort objects by color" --loop
+```
+
+## 📷 Camera-Mounted Robot & Scanning
+
+### Camera-Mounted Scenarios
+This system is optimized for **camera-mounted robots** where the camera is attached to the robot arm. The system automatically:
+- **Keeps current position** instead of moving to home for every command
+- **Scans for objects** when initial detection fails
+- **Maintains camera field of view** during object detection and manipulation
+
+### Object Detection Commands (Camera-Mounted)
+```bash
+# Detect objects from current position (no movement)
+python3 robot_control/main.py --task "detect objects" --ip 192.168.1.241 --wait-detections --dry-run
+
+# Approach detected object (keeps camera position)
+python3 robot_control/main.py --task "approach the can" --ip 192.168.1.241 --wait-detections
+
+# Move directly to detected object
+python3 robot_control/main.py --task "move to the can" --ip 192.168.1.241 --wait-detections
+
+# Scan for objects if not detected initially
+python3 robot_control/main.py --task "scan for objects" --ip 192.168.1.241
+```
+
+### Camera Scanning Technique
+When objects aren't detected in the initial field of view, the system can perform a **horizontal scanning sweep**:
+
+```bash
+# Trigger scanning sweep
+python3 robot_control/main.py --task "scan for objects" --ip 192.168.1.241
+
+# Custom scan parameters
+python3 robot_control/main.py --task "scan with wide sweep" --ip 192.168.1.241
+```
+
+**Scan Parameters:**
+- **Pattern**: Horizontal sweep (left to right)
+- **Sweep Width**: 300mm (configurable)
+- **Steps**: 5 positions (configurable)
+- **Pause**: 1 second per position (configurable)
+
+### Camera-Mounted vs Fixed Camera
+| Feature | Camera-Mounted | Fixed Camera |
+|---------|----------------|--------------|
+| **Home Movement** | ❌ No automatic home | ✅ Moves to home |
+| **Scanning** | ✅ Built-in scanning | ❌ Manual positioning |
+| **Field of View** | ✅ Maintained during tasks | ❌ Lost during movement |
+| **Object Detection** | ✅ Continuous detection | ❌ Interrupted by movement |
+
+### Supported Object Types
+The system detects these object types (COCO dataset):
+- **Cans**: `"can"`
+- **Bottles**: `"bottle"`
+- **Cups**: `"cup"`
+- **Bowls**: `"bowl"`
+- **Other objects**: Configurable via YOLO model
+
+### Camera Scanning Workflow
+1. **Initial Detection**: Try to detect objects from current position
+2. **Scan if Needed**: If no objects detected, perform horizontal sweep
+3. **Object Approach**: Move to approach detected objects
+4. **Manipulation**: Perform pick/place operations
+
+### Scanning Configuration
+```yaml
+# Scan parameters (in fallback planner)
+pattern: "horizontal"      # Scan pattern
+sweep_mm: 300             # Sweep width in mm
+steps: 5                  # Number of scan positions
+pause_sec: 1.0            # Pause time per position
+```
+
+### Troubleshooting Camera-Mounted Setup
+```bash
+# Test detection from current position
+python3 robot_control/main.py --task "detect objects" --ip 192.168.1.241 --wait-detections --dry-run
+
+# Test scanning if no objects detected
+python3 robot_control/main.py --task "scan for objects" --ip 192.168.1.241
+
+# Test approach without home movement
+python3 robot_control/main.py --task "approach the can" --ip 192.168.1.241 --wait-detections
 ```
 
 ## 🔧 Dynamixel Gripper Configuration
@@ -517,6 +624,23 @@ python3 -c "from robot_control.robot_controller import XArmRunner; runner = XArm
 
 # Test Dynamixel gripper specifically
 python3 -c "from robot_control.robot_controller import XArmRunner; runner = XArmRunner('192.168.1.241'); print(runner.get_gripper_status())"
+```
+
+### Camera Scanning Testing
+```bash
+# Test object detection from current position
+python3 robot_control/main.py --task "detect objects" --ip 192.168.1.241 --wait-detections --dry-run
+
+# Test scanning sweep (moves arm to scan for objects)
+python3 robot_control/main.py --task "scan for objects" --ip 192.168.1.241
+
+# Test approach without home movement
+python3 robot_control/main.py --task "approach the can" --ip 192.168.1.241 --wait-detections
+
+# Test complete camera-mounted workflow
+python3 robot_control/main.py --task "detect objects" --ip 192.168.1.241 --wait-detections --dry-run
+python3 robot_control/main.py --task "scan for objects" --ip 192.168.1.241
+python3 robot_control/main.py --task "approach the can" --ip 192.168.1.241 --wait-detections
 ```
 
 ## 🐛 Troubleshooting Guide

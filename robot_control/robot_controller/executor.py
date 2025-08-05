@@ -340,6 +340,30 @@ class TaskExecutor:
                             target[2] += hover
                         self.runner.move_pose(target, rpy)
 
+                elif act == "SCAN_FOR_OBJECTS":
+                    # Horizontal sweep in front of the robot
+                    pattern = step.get("pattern", "horizontal")
+                    sweep_mm = float(step.get("sweep_mm", 300))
+                    steps = int(step.get("steps", 5))
+                    pause_sec = float(step.get("pause_sec", 1.0))
+                    if not self.dry_run:
+                        # Get current position
+                        current_pos = self.runner.get_current_position()
+                        if current_pos is None:
+                            print("[WARN] Cannot get current position for scan, skipping.")
+                        else:
+                            x, y, z = current_pos
+                            # Sweep left to right in Y axis
+                            y_start = y - sweep_mm / 2
+                            y_end = y + sweep_mm / 2
+                            for j in range(steps):
+                                y_target = y_start + (y_end - y_start) * j / max(steps - 1, 1)
+                                target = [x, y_target, z]
+                                print(f"[SCAN] Moving to scan position {j+1}/{steps}: {target}")
+                                self.runner.move_pose(target, self.pick_rpy)
+                                print(f"[SCAN] Pausing {pause_sec}s for detection...")
+                                time.sleep(pause_sec)
+
                 elif act == "SLEEP":
                     sleep_time = float(step["seconds"])
                     # Limit sleep time for safety

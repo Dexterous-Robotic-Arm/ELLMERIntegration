@@ -237,31 +237,67 @@ def plan_fallback(task: str) -> Dict[str, Any]:
                 {"action": "MOVE_TO_NAMED", "name": "home"}
             ]
         }
-    
+
+    # Camera-mounted: scan/search pattern
+    elif "scan" in task_lower or "search" in task_lower:
+        return {
+            "goal": task,
+            "steps": [
+                {"action": "SCAN_FOR_OBJECTS", "pattern": "horizontal", "sweep_mm": 300, "steps": 5, "pause_sec": 1.0}
+            ]
+        }
+
+    # Camera-mounted: approach/move/detect patterns
+    elif "approach" in task_lower and any(obj in task_lower for obj in ["can", "bottle", "cup", "object"]):
+        object_type = "can"
+        for obj in ["can", "bottle", "cup", "object"]:
+            if obj in task_lower:
+                object_type = obj
+                break
+        return {
+            "goal": task,
+            "steps": [
+                {"action": "APPROACH_OBJECT", "label": object_type, "hover_mm": 80, "timeout_sec": 5}
+            ]
+        }
+    elif "move to" in task_lower and any(obj in task_lower for obj in ["can", "bottle", "cup", "object"]):
+        object_type = "can"
+        for obj in ["can", "bottle", "cup", "object"]:
+            if obj in task_lower:
+                object_type = obj
+                break
+        return {
+            "goal": task,
+            "steps": [
+                {"action": "MOVE_TO_OBJECT", "label": object_type, "offset_mm": [0, 0, 0], "timeout_sec": 5}
+            ]
+        }
+    elif "detect" in task_lower:
+        return {
+            "goal": task,
+            "steps": [
+                {"action": "SLEEP", "seconds": 2}
+            ]
+        }
+
     elif "pick" in task_lower and ("cup" in task_lower or "object" in task_lower):
         return {
             "goal": task,
             "steps": [
-                {"action": "MOVE_TO_NAMED", "name": "home"},
                 {"action": "OPEN_GRIPPER", "gripper": {"position": 850}},
                 {"action": "APPROACH_OBJECT", "label": "cup", "hover_mm": 80, "timeout_sec": 5},
                 {"action": "MOVE_TO_OBJECT", "label": "cup", "offset_mm": [0, 0, 0], "timeout_sec": 5},
                 {"action": "GRIPPER_GRASP", "target_position": 200, "speed": 100, "force": 50},
-                {"action": "RETREAT_Z", "dz_mm": 80},
-                {"action": "MOVE_TO_NAMED", "name": "home"}
+                {"action": "RETREAT_Z", "dz_mm": 80}
             ]
         }
-    
     elif "place" in task_lower or "drop" in task_lower:
         return {
             "goal": task,
             "steps": [
-                {"action": "MOVE_TO_NAMED", "name": "home"},
-                {"action": "GRIPPER_RELEASE", "target_position": 850, "speed": 200},
-                {"action": "MOVE_TO_NAMED", "name": "home"}
+                {"action": "GRIPPER_RELEASE", "target_position": 850, "speed": 200}
             ]
         }
-    
     elif "gripper" in task_lower:
         if "open" in task_lower:
             return {
@@ -293,13 +329,11 @@ def plan_fallback(task: str) -> Dict[str, Any]:
                     {"action": "CLOSE_GRIPPER", "gripper": {"position": 200}}
                 ]
             }
-    
     else:
-        # Default plan
+        # Default plan: do nothing (just sleep)
         return {
             "goal": task,
             "steps": [
-                {"action": "MOVE_TO_NAMED", "name": "home"},
                 {"action": "SLEEP", "seconds": 1}
             ]
         }
