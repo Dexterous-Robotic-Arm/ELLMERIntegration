@@ -48,8 +48,10 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
         if ROS2_AVAILABLE:
             super().__init__('object_index')
             self.sub = self.create_subscription(StringMsg, '/detected_objects', self._on_msg, 10)
+            print("[ObjectIndex] ROS2 subscription created for /detected_objects")
         else:
             self.sub = None
+            print("[ObjectIndex] Running without ROS2 - no subscription")
 
     def _on_msg(self, msg):
         try:
@@ -60,24 +62,29 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
             units = data.get("units", "m")
             k = 1000.0 if units == "m" else 1.0
             items = data.get("items", [])
+            print(f"[ObjectIndex] Received message with {len(items)} items: {items}")
             with self._lock:
                 for it in items:
                     lab = it.get("class")
                     pos = it.get("pos", [0,0,0])
                     if lab and isinstance(pos, list) and len(pos) == 3:
                         self.latest_mm[lab] = [float(pos[0])*k, float(pos[1])*k, float(pos[2])*k]
+                        print(f"[ObjectIndex] Updated {lab} position: {self.latest_mm[lab]}")
         except Exception as e:
-            print(f"Error processing message: {e}")
+            print(f"[ObjectIndex] Error processing message: {e}")
             pass
 
     def wait_for(self, label: str, timeout=5.0):
         t0 = time.time()
+        print(f"[ObjectIndex] Waiting for '{label}' for {timeout}s...")
         while time.time() - t0 < timeout:
             with self._lock:
                 p = self.latest_mm.get(label)
             if p is not None:
+                print(f"[ObjectIndex] Found '{label}' at position: {p}")
                 return p
             time.sleep(0.05)
+        print(f"[ObjectIndex] Timeout waiting for '{label}'. Available objects: {list(self.latest_mm.keys())}")
         raise TimeoutError(f"Object '{label}' not seen on /detected_objects within {timeout}s")
 
 class TaskExecutor:
@@ -121,14 +128,14 @@ class TaskExecutor:
             self._spin_thread = threading.Thread(target=rclpy.spin, args=(self.obj_index,), daemon=True)
             self._spin_thread.start()
             
-                    # Wait for vision system to initialize
-        if self.vision_process:
-            print("[Vision] Waiting for vision system to initialize...")
-            time.sleep(3)
-        
-        # Note: Vision system test skipped in integrated mode (camera handled by ROS2 publisher)
-        if hasattr(self, 'vision_recorder') and self.vision_recorder:
-            print("[Vision] Vision system ready - camera handled by ROS2 publisher")
+            # Wait for vision system to initialize
+            if self.vision_process:
+                print("[Vision] Waiting for vision system to initialize...")
+                time.sleep(3)
+            
+            # Note: Vision system test skipped in integrated mode (camera handled by ROS2 publisher)
+            if hasattr(self, 'vision_recorder') and self.vision_recorder:
+                print("[Vision] Vision system ready - camera handled by ROS2 publisher")
         else:
             self.obj_index = ObjectIndex()
             self._spin_thread = None
