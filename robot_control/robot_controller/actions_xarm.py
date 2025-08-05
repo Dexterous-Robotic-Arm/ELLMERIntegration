@@ -632,17 +632,33 @@ class XArmRunner:
         if not sim:
             self._connect_and_configure()
             self._apply_speed_limits(cart_speed, cart_acc, joint_speed, joint_acc)
+            
+            # Reinitialize gripper with connected arm
+            self.gripper = GripperController(self.arm, self.safety_limits, self.gripper_config)
+            
         else:
             print("[Robot] Running in simulation mode - no robot connection")
     
     def _connect_and_configure(self) -> None:
-        """Connect to robot and configure basic settings."""
+        """Connect to robot and configure settings."""
         try:
+            # Connect to robot
             self.arm = XArmAPI(self.robot_ip, is_radian=False)
-            self.arm.motion_enable(enable=True)
-            self.arm.set_mode(0)  # Position control mode
-            self.arm.set_state(0)  # Ready state
+            
+            # Wait for connection
+            time.sleep(1)
+            
+            # Check connection
+            if not self.arm.connected:
+                raise Exception("Failed to connect to robot")
+            
             print(f"[Robot] Connected to robot at {self.robot_ip}")
+            
+            # Enable motion and set proper state
+            self._enable_robot_motion()
+            
+            # Apply speed limits
+            self._apply_speed_limits(self.cart_speed, self.cart_acc, self.joint_speed, self.joint_acc)
             
             # Reinitialize gripper with connected arm
             self.gripper = GripperController(self.arm, self.safety_limits, self.gripper_config)
@@ -650,6 +666,39 @@ class XArmRunner:
         except Exception as e:
             print(f"[Robot] Failed to connect to robot: {e}")
             raise
+    
+    def _enable_robot_motion(self) -> None:
+        """Enable robot motion and set to proper state."""
+        try:
+            # Get current state
+            state = self.arm.get_state()
+            print(f"[Robot] Current state: {state}")
+            
+            # Enable motion
+            self.arm.motion_enable(enable=True)
+            print("[Robot] Motion enabled")
+            
+            # Set mode to position control (0 = position control)
+            self.arm.set_mode(0)
+            print("[Robot] Set to position control mode")
+            
+            # Set state to ready (0 = ready)
+            self.arm.set_state(0)
+            print("[Robot] Set to ready state")
+            
+            # Wait for state change
+            time.sleep(1)
+            
+            # Verify state
+            final_state = self.arm.get_state()
+            print(f"[Robot] Final state: {final_state}")
+            
+            if final_state[1] != 0:  # State should be 0 (ready)
+                print(f"[Robot] Warning: Robot not in ready state, current state: {final_state[1]}")
+                
+        except Exception as e:
+            print(f"[Robot] Error enabling motion: {e}")
+            # Continue anyway, the robot might still work
     
     def _apply_speed_limits(self, cart_speed: float, cart_acc: float,
                            joint_speed: float, joint_acc: float) -> None:
@@ -671,6 +720,38 @@ class XArmRunner:
         except Exception as e:
             print(f"[Robot] Failed to apply speed limits: {e}")
             # Continue without speed limits if they fail
+    
+    def _ensure_robot_ready(self) -> bool:
+        """Ensure robot is in ready state for movement."""
+        try:
+            if self.arm is None:
+                return False
+            
+            state = self.arm.get_state()
+            if state[1] != 0:  # Not in ready state
+                print(f"[Robot] Robot not ready (state: {state[1]}), attempting to fix...")
+                
+                # Try to enable motion and set ready state
+                self.arm.motion_enable(enable=True)
+                self.arm.set_mode(0)  # Position control
+                self.arm.set_state(0)  # Ready state
+                
+                time.sleep(0.5)
+                
+                # Check again
+                new_state = self.arm.get_state()
+                if new_state[1] == 0:
+                    print("[Robot] Successfully set robot to ready state")
+                    return True
+                else:
+                    print(f"[Robot] Failed to set robot to ready state, current state: {new_state[1]}")
+                    return False
+            
+            return True
+            
+        except Exception as e:
+            print(f"[Robot] Error ensuring robot ready: {e}")
+            return False
     
     def get_current_position(self) -> Optional[List[float]]:
         """Get current robot position."""
@@ -715,6 +796,11 @@ class XArmRunner:
         try:
             if self.arm is None:
                 print("[Robot] No robot connection - cannot move")
+                return
+            
+            # Ensure robot is ready for movement
+            if not self._ensure_robot_ready():
+                print("[Robot] Robot not ready for movement")
                 return
             
             # Validate workspace limits
