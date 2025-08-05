@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from robot_control.robot_controller import XArmRunner
 from robot_control.robot_controller.executor import TaskExecutor
 
-def detect_and_move(robot_ip: str = "192.168.1.241", object_type: str = "can"):
+def detect_and_move(robot_ip: str = "192.168.1.241", object_type: str = "bottle"):
     """Detect an object and move toward it."""
     
     print(f"🤖 Detect and Move: {object_type}")
@@ -71,12 +71,12 @@ if __name__ == "__main__":
         print("  python detect_and_move.py [object_type]")
         print("")
         print("Examples:")
-        print("  python detect_and_move.py can")
         print("  python detect_and_move.py bottle")
         print("  python detect_and_move.py cup")
+        print("  python detect_and_move.py person")
         sys.exit(1)
     
-    object_type = sys.argv[1]
+    object_type = sys.argv[1] if len(sys.argv) > 1 else "bottle"
     robot_ip = "192.168.1.241"
     
     detect_and_move(robot_ip, object_type) 
