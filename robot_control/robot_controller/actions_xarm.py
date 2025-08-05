@@ -135,6 +135,19 @@ class SafetyMonitor:
         if current_xyz is None:
             return False  # Can't check without current position
         
+        # Ensure both positions are lists of floats
+        try:
+            target_xyz = [float(x) for x in target_xyz]
+            current_xyz = [float(x) for x in current_xyz]
+        except (ValueError, TypeError):
+            print(f"[Safety] Invalid position format - target: {target_xyz}, current: {current_xyz}")
+            return False
+        
+        # Ensure we have 3D coordinates
+        if len(target_xyz) < 3 or len(current_xyz) < 3:
+            print(f"[Safety] Incomplete position data - target: {target_xyz}, current: {current_xyz}")
+            return False
+        
         # Calculate distance to target
         distance = math.sqrt(sum((t - c) ** 2 for t, c in zip(target_xyz, current_xyz)))
         
@@ -665,8 +678,21 @@ class XArmRunner:
             if self.arm is None:
                 return None
             position = self.arm.get_position()
+            print(f"[DEBUG] Raw position data: {position}")
+            
             if position[0] == 0:  # Success
-                return position[1:4]  # Return xyz coordinates
+                # Handle different position data formats
+                if isinstance(position[1], (list, tuple)):
+                    # Position is nested in a list/tuple
+                    pos_data = position[1]
+                    if len(pos_data) >= 3:
+                        return [float(pos_data[0]), float(pos_data[1]), float(pos_data[2])]
+                else:
+                    # Position is directly in the array
+                    if len(position) >= 4:
+                        return [float(position[1]), float(position[2]), float(position[3])]
+            
+            print(f"[DEBUG] Could not extract position from: {position}")
             return None
         except Exception as e:
             print(f"[Robot] Error getting position: {e}")

@@ -41,6 +41,7 @@ def test_comprehensive_scan(robot_ip: str = "192.168.1.241"):
         
         executor = TaskExecutor(robot_ip, sim=False, dry_run=False)
         executor.execute(scan_plan_1)
+        executor.shutdown()  # Clean up after each test
         
         # Test 2: Large sweep scan (tests collision detection fix)
         print("\n📋 Test 2: Large sweep scan (400mm)")
@@ -57,7 +58,9 @@ def test_comprehensive_scan(robot_ip: str = "192.168.1.241"):
             ]
         }
         
-        executor.execute(scan_plan_2)
+        executor2 = TaskExecutor(robot_ip, sim=False, dry_run=False)
+        executor2.execute(scan_plan_2)
+        executor2.shutdown()
         
         # Test 3: Single step scan (tests division by zero fix)
         print("\n📋 Test 3: Single step scan")
@@ -74,7 +77,9 @@ def test_comprehensive_scan(robot_ip: str = "192.168.1.241"):
             ]
         }
         
-        executor.execute(scan_plan_3)
+        executor3 = TaskExecutor(robot_ip, sim=False, dry_run=False)
+        executor3.execute(scan_plan_3)
+        executor3.shutdown()
         
         # Test 4: Dry run scan (tests dry run logic)
         print("\n📋 Test 4: Dry run scan")
@@ -93,6 +98,7 @@ def test_comprehensive_scan(robot_ip: str = "192.168.1.241"):
         }
         
         executor_dry.execute(scan_plan_4)
+        executor_dry.shutdown()
         
         print("\n✅ All comprehensive tests completed!")
         
@@ -105,6 +111,10 @@ def test_comprehensive_scan(robot_ip: str = "192.168.1.241"):
         # Clean up
         if 'executor' in locals():
             executor.shutdown()
+        if 'executor2' in locals():
+            executor2.shutdown()
+        if 'executor3' in locals():
+            executor3.shutdown()
         if 'executor_dry' in locals():
             executor_dry.shutdown()
         if 'runner' in locals():
