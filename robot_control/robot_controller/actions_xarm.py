@@ -90,13 +90,6 @@ class GripperConfig:
     addr_moving_speed: int = 104         # Moving speed address (Protocol 2)
     addr_torque_limit: int = 102         # Torque limit address (Protocol 2)
     addr_present_load: int = 126         # Present load address (Protocol 2)
-    
-    # Legacy xArm gripper compatibility (deprecated)
-    position_open_mm: float = 850.0      # Fully open (mm) - for compatibility
-    position_closed_mm: float = 200.0    # Fully closed (mm) - for compatibility
-    position_half_mm: float = 525.0      # Half open (mm) - for compatibility
-    default_speed_mm: float = 200.0      # mm/s - for compatibility
-    default_force_mm: float = 50.0       # N - for compatibility
 
 
 class SafetyMonitor:
@@ -485,7 +478,7 @@ class DynamixelGripperController:
             print("[Gripper] Dynamixel servo disconnected")
 
 class GripperController:
-    """Manages gripper operations with safety limits - now supports both xArm and Dynamixel."""
+    """Manages gripper operations with safety limits - now supports only Dynamixel."""
     
     def __init__(self, arm: XArmAPI, limits: SafetyLimits, config: GripperConfig):
         self.arm = arm
@@ -493,29 +486,13 @@ class GripperController:
         self.config = config
         self.enabled = False
         
-        # Try Dynamixel first, fallback to xArm gripper
-        if DYNAMIXEL_AVAILABLE:
-            self.dynamixel_gripper = DynamixelGripperController(config)
-            if self.dynamixel_gripper.enabled:
-                self.enabled = True
-                print("[Gripper] Using Dynamixel servo control")
-            else:
-                print("[Gripper] Dynamixel failed, falling back to xArm gripper")
-                self._initialize_xarm_gripper()
-        else:
-            print("[Gripper] Dynamixel not available, using xArm gripper")
-            self._initialize_xarm_gripper()
-    
-    def _initialize_xarm_gripper(self) -> None:
-        """Initialize the xArm gripper system (fallback)."""
-        try:
-            self.arm.set_gripper_enable(True)
-            self.arm.set_gripper_mode(0)  # Position control mode
+        # Initialize Dynamixel gripper
+        self.dynamixel_gripper = DynamixelGripperController(config)
+        if self.dynamixel_gripper.enabled:
             self.enabled = True
-            print("[Gripper] xArm gripper enabled successfully")
-        except Exception as e:
-            print(f"[Gripper] xArm gripper initialization failed: {e}")
-            self.enabled = False
+            print("[Gripper] Using Dynamixel servo control")
+        else:
+            print("[Gripper] Dynamixel failed to initialize, gripper disabled")
     
     def _apply_safety_limits(self, position: float, speed: float, force: float) -> Tuple[float, float, float]:
         """Apply safety limits to gripper parameters."""
@@ -532,27 +509,13 @@ class GripperController:
             print("[Gripper] Gripper not enabled")
             return False
         
-        # Use Dynamixel if available and enabled
-        if hasattr(self, 'dynamixel_gripper') and self.dynamixel_gripper.enabled:
-            # Convert mm to servo units if needed
-            if position is not None:
-                # Simple linear mapping (adjust based on your setup)
-                servo_position = int((position / self.config.position_open_mm) * self.config.position_open)
-            else:
-                servo_position = self.config.position_open
-            
-            return self.dynamixel_gripper.open_gripper(servo_position, speed, force)
+        # Convert mm to servo units if needed
+        if position is not None:
+            servo_position = int((position / self.config.position_open) * self.config.position_open)
+        else:
+            servo_position = self.config.position_open
         
-        # Fallback to xArm gripper
-        target_pos = position if position is not None else self.config.position_open_mm
-        safe_speed = speed if speed is not None else self.config.default_speed_mm
-        safe_force = force if force is not None else self.config.default_force_mm
-        
-        safe_position, safe_speed, safe_force = self._apply_safety_limits(
-            target_pos, safe_speed, safe_force
-        )
-        
-        return self._set_gripper_position(safe_position, safe_speed, safe_force, "Opened")
+        return self.dynamixel_gripper.open_gripper(servo_position, speed, force)
     
     def close_gripper(self, position: Optional[float] = None,
                      speed: float = None, force: float = None) -> bool:
@@ -561,26 +524,13 @@ class GripperController:
             print("[Gripper] Gripper not enabled")
             return False
         
-        # Use Dynamixel if available and enabled
-        if hasattr(self, 'dynamixel_gripper') and self.dynamixel_gripper.enabled:
-            # Convert mm to servo units if needed
-            if position is not None:
-                servo_position = int((position / self.config.position_closed_mm) * self.config.position_closed)
-            else:
-                servo_position = self.config.position_closed
-            
-            return self.dynamixel_gripper.close_gripper(servo_position, speed, force)
+        # Convert mm to servo units if needed
+        if position is not None:
+            servo_position = int((position / self.config.position_closed) * self.config.position_closed)
+        else:
+            servo_position = self.config.position_closed
         
-        # Fallback to xArm gripper
-        target_pos = position if position is not None else self.config.position_closed_mm
-        safe_speed = speed if speed is not None else self.config.default_speed_mm * 0.5
-        safe_force = force if force is not None else self.config.default_force_mm
-        
-        safe_position, safe_speed, safe_force = self._apply_safety_limits(
-            target_pos, safe_speed, safe_force
-        )
-        
-        return self._set_gripper_position(safe_position, safe_speed, safe_force, "Closed")
+        return self.dynamixel_gripper.close_gripper(servo_position, speed, force)
     
     def set_gripper_position(self, position: float, speed: float = None, 
                            force: float = None) -> bool:
@@ -589,86 +539,27 @@ class GripperController:
             print("[Gripper] Gripper not enabled")
             return False
         
-        # Use Dynamixel if available and enabled
-        if hasattr(self, 'dynamixel_gripper') and self.dynamixel_gripper.enabled:
-            # Convert mm to servo units
-            servo_position = int((position / self.config.position_open_mm) * self.config.position_open)
-            return self.dynamixel_gripper.set_gripper_position(servo_position, speed, force)
-        
-        # Fallback to xArm gripper
-        safe_speed = speed if speed is not None else self.config.default_speed_mm
-        safe_force = force if force is not None else self.config.default_force_mm
-        
-        safe_position, safe_speed, safe_force = self._apply_safety_limits(
-            position, safe_speed, safe_force
-        )
-        
-        return self._set_gripper_position(safe_position, safe_speed, safe_force, "Set to")
-    
-    def _set_gripper_position(self, position: float, speed: float, 
-                            force: float, action: str) -> bool:
-        """Internal method to set gripper position (xArm fallback)."""
-        try:
-            code = self.arm.set_gripper_position(
-                position=position, speed=speed, force=force, wait=True
-            )
-            if code == 0:
-                print(f"[Gripper] {action} position {position} (speed: {speed}, force: {force})")
-                return True
-            else:
-                print(f"[Gripper] Failed with code: {code}")
-                return False
-        except Exception as e:
-            print(f"[Gripper] Error: {e}")
-            return False
+        # Convert mm to servo units
+        servo_position = int((position / self.config.position_open) * self.config.position_open)
+        return self.dynamixel_gripper.set_gripper_position(servo_position, speed, force)
     
     def get_gripper_position(self) -> Optional[float]:
         """Get current gripper position."""
         if not self.enabled:
             return None
         
-        # Use Dynamixel if available and enabled
-        if hasattr(self, 'dynamixel_gripper') and self.dynamixel_gripper.enabled:
-            servo_pos = self.dynamixel_gripper.get_gripper_position()
-            if servo_pos is not None:
-                # Convert servo units to mm
-                return (servo_pos / self.config.position_open) * self.config.position_open_mm
-            return None
-        
-        # Fallback to xArm gripper
-        try:
-            code, position = self.arm.get_gripper_position()
-            if code == 0:
-                return position
-            else:
-                print(f"[Gripper] Failed to get position, code: {code}")
-                return None
-        except Exception as e:
-            print(f"[Gripper] Error getting position: {e}")
-            return None
+        servo_pos = self.dynamixel_gripper.get_gripper_position()
+        if servo_pos is not None:
+            # Convert servo units to mm
+            return (servo_pos / self.config.position_open) * self.config.position_open
+        return None
     
     def get_gripper_status(self) -> Dict[str, Any]:
         """Get comprehensive gripper status."""
         if not self.enabled:
             return {"enabled": False, "position": None, "error": "Gripper not enabled"}
         
-        # Use Dynamixel if available and enabled
-        if hasattr(self, 'dynamixel_gripper') and self.dynamixel_gripper.enabled:
-            return self.dynamixel_gripper.get_gripper_status()
-        
-        # Fallback to xArm gripper
-        try:
-            position = self.get_gripper_position()
-            return {
-                "enabled": True,
-                "position": position,
-                "position_limits": {
-                    "min": self.limits.min_gripper_position,
-                    "max": self.limits.max_gripper_position
-                }
-            }
-        except Exception as e:
-            return {"enabled": False, "position": None, "error": str(e)}
+        return self.dynamixel_gripper.get_gripper_status()
     
     def gripper_grasp(self, target_position: float = None, speed: float = None,
                      force: float = None, timeout: float = 5.0) -> bool:
@@ -677,57 +568,29 @@ class GripperController:
             print("[Gripper] Gripper not enabled")
             return False
         
-        # Use Dynamixel if available and enabled
-        if hasattr(self, 'dynamixel_gripper') and self.dynamixel_gripper.enabled:
-            if target_position is not None:
-                servo_position = int((target_position / self.config.position_closed_mm) * self.config.position_closed)
-            else:
-                servo_position = self.config.position_closed
-            return self.dynamixel_gripper.gripper_grasp(servo_position, speed, force, timeout)
+        # Convert mm to servo units if needed
+        if target_position is not None:
+            servo_position = int((target_position / self.config.position_closed) * self.config.position_closed)
+        else:
+            servo_position = self.config.position_closed
         
-        # Fallback to xArm gripper
-        target_pos = target_position if target_position is not None else self.config.position_closed_mm
-        safe_speed = speed if speed is not None else self.config.default_speed_mm * 0.5
-        safe_force = force if force is not None else self.config.default_force_mm
-        
-        print(f"[Gripper] Starting grasp to position {target_pos}")
-        
-        # Start closing the gripper
-        code = self.arm.set_gripper_position(
-            position=target_pos, speed=safe_speed, force=safe_force, wait=False
-        )
-        if code != 0:
-            print(f"[Gripper] Grasp failed to start, code: {code}")
-            return False
-        
-        # Wait for completion
-        import time
-        start_time = time.time()
-        while time.time() - start_time < timeout:
-            current_pos = self.get_gripper_position()
-            if current_pos is not None and abs(current_pos - target_pos) < 10:
-                print(f"[Gripper] Grasp completed at position {current_pos}")
-                return True
-            time.sleep(0.1)
-        
-        print(f"[Gripper] Grasp timeout after {timeout}s")
-        return False
+        return self.dynamixel_gripper.gripper_grasp(servo_position, speed, force, timeout)
     
     def gripper_release(self, target_position: float = None, speed: float = None,
                        force: float = None) -> bool:
         """Release grasped object by opening gripper."""
-        target_pos = target_position if target_position is not None else self.config.position_open_mm
+        target_pos = target_position if target_position is not None else self.config.position_open
         return self.open_gripper(position=target_pos, speed=speed, force=force)
     
     def gripper_half_open(self, speed: float = None, force: float = None) -> bool:
         """Open gripper to half position."""
-        return self.set_gripper_position(self.config.position_half_mm, speed, force)
+        return self.set_gripper_position(self.config.position_half, speed, force)
     
     def gripper_soft_close(self, speed: float = None, force: float = None) -> bool:
         """Close gripper gently with low force."""
-        safe_speed = speed if speed is not None else self.config.default_speed_mm * 0.3
-        safe_force = force if force is not None else self.config.default_force_mm * 0.5
-        return self.close_gripper(position=self.config.position_closed_mm, speed=safe_speed, force=safe_force)
+        safe_speed = speed if speed is not None else self.config.default_speed * 0.3
+        safe_force = force if force is not None else self.config.default_force * 0.5
+        return self.close_gripper(position=self.config.position_closed, speed=safe_speed, force=safe_force)
     
     def gripper_cycle_test(self, cycles: int = 3, delay: float = 1.0) -> bool:
         """Test gripper by cycling open/close with safety checks."""
@@ -735,31 +598,7 @@ class GripperController:
             print("[Gripper] Gripper not enabled for test")
             return False
         
-        # Use Dynamixel if available and enabled
-        if hasattr(self, 'dynamixel_gripper') and self.dynamixel_gripper.enabled:
-            return self.dynamixel_gripper.gripper_cycle_test(cycles, delay)
-        
-        # Fallback to xArm gripper
-        print(f"[Gripper] Starting cycle test ({cycles} cycles)")
-        
-        for i in range(cycles):
-            print(f"[Gripper] Cycle {i+1}/{cycles}")
-            
-            if not self.open_gripper():
-                print(f"[Gripper] Cycle {i+1} failed at open")
-                return False
-            
-            import time
-            time.sleep(delay)
-            
-            if not self.close_gripper():
-                print(f"[Gripper] Cycle {i+1} failed at close")
-                return False
-            
-            time.sleep(delay)
-        
-        print("[Gripper] Cycle test completed successfully")
-        return True
+        return self.dynamixel_gripper.gripper_cycle_test(cycles, delay)
 
 
 class XArmRunner:

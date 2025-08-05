@@ -1,44 +1,30 @@
 # Dynamixel Gripper Configuration
-# This file configures the Dynamixel servo used for gripper control
+# This file configures the Dynamixel servo for gripper control
 
 # Dynamixel servo configuration
-servo:
-  id: 1                    # Dynamixel servo ID (usually 1)
-  port: "/dev/ttyUSB0"     # Serial port for Dynamixel
-  baudrate: 57600          # Baudrate for Dynamixel (common: 57600, 1000000)
-  protocol: 2              # Protocol version (1 or 2, use 2 for newer servos)
+servo_id: 1                    # Dynamixel servo ID
+servo_port: "/dev/ttyUSB0"     # Serial port for Dynamixel
+servo_baudrate: 57600          # Baudrate for Dynamixel
+servo_protocol: 2              # Protocol version (1 or 2)
 
 # Position limits (in servo units, typically 0-4095 for MX series)
-positions:
-  open: 4095               # Fully open position
-  closed: 1024             # Fully closed position  
-  half: 2560               # Half open position
+position_open: 4095            # Fully open position
+position_closed: 1024          # Fully closed position  
+position_half: 2560            # Half open position
 
 # Speed and torque limits
-limits:
-  default_speed: 100       # Speed (0-1023 for MX series)
-  default_torque: 512      # Torque limit (0-1023 for MX series)
-  max_speed: 200           # Maximum speed
-  max_torque: 1023         # Maximum torque
+default_speed: 100             # Speed (0-1023 for MX series)
+default_torque: 512            # Torque limit (0-1023 for MX series)
+max_speed: 200                 # Maximum speed
+max_torque: 1023               # Maximum torque
 
 # Control addresses (for MX-28, MX-64, MX-106 series)
-# These are for Protocol 2.0 - adjust for your specific servo model
-addresses:
-  torque_enable: 64        # Torque enable address
-  goal_position: 116       # Goal position address (Protocol 2)
-  present_position: 132    # Present position address (Protocol 2)
-  moving_speed: 104        # Moving speed address (Protocol 2)
-  torque_limit: 102        # Torque limit address (Protocol 2)
-  present_load: 126        # Present load address (Protocol 2)
-
-# Legacy xArm gripper compatibility (deprecated)
-# These are kept for backward compatibility with existing code
-legacy:
-  position_open_mm: 850.0      # Fully open (mm) - for compatibility
-  position_closed_mm: 200.0    # Fully closed (mm) - for compatibility
-  position_half_mm: 525.0      # Half open (mm) - for compatibility
-  default_speed_mm: 200.0      # mm/s - for compatibility
-  default_force_mm: 50.0       # N - for compatibility
+addr_torque_enable: 64         # Torque enable address
+addr_goal_position: 116        # Goal position address (Protocol 2)
+addr_present_position: 132     # Present position address (Protocol 2)
+addr_moving_speed: 104         # Moving speed address (Protocol 2)
+addr_torque_limit: 102         # Torque limit address (Protocol 2)
+addr_present_load: 126         # Present load address (Protocol 2)
 
 # Common servo model configurations
 # Uncomment and modify the section for your servo model:
