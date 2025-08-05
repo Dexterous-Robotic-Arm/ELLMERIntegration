@@ -273,9 +273,9 @@ class TaskExecutor:
         
         # Note: Removed automatic go_home() to allow camera-mounted robot to stay in current position
         
-        steps = plan.get("steps", [])
+        steps_list = plan.get("steps", [])
 
-        for i, step in enumerate(steps, 1):
+        for i, step in enumerate(steps_list, 1):
             self.step_count = i
             
             # Safety checks
@@ -284,7 +284,7 @@ class TaskExecutor:
                 self._check_safety_status()
             
             act = step.get("action")
-            print(f"[Plan] Step {i}/{len(steps)}: {act} {step}")
+            print(f"[Plan] Step {i}/{len(steps_list)}: {act} {step}")
 
             try:
                 if act == "MOVE_TO_NAMED":
