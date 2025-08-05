@@ -96,7 +96,8 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
             self.arm.motion_enable(True)
             self.arm.set_mode(0)
             self.arm.set_state(0)
-            self.arm.move_gohome(wait=True)
+            # Don't move to home - stay in current position for camera-mounted robot
+            print("Vision system connected to robot - staying in current position")
         else:
             self.arm = None
             print("Running in simulation mode - no XArm connection")

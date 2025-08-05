@@ -695,8 +695,8 @@ class XArmRunner:
             final_state = self.arm.get_state()
             print(f"[Robot] Final state: {final_state}")
             
-            # Accept states 0 or 2 as ready states (different XArm models use different state codes)
-            if final_state[1] in [0, 2]:
+            # Accept states 0, 1, or 2 as ready states (different XArm models use different state codes)
+            if final_state[1] in [0, 1, 2]:
                 print(f"[Robot] Robot is ready (state: {final_state[1]})")
             else:
                 print(f"[Robot] Warning: Robot not in expected ready state, current state: {final_state[1]}")
@@ -739,8 +739,8 @@ class XArmRunner:
                 return False
             
             state = self.arm.get_state()
-            # Accept states 0 or 2 as ready states (different XArm models use different state codes)
-            if state[1] not in [0, 2]:  # Not in ready state
+            # Accept states 0, 1, or 2 as ready states (different XArm models use different state codes)
+            if state[1] not in [0, 1, 2]:  # Not in ready state
                 print(f"[Robot] Robot not ready (state: {state[1]}), attempting to fix...")
                 
                 # Try to enable motion and set ready state
@@ -752,7 +752,7 @@ class XArmRunner:
                 
                 # Check again
                 new_state = self.arm.get_state()
-                if new_state[1] in [0, 2]:
+                if new_state[1] in [0, 1, 2]:
                     print(f"[Robot] Successfully set robot to ready state (state: {new_state[1]})")
                     return True
                 else:
