@@ -768,6 +768,7 @@ class XArmRunner:
     def __init__(self, ip: str, cart_speed: float = 100, cart_acc: float = 500,
                  joint_speed: float = 20, joint_acc: float = 50, sim: bool = False):
         self.robot_ip = ip
+        self.sim = sim
         self.arm = None
         self.safety_limits = SafetyLimits()
         self.safety_monitor = SafetyMonitor(self.safety_limits)
@@ -970,6 +971,24 @@ class XArmRunner:
             print("[Robot] Emergency stop cleared")
         except Exception as e:
             print(f"[Robot] Error clearing emergency stop: {e}")
+    
+    def motion_enable(self, enable: bool = True) -> bool:
+        """Enable or disable robot motion."""
+        try:
+            if self.arm is not None:
+                result = self.arm.motion_enable(enable=enable)
+                if result == 0:
+                    print(f"[Robot] Motion {'enabled' if enable else 'disabled'} successfully")
+                    return True
+                else:
+                    print(f"[Robot] Failed to {'enable' if enable else 'disable'} motion")
+                    return False
+            else:
+                print("[Robot] No robot connection - cannot enable motion")
+                return False
+        except Exception as e:
+            print(f"[Robot] Error enabling motion: {e}")
+            return False
     
     def get_safety_status(self) -> Dict[str, Any]:
         """Get comprehensive safety status."""

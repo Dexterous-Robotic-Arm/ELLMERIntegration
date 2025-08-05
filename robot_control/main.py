@@ -21,7 +21,8 @@ from typing import Optional, List, Dict, Any
 # Add the robot_control package to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from robot_control.robot_controller import XArmRunner, TaskExecutor
+from robot_control.robot_controller import XArmRunner
+from robot_control.robot_controller.executor import TaskExecutor
 from robot_control.vision_system import PoseRecorder
 # TaskPlanner is defined in this file, no import needed
 from robot_control.utils import ConfigManager, setup_logging
@@ -259,40 +260,7 @@ class TaskPlanner:
             return plan_fallback(task)
 
 
-class TaskExecutor:
-    """Manages task execution."""
-    
-    def __init__(self, config: SystemConfig, runner: XArmRunner):
-        self.config = config
-        self.runner = runner
-        self.logger = setup_logging(
-            level=getattr(logging, config.log_level),
-            log_file="logs/task_executor.log"
-        )
-        
-    def execute_plan(self, plan: Dict[str, Any], world_config: Dict[str, Any]):
-        """Execute the given plan."""
-        try:
-            self.logger.info(f"Executing plan: {plan.get('goal', 'Unknown task')}")
-            self.logger.info(f"Plan has {len(plan.get('steps', []))} steps")
-            
-            if self.config.dry_run:
-                self.logger.info("DRY RUN - No robot movements will be executed")
-                
-            # Use the TaskExecutor from robot_controller
-            from robot_control.robot_controller.executor import TaskExecutor as RobotTaskExecutor
-            
-            # Create executor instance
-            executor = RobotTaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run)
-            
-            # Execute the plan
-            executor.execute(plan)
-            
-            self.logger.info("Plan execution completed")
-            
-        except Exception as e:
-            self.logger.error(f"Failed to execute plan: {e}")
-            raise
+# TaskExecutor is imported from robot_control.robot_controller.executor
 
 
 class RobotControlSystem:
@@ -373,8 +341,8 @@ class RobotControlSystem:
                 elif command:
                     # Execute task
                     plan = self.task_planner.plan_task(command, world_config)
-                    executor = TaskExecutor(self.config, runner)
-                    executor.execute_plan(plan, world_config)
+                    executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run)
+                    executor.execute(plan)
                     
             except KeyboardInterrupt:
                 break
@@ -387,8 +355,8 @@ class RobotControlSystem:
             try:
                 if self.config.task:
                     plan = self.task_planner.plan_task(self.config.task, world_config)
-                    executor = TaskExecutor(self.config, runner)
-                    executor.execute_plan(plan, world_config)
+                    executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run)
+                    executor.execute(plan)
                     
                 time.sleep(1)
                 
@@ -403,8 +371,8 @@ class RobotControlSystem:
             
         self.logger.info(f"Executing task: {self.config.task}")
         plan = self.task_planner.plan_task(self.config.task, world_config)
-        executor = TaskExecutor(self.config, runner)
-        executor.execute_plan(plan, world_config)
+        executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run)
+        executor.execute(plan)
         
     def _cleanup(self):
         """Clean up system resources."""
