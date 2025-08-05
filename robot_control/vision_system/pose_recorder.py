@@ -80,14 +80,24 @@ def pose_to_transform(pose):
     return T
 
 class PoseRecorder(Node if ROS2_AVAILABLE else object):
-    def __init__(self):
-        # Initialize ROS2 node if available
-        if ROS2_AVAILABLE:
-            super().__init__('pose_recorder')
-            self.det_pub = self.create_publisher(String, '/detected_objects', 10)
+    def __init__(self, standalone=True):
+        # Initialize ROS2 node if available and in standalone mode
+        if ROS2_AVAILABLE and standalone:
+            try:
+                super().__init__('pose_recorder')
+                self.det_pub = self.create_publisher(String, '/detected_objects', 10)
+                self.standalone = True
+            except Exception as e:
+                print(f"ROS2 node creation failed: {e}")
+                self.det_pub = None
+                self.standalone = False
         else:
             self.det_pub = None
-            print("Running in simulation mode - no ROS2 publisher")
+            self.standalone = False
+            if not standalone:
+                print("Running in integrated mode - no ROS2 publisher")
+            else:
+                print("Running in simulation mode - no ROS2 publisher")
 
         # xArm - only if available
         if XARM_AVAILABLE:
@@ -131,8 +141,11 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
                 "timestamp","joint1","joint2","joint3","joint4","joint5","joint6","eef_x","eef_y","eef_z"
             ])
 
-        self.timer = self.create_timer(1.0, self.scan_and_publish)
-        self.get_logger().info(f"PoseRecorder running → logging to {self.csv_path}")
+        if self.standalone:
+            self.timer = self.create_timer(1.0, self.scan_and_publish)
+            self.get_logger().info(f"PoseRecorder running → logging to {self.csv_path}")
+        else:
+            print(f"PoseRecorder initialized in integrated mode → logging to {self.csv_path}")
 
     def scan_and_publish(self):
         frames = self.pipeline.wait_for_frames()
@@ -174,7 +187,10 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
             detected.append({"class": self.model.names[cls_id], "pos":[px,py,pz], "conf":conf})
 
         payload = {"t": time.time(), "units": "m", "items": detected}
-        self.det_pub.publish(String(data=json.dumps(payload)))
+        if self.det_pub:
+            self.det_pub.publish(String(data=json.dumps(payload)))
+        else:
+            print(f"[Vision] Detected objects: {detected}")
 
         # log joints/EEF
         code, pose = self.arm.get_position()
@@ -183,7 +199,10 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
         row = [time.time(), *[float(j) for j in joints], x_m, y_m, z_m]
         self.csv_writer.writerow(row); self.csv_file.flush()
 
-        self.get_logger().info(f"objs={len(detected)}  eef=[{x_m:.3f},{y_m:.3f},{z_m:.3f}]")
+        if self.standalone:
+            self.get_logger().info(f"objs={len(detected)}  eef=[{x_m:.3f},{y_m:.3f},{z_m:.3f}]")
+        else:
+            print(f"[Vision] objs={len(detected)}  eef=[{x_m:.3f},{y_m:.3f},{z_m:.3f}]")
 
     def destroy_node(self):
         self.csv_file.close()

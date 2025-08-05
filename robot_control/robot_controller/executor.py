@@ -121,10 +121,19 @@ class TaskExecutor:
             self._spin_thread = threading.Thread(target=rclpy.spin, args=(self.obj_index,), daemon=True)
             self._spin_thread.start()
             
-            # Wait for vision system to initialize
-            if self.vision_process:
-                print("[Vision] Waiting for vision system to initialize...")
-                time.sleep(3)
+                    # Wait for vision system to initialize
+        if self.vision_process:
+            print("[Vision] Waiting for vision system to initialize...")
+            time.sleep(3)
+        
+        # Test vision system
+        if hasattr(self, 'vision_recorder') and self.vision_recorder:
+            print("[Vision] Testing vision detection...")
+            try:
+                self.vision_recorder.scan_and_publish()
+                print("[Vision] Vision detection test successful")
+            except Exception as e:
+                print(f"[Vision] Vision detection test failed: {e}")
         else:
             self.obj_index = ObjectIndex()
             self._spin_thread = None
@@ -132,20 +141,29 @@ class TaskExecutor:
     def _start_vision_system(self):
         """Start the vision system for object detection."""
         try:
+            # Create vision system in integrated mode (no ROS2 node)
+            from robot_control.vision_system.pose_recorder import PoseRecorder
+            
+            print("[Vision] Initializing vision system in integrated mode...")
+            self.vision_recorder = PoseRecorder(standalone=False)
+            print("[Vision] Vision system initialized successfully")
+            
+            # Start vision system as a separate process for ROS2 publishing
             vision_script = os.path.join(os.path.dirname(__file__), "..", "vision_system", "pose_recorder.py")
             
             if os.path.exists(vision_script):
-                print("[Vision] Starting vision system for object detection...")
+                print("[Vision] Starting ROS2 vision publisher...")
                 self.vision_process = subprocess.Popen([
                     sys.executable, vision_script
                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                print("[Vision] Vision system started successfully")
+                print("[Vision] ROS2 vision publisher started successfully")
             else:
-                print("[Vision] Vision script not found, object detection may not work")
+                print("[Vision] Vision script not found, ROS2 publishing disabled")
                 self.vision_process = None
         except Exception as e:
             print(f"[Vision] Error starting vision system: {e}")
             self.vision_process = None
+            self.vision_recorder = None
 
     def _named(self, name: str):
         if name not in self.world:
