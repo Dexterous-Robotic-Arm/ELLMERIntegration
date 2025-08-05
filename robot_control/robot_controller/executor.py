@@ -78,7 +78,7 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
 
 class TaskExecutor:
     def __init__(self, arm_ip: str, world_yaml: str = None, sim: bool = False, dry_run: bool = False):
-        self.runner = XArmRunner(arm_ip)
+        self.runner = XArmRunner(arm_ip, sim=sim)
         self.world = WORLD_POSES
         self.hover_mm = DEFAULT_HOVER_MM
         self.pick_rpy = DEFAULT_PICK_RPY

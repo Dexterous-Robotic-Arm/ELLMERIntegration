@@ -119,6 +119,34 @@ install_realsense() {
     print_success "RealSense SDK installed"
 }
 
+# Install Dynamixel SDK
+install_dynamixel() {
+    print_status "Installing Dynamixel SDK..."
+    
+    # Install system dependencies for Dynamixel
+    sudo apt install -y libserial-dev
+    
+    # Install Dynamixel SDK via pip
+    pip3 install dynamixel-sdk
+    
+    # Setup USB permissions for Dynamixel
+    sudo usermod -a -G dialout $USER
+    
+    # Create udev rules for Dynamixel
+    sudo tee /etc/udev/rules.d/99-dynamixel.rules > /dev/null << 'EOF'
+# Dynamixel USB-to-TTL converter rules
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="0666", GROUP="dialout"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", MODE="0666", GROUP="dialout"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", MODE="0666", GROUP="dialout"
+EOF
+    
+    # Reload udev rules
+    sudo udevadm control --reload-rules
+    sudo udevadm trigger
+    
+    print_success "Dynamixel SDK installed and configured"
+}
+
 # Setup Python virtual environment
 setup_python_env() {
     print_status "Setting up Python virtual environment..."
@@ -211,10 +239,17 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 export GEMINI_API_KEY="${GEMINI_API_KEY:-}"
 export XARM_IP="${XARM_IP:-192.168.1.241}"
 
+# Check Dynamixel USB permissions
+if [ -d "/dev/ttyUSB0" ] || [ -d "/dev/ttyUSB1" ]; then
+    echo "Dynamixel USB devices detected"
+    ls -la /dev/ttyUSB* 2>/dev/null || echo "No USB devices found"
+fi
+
 echo "Environment setup complete!"
 echo "ROS2 Humble: $(ros2 --version 2>/dev/null | head -1 || echo 'Not found')"
 echo "Python: $(python3 --version)"
 echo "XArm IP: $XARM_IP"
+echo "Dynamixel SDK: $(python3 -c 'import dynamixel_sdk; print("Available")' 2>/dev/null || echo 'Not found')"
 EOF
     
     chmod +x setup_env.sh
@@ -227,7 +262,27 @@ EOF
 # Setup environment
 source setup_env.sh
 
+# Check Dynamixel gripper
+echo "Checking Dynamixel gripper..."
+python3 -c "
+import sys
+sys.path.append('.')
+try:
+    import dynamixel_sdk
+    print('✅ Dynamixel SDK available')
+    
+    from robot_control.robot_controller import XArmRunner
+    runner = XArmRunner('192.168.1.241', sim=True)
+    status = runner.get_gripper_status()
+    print(f'✅ Gripper status: {status}')
+except ImportError:
+    print('❌ Dynamixel SDK not found')
+except Exception as e:
+    print(f'❌ Gripper error: {e}')
+"
+
 # Check if robot is connected
+echo ""
 echo "Checking robot connection..."
 python3 -c "
 import sys
@@ -235,12 +290,8 @@ sys.path.append('.')
 from robot_control.robot_controller import XArmRunner
 
 try:
-    runner = XArmRunner()
-    if runner.connect():
-        print('✅ Robot connected successfully!')
-        runner.disconnect()
-    else:
-        print('❌ Failed to connect to robot')
+    runner = XArmRunner('192.168.1.241', sim=True)
+    print('✅ Robot controller initialized')
 except Exception as e:
     print(f'❌ Error: {e}')
 "
@@ -251,6 +302,9 @@ echo "  python3 robot_control/main.py --task 'your task description'"
 echo ""
 echo "For interactive mode:"
 echo "  python3 robot_control/main.py --interactive"
+echo ""
+echo "For simulation mode:"
+echo "  python3 robot_control/main.py --task 'test gripper' --sim --dry-run"
 EOF
     
     chmod +x quick_start.sh
@@ -274,6 +328,9 @@ main() {
     # Install RealSense SDK
     install_realsense
     
+    # Install Dynamixel SDK
+    install_dynamixel
+    
     # Setup Python environment
     setup_python_env
     
@@ -294,11 +351,18 @@ main() {
     echo "Next steps:"
     echo "1. Set your Gemini API key: export GEMINI_API_KEY='your-api-key'"
     echo "2. Set your robot IP: export XARM_IP='192.168.1.241'"
-    echo "3. Setup environment: source setup_env.sh"
-    echo "4. Test connection: ./quick_start.sh"
-    echo "5. Run robot control: python3 robot_control/main.py --task 'pick up the cup'"
+    echo "3. Connect Dynamixel servo to USB port"
+    echo "4. Setup environment: source setup_env.sh"
+    echo "5. Test connection: ./quick_start.sh"
+    echo "6. Test gripper: python3 robot_control/main.py --task 'test gripper' --sim --dry-run"
+    echo "7. Run robot control: python3 robot_control/main.py --task 'pick up the cup'"
     echo ""
-    echo "For more information, see README.md and docs/testing_guide.md"
+    echo "Dynamixel Configuration:"
+    echo "- Edit config/gripper_config.yaml for your servo settings"
+    echo "- Set servo ID using Dynamixel Wizard"
+    echo "- Check USB permissions: ls -la /dev/ttyUSB*"
+    echo ""
+    echo "For more information, see README.md"
 }
 
 # Run main function

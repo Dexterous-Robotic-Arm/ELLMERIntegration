@@ -1,0 +1,95 @@
+# Dynamixel Gripper Configuration
+# This file configures the Dynamixel servo used for gripper control
+
+# Dynamixel servo configuration
+servo:
+  id: 1                    # Dynamixel servo ID (usually 1)
+  port: "/dev/ttyUSB0"     # Serial port for Dynamixel
+  baudrate: 57600          # Baudrate for Dynamixel (common: 57600, 1000000)
+  protocol: 2              # Protocol version (1 or 2, use 2 for newer servos)
+
+# Position limits (in servo units, typically 0-4095 for MX series)
+positions:
+  open: 4095               # Fully open position
+  closed: 1024             # Fully closed position  
+  half: 2560               # Half open position
+
+# Speed and torque limits
+limits:
+  default_speed: 100       # Speed (0-1023 for MX series)
+  default_torque: 512      # Torque limit (0-1023 for MX series)
+  max_speed: 200           # Maximum speed
+  max_torque: 1023         # Maximum torque
+
+# Control addresses (for MX-28, MX-64, MX-106 series)
+# These are for Protocol 2.0 - adjust for your specific servo model
+addresses:
+  torque_enable: 64        # Torque enable address
+  goal_position: 116       # Goal position address (Protocol 2)
+  present_position: 132    # Present position address (Protocol 2)
+  moving_speed: 104        # Moving speed address (Protocol 2)
+  torque_limit: 102        # Torque limit address (Protocol 2)
+  present_load: 126        # Present load address (Protocol 2)
+
+# Legacy xArm gripper compatibility (deprecated)
+# These are kept for backward compatibility with existing code
+legacy:
+  position_open_mm: 850.0      # Fully open (mm) - for compatibility
+  position_closed_mm: 200.0    # Fully closed (mm) - for compatibility
+  position_half_mm: 525.0      # Half open (mm) - for compatibility
+  default_speed_mm: 200.0      # mm/s - for compatibility
+  default_force_mm: 50.0       # N - for compatibility
+
+# Common servo model configurations
+# Uncomment and modify the section for your servo model:
+
+# MX-28 (Protocol 2.0)
+# addresses:
+#   torque_enable: 64
+#   goal_position: 116
+#   present_position: 132
+#   moving_speed: 104
+#   torque_limit: 102
+#   present_load: 126
+
+# MX-64 (Protocol 2.0)
+# addresses:
+#   torque_enable: 64
+#   goal_position: 116
+#   present_position: 132
+#   moving_speed: 104
+#   torque_limit: 102
+#   present_load: 126
+
+# MX-106 (Protocol 2.0)
+# addresses:
+#   torque_enable: 64
+#   goal_position: 116
+#   present_position: 132
+#   moving_speed: 104
+#   torque_limit: 102
+#   present_load: 126
+
+# AX-12 (Protocol 1.0)
+# protocol: 1
+# addresses:
+#   torque_enable: 24
+#   goal_position: 30
+#   present_position: 36
+#   moving_speed: 32
+#   torque_limit: 34
+#   present_load: 40
+
+# Safety settings
+safety:
+  enable_torque_on_startup: true    # Enable torque when connecting
+  disable_torque_on_shutdown: true  # Disable torque when disconnecting
+  emergency_open_on_error: true     # Open gripper on error for safety
+  max_grasp_timeout: 5.0            # Maximum time for grasp operation (seconds)
+  load_threshold: 0.8               # Load threshold for grasp detection (0.0-1.0)
+
+# Calibration settings
+calibration:
+  auto_calibrate: false             # Auto-calibrate on startup
+  calibration_positions: [0, 2048, 4095]  # Positions to test during calibration
+  calibration_timeout: 10.0         # Timeout for calibration (seconds) 

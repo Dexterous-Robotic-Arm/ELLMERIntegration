@@ -175,13 +175,9 @@ class RobotConnectionManager:
         """Connect to the robot and return XArmRunner instance."""
         try:
             self.logger.info(f"Connecting to robot at {self.robot_ip}")
-            runner = XArmRunner(self.robot_ip)
+            runner = XArmRunner(self.robot_ip, sim=self.config.sim)
             
             if not self.config.sim:
-                runner.connect()
-                runner.motion_enable(True)
-                runner.set_mode(0)
-                runner.set_state(0)
                 self.logger.info("Robot connected successfully")
             else:
                 self.logger.info("Running in simulation mode")
