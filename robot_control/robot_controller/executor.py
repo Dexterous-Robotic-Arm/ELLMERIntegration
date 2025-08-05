@@ -363,26 +363,35 @@ class TaskExecutor:
                         current_pos = self.runner.get_current_position()
                         print(f"[SCAN] Current position: {current_pos}")
                         
-                        if current_pos is None or len(current_pos) < 3:
-                            print("[WARN] Cannot get current position for scan, using default position")
-                            # Use a safe default position
-                            x, y, z = 400, 0, 200
+                        # HARDCODED: Use fixed optimal scan position
+                        # This ensures the robot actually moves to a good scanning position
+                        scan_x = 400.0  # Center of X workspace (150-650mm)
+                        scan_z = 250.0  # Good height for scanning
+                        
+                        if current_pos is not None and len(current_pos) >= 3:
+                            # Use current Z if it's reasonable, otherwise use default
+                            if 100 <= current_pos[2] <= 400:
+                                scan_z = current_pos[2]
+                                print(f"[SCAN] Using current Z position: {scan_z:.1f}mm")
+                            else:
+                                print(f"[SCAN] Current Z ({current_pos[2]:.1f}mm) out of range, using default: {scan_z:.1f}mm")
                         else:
-                            # Use current Z position, but calculate optimal X and Y center
-                            z = current_pos[2]
-                            
-                            # Calculate optimal center position for maximum workspace utilization
-                            # X: center of workspace (150-650mm range)
-                            x = (150 + 650) / 2  # 400mm center
-                            
-                            # Y: center of workspace (-300 to +300mm range) 
-                            y = 0  # 0mm center
-                            
-                            print(f"[SCAN] Using optimal center: X={x:.1f}, Y={y:.1f}, Z={z:.1f}")
+                            print(f"[SCAN] Using default Z position: {scan_z:.1f}mm")
+                        
+                        # Move to scan center position first
+                        scan_center = [scan_x, 0, scan_z]
+                        print(f"[SCAN] Moving to scan center: {scan_center}")
+                        
+                        try:
+                            self.runner.move_pose(scan_center, self.pick_rpy)
+                            print(f"[SCAN] Arrived at scan center")
+                        except Exception as e:
+                            print(f"[SCAN] Failed to move to scan center: {e}")
+                            return
                         
                         # Calculate sweep range based on workspace limits
-                        y_min = max(-300, y - sweep_mm / 2)  # Respect workspace Y min
-                        y_max = min(300, y + sweep_mm / 2)   # Respect workspace Y max
+                        y_min = max(-300, -sweep_mm / 2)  # Respect workspace Y min
+                        y_max = min(300, sweep_mm / 2)    # Respect workspace Y max
                         
                         print(f"[SCAN] Sweep range: Y={y_min:.1f} to {y_max:.1f}")
                         
@@ -398,7 +407,7 @@ class TaskExecutor:
                             else:
                                 y_target = y_min + (y_max - y_min) * j / (steps - 1)
                             
-                            target = [x, y_target, z]
+                            target = [scan_x, y_target, scan_z]
                             print(f"[SCAN] Moving to scan position {j+1}/{steps}: {target}")
                             
                             try:
@@ -411,6 +420,7 @@ class TaskExecutor:
                     else:
                         # Dry run - just show what would happen
                         print(f"[SCAN] DRY RUN: Would scan {steps} positions over {sweep_mm}mm sweep")
+                        print(f"[SCAN] DRY RUN: Would move to scan center: [400, 0, 250]")
                         
                         # Ensure we have at least 2 steps to avoid division by zero
                         if steps < 2:
@@ -424,7 +434,7 @@ class TaskExecutor:
                             else:
                                 y_target = -sweep_mm/2 + (sweep_mm) * j / (steps - 1)
                             
-                            target = [400, y_target, 200]
+                            target = [400, y_target, 250]
                             print(f"[SCAN] DRY RUN: Would move to position {j+1}/{steps}: {target}")
                             print(f"[SCAN] DRY RUN: Would pause {pause_sec}s for detection...")
 
