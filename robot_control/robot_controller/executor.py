@@ -363,20 +363,14 @@ class TaskExecutor:
                         current_pos = self.runner.get_current_position()
                         print(f"[SCAN] Current position: {current_pos}")
                         
-                        # HARDCODED: Use fixed optimal scan position
-                        # This ensures the robot actually moves to a good scanning position
-                        scan_x = 400.0  # Center of X workspace (150-650mm)
+                        # Use fixed scan position for maximum workspace utilization
+                        scan_x = 400.0  # Center of X workspace
                         scan_z = 250.0  # Good height for scanning
                         
                         if current_pos is not None and len(current_pos) >= 3:
-                            # Use current Z if it's reasonable, otherwise use default
+                            # Use current Z if reasonable
                             if 100 <= current_pos[2] <= 400:
                                 scan_z = current_pos[2]
-                                print(f"[SCAN] Using current Z position: {scan_z:.1f}mm")
-                            else:
-                                print(f"[SCAN] Current Z ({current_pos[2]:.1f}mm) out of range, using default: {scan_z:.1f}mm")
-                        else:
-                            print(f"[SCAN] Using default Z position: {scan_z:.1f}mm")
                         
                         # Move to scan center position first
                         scan_center = [scan_x, 0, scan_z]
@@ -389,19 +383,19 @@ class TaskExecutor:
                             print(f"[SCAN] Failed to move to scan center: {e}")
                             return
                         
-                        # Calculate sweep range based on workspace limits
-                        y_min = max(-300, -sweep_mm / 2)  # Respect workspace Y min
-                        y_max = min(300, sweep_mm / 2)    # Respect workspace Y max
+                        # Calculate sweep range
+                        y_min = max(-300, -sweep_mm / 2)
+                        y_max = min(300, sweep_mm / 2)
                         
                         print(f"[SCAN] Sweep range: Y={y_min:.1f} to {y_max:.1f}")
                         
-                        # Ensure we have at least 2 steps to avoid division by zero
+                        # Ensure minimum steps
                         if steps < 2:
                             steps = 2
-                            print(f"[SCAN] Adjusted steps to minimum of 2")
                         
+                        # Perform scan sweep
                         for j in range(steps):
-                            # Calculate target position with safe division
+                            # Calculate target position
                             if steps == 1:
                                 y_target = y_min
                             else:
@@ -418,22 +412,12 @@ class TaskExecutor:
                                 print(f"[SCAN] Error at position {j+1}: {e}")
                                 continue
                     else:
-                        # Dry run - just show what would happen
+                        # Dry run
                         print(f"[SCAN] DRY RUN: Would scan {steps} positions over {sweep_mm}mm sweep")
                         print(f"[SCAN] DRY RUN: Would move to scan center: [400, 0, 250]")
                         
-                        # Ensure we have at least 2 steps to avoid division by zero
-                        if steps < 2:
-                            steps = 2
-                            print(f"[SCAN] DRY RUN: Adjusted steps to minimum of 2")
-                        
                         for j in range(steps):
-                            # Calculate target position with safe division
-                            if steps == 1:
-                                y_target = -sweep_mm/2
-                            else:
-                                y_target = -sweep_mm/2 + (sweep_mm) * j / (steps - 1)
-                            
+                            y_target = -sweep_mm/2 + (sweep_mm) * j / max(steps - 1, 1)
                             target = [400, y_target, 250]
                             print(f"[SCAN] DRY RUN: Would move to position {j+1}/{steps}: {target}")
                             print(f"[SCAN] DRY RUN: Would pause {pause_sec}s for detection...")

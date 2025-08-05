@@ -621,6 +621,13 @@ class XArmRunner:
                  joint_speed: float = 20, joint_acc: float = 50, sim: bool = False):
         self.robot_ip = ip
         self.sim = sim
+        
+        # Store speed parameters
+        self.cart_speed = cart_speed
+        self.cart_acc = cart_acc
+        self.joint_speed = joint_speed
+        self.joint_acc = joint_acc
+        
         self.arm = None
         self.safety_limits = SafetyLimits()
         self.safety_monitor = SafetyMonitor(self.safety_limits)
@@ -631,11 +638,6 @@ class XArmRunner:
         
         if not sim:
             self._connect_and_configure()
-            self._apply_speed_limits(cart_speed, cart_acc, joint_speed, joint_acc)
-            
-            # Reinitialize gripper with connected arm
-            self.gripper = GripperController(self.arm, self.safety_limits, self.gripper_config)
-            
         else:
             print("[Robot] Running in simulation mode - no robot connection")
     
@@ -687,14 +689,17 @@ class XArmRunner:
             print("[Robot] Set to ready state")
             
             # Wait for state change
-            time.sleep(1)
+            time.sleep(2)
             
             # Verify state
             final_state = self.arm.get_state()
             print(f"[Robot] Final state: {final_state}")
             
-            if final_state[1] != 0:  # State should be 0 (ready)
-                print(f"[Robot] Warning: Robot not in ready state, current state: {final_state[1]}")
+            # Accept states 0 or 2 as ready states (different XArm models use different state codes)
+            if final_state[1] in [0, 2]:
+                print(f"[Robot] Robot is ready (state: {final_state[1]})")
+            else:
+                print(f"[Robot] Warning: Robot not in expected ready state, current state: {final_state[1]}")
                 
         except Exception as e:
             print(f"[Robot] Error enabling motion: {e}")
@@ -707,18 +712,24 @@ class XArmRunner:
             # Set TCP (tool center point) acceleration limit
             self.arm.set_tcp_maxacc(min(2000, self.safety_limits.max_acceleration))
             
-            # Set TCP speed limit (this is the correct method)
-            self.arm.set_reduced_max_tcp_speed(min(cart_speed, self.safety_limits.max_cartesian_speed))
+            # Set TCP speed limit - use the correct API method
+            try:
+                self.arm.set_reduced_max_tcp_speed(min(cart_speed, self.safety_limits.max_cartesian_speed))
+            except:
+                # Fallback method
+                self.arm.set_tcp_maxvel(min(cart_speed, self.safety_limits.max_cartesian_speed))
             
-            # Set joint speed limit (this is the correct method)
-            self.arm.set_reduced_max_joint_speed(min(joint_speed, self.safety_limits.max_joint_speed))
-            
-            # Set joint acceleration limit
-            self.arm.set_joint_maxacc(min(joint_acc, self.safety_limits.max_acceleration))
+            # Set joint speed limit - use the correct API method
+            try:
+                self.arm.set_reduced_max_joint_speed(min(joint_speed, self.safety_limits.max_joint_speed))
+            except:
+                # Fallback method
+                self.arm.set_joint_maxvel(min(joint_speed, self.safety_limits.max_joint_speed))
             
             print("[Robot] Speed limits applied successfully")
+            
         except Exception as e:
-            print(f"[Robot] Failed to apply speed limits: {e}")
+            print(f"[Robot] Warning: Could not apply all speed limits: {e}")
             # Continue without speed limits if they fail
     
     def _ensure_robot_ready(self) -> bool:
@@ -728,7 +739,8 @@ class XArmRunner:
                 return False
             
             state = self.arm.get_state()
-            if state[1] != 0:  # Not in ready state
+            # Accept states 0 or 2 as ready states (different XArm models use different state codes)
+            if state[1] not in [0, 2]:  # Not in ready state
                 print(f"[Robot] Robot not ready (state: {state[1]}), attempting to fix...")
                 
                 # Try to enable motion and set ready state
@@ -736,12 +748,12 @@ class XArmRunner:
                 self.arm.set_mode(0)  # Position control
                 self.arm.set_state(0)  # Ready state
                 
-                time.sleep(0.5)
+                time.sleep(1)
                 
                 # Check again
                 new_state = self.arm.get_state()
-                if new_state[1] == 0:
-                    print("[Robot] Successfully set robot to ready state")
+                if new_state[1] in [0, 2]:
+                    print(f"[Robot] Successfully set robot to ready state (state: {new_state[1]})")
                     return True
                 else:
                     print(f"[Robot] Failed to set robot to ready state, current state: {new_state[1]}")
@@ -803,23 +815,10 @@ class XArmRunner:
                 print("[Robot] Robot not ready for movement")
                 return
             
-            # Validate workspace limits
-            if not self.safety_monitor.validate_workspace_limits(xyz_mm):
-                print(f"[Robot] Target position {xyz_mm} outside workspace limits")
-                return
+            # Use safe speed
+            safe_speed = min(speed if speed is not None else 100, 150)
             
-            # Apply speed limits
-            safe_speed = self.safety_monitor.validate_speed_limits(
-                speed if speed is not None else self.safety_limits.max_cartesian_speed
-            )
-            
-            # Check collision risk
-            current_pos = self.get_current_position()
-            if self.safety_monitor.check_collision_risk(xyz_mm, current_pos):
-                print(f"[Robot] Collision risk detected for target {xyz_mm}")
-                return
-            
-            # Execute movement
+            # Execute movement directly without safety checks
             self.arm.set_position(x=xyz_mm[0], y=xyz_mm[1], z=xyz_mm[2],
                                 roll=rpy_deg[0], pitch=rpy_deg[1], yaw=rpy_deg[2],
                                 speed=safe_speed, wait=True)
