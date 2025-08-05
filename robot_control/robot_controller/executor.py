@@ -40,9 +40,14 @@ WORLD_POSES = {
 
 class ObjectIndex(Node if ROS2_AVAILABLE else object):
     """Caches latest pose per label (mm) from /detected_objects."""
+    # Class-level storage to persist across instances
+    _global_latest_mm = {}
+    _global_lock = threading.Lock()
+    
     def __init__(self):
         self._lock = threading.Lock()
-        self.latest_mm = {}  # label -> [x_mm, y_mm, z_mm]
+        # Use class-level storage for persistence
+        self.latest_mm = ObjectIndex._global_latest_mm
         
         # Only setup ROS2 subscription if available
         if ROS2_AVAILABLE:
@@ -63,7 +68,7 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
             k = 1000.0 if units == "m" else 1.0
             items = data.get("items", [])
             print(f"[ObjectIndex] Received message with {len(items)} items: {items}")
-            with self._lock:
+            with self._global_lock:
                 for it in items:
                     lab = it.get("class")
                     pos = it.get("pos", [0,0,0])
@@ -77,8 +82,18 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
     def wait_for(self, label: str, timeout=5.0):
         t0 = time.time()
         print(f"[ObjectIndex] Waiting for '{label}' for {timeout}s...")
+        print(f"[ObjectIndex] Current cached objects: {list(self.latest_mm.keys())}")
+        
+        # Check if we already have the object cached
+        with self._global_lock:
+            p = self.latest_mm.get(label)
+            if p is not None:
+                print(f"[ObjectIndex] Found '{label}' in cache at position: {p}")
+                return p
+        
+        # Wait for new detections
         while time.time() - t0 < timeout:
-            with self._lock:
+            with self._global_lock:
                 p = self.latest_mm.get(label)
             if p is not None:
                 print(f"[ObjectIndex] Found '{label}' at position: {p}")
