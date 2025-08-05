@@ -7,7 +7,7 @@ import sys
 import os
 import time
 import json
-
+import numpy as np
 # Add the robot_control package to the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -31,14 +31,17 @@ def test_vision_debug():
         print("\n📋 Test 2: Checking YOLO availability...")
         try:
             from ultralytics import YOLO
+            # Force CPU usage to avoid CUDA compatibility issues
             model = YOLO("yolov8n.pt")
             print("✅ YOLO model loaded successfully")
+            print("🖥️ Using CPU for inference (GPU compatibility issue)")
         except Exception as e:
             print(f"❌ YOLO not available: {e}")
             return
         
         # Test 3: Check if RealSense is available
         print("\n📋 Test 3: Checking RealSense availability...")
+        pipeline = None
         try:
             import pyrealsense2 as rs
             pipeline = rs.pipeline()
@@ -56,8 +59,9 @@ def test_vision_debug():
             
             if color_frame and depth_frame:
                 print("✅ Camera frames received successfully")
-                color_image = color_frame.get_data()
-                print(f"📸 Color frame size: {len(color_image)} bytes")
+                color_image = np.asanyarray(color_frame.get_data())
+                print(f"📸 Color frame shape: {color_image.shape}")
+                print(f"📸 Color frame dtype: {color_image.dtype}")
             else:
                 print("❌ No camera frames received")
                 return
@@ -66,13 +70,24 @@ def test_vision_debug():
             print(f"❌ RealSense not available: {e}")
             return
         
-        # Test 4: Test YOLO detection on a simple image
-        print("\n📋 Test 4: Testing YOLO detection...")
+        # Test 4: Test YOLO detection on camera image
+        print("\n📋 Test 4: Testing YOLO detection on camera image...")
         try:
             import numpy as np
-            # Create a simple test image (black image)
-            test_image = np.zeros((480, 640, 3), dtype=np.uint8)
-            results = model(test_image)
+            # Get a real camera frame for testing
+            frames = pipeline.wait_for_frames()
+            color_frame = frames.get_color_frame()
+            color_image = np.asanyarray(color_frame.get_data())
+            
+            print(f"📸 Testing YOLO on camera image: {color_image.shape}")
+            # Try GPU first, fallback to CPU if CUDA issues
+            try:
+                results = model(color_image, device='cuda')
+                print("🚀 Using GPU for YOLO inference")
+            except Exception as gpu_error:
+                print(f"⚠️ GPU failed: {gpu_error}")
+                print("🖥️ Falling back to CPU")
+                results = model(color_image, device='cpu')
             print("✅ YOLO detection test successful")
             print(f"📊 YOLO classes available: {len(model.names)}")
             print(f"📋 Sample classes: {list(model.names.values())[:10]}")
@@ -86,10 +101,33 @@ def test_vision_debug():
                 for i, name in model.names.items():
                     if any(word in name.lower() for word in ['bottle', 'cup', 'container', 'object']):
                         print(f"  - {name} (class {i})")
+            
+            # Show what was detected in the current frame
+            if results and len(results) > 0:
+                result = results[0]
+                if result.boxes is not None and len(result.boxes) > 0:
+                    print(f"🎯 Detected {len(result.boxes)} objects in current frame:")
+                    for box in result.boxes:
+                        cls_id = int(box.cls[0])
+                        conf = float(box.conf[0])
+                        class_name = model.names[cls_id]
+                        print(f"  - {class_name} (confidence: {conf:.2f})")
+                else:
+                    print("❌ No objects detected in current frame")
+            else:
+                print("❌ No detection results")
                         
         except Exception as e:
             print(f"❌ YOLO detection test failed: {e}")
             return
+        finally:
+            # Clean up RealSense
+            if pipeline:
+                try:
+                    pipeline.stop()
+                    print("🔌 RealSense pipeline stopped")
+                except:
+                    pass
         
         # Test 5: Test ROS2 topic subscription
         print("\n📋 Test 5: Testing ROS2 topic subscription...")

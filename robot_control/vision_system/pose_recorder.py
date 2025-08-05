@@ -116,6 +116,7 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
         # YOLO - only if available
         if YOLO_AVAILABLE:
             self.model = YOLO("yolov8n.pt")
+            print("🖥️ YOLO model loaded - using CPU for inference")
         else:
             self.model = None
             print("Running in simulation mode - no YOLO model")
@@ -143,7 +144,12 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
         color = np.asanyarray(c.get_data())
         intrin = d.profile.as_video_stream_profile().intrinsics
 
-        results = self.model(color)[0]
+        # Try GPU first, fallback to CPU if CUDA issues
+        try:
+            results = self.model(color, device='cuda')[0]
+        except Exception:
+            # Fallback to CPU if GPU fails
+            results = self.model(color, device='cpu')[0]
         detected = []
         for box in results.boxes:
             cls_id = int(box.cls[0]); conf = float(box.conf[0])
