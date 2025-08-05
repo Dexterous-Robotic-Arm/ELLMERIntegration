@@ -184,8 +184,7 @@ class TaskExecutor:
         self.step_count = 0
         self.error_count = 0
         
-        if not self.dry_run:
-            self.runner.go_home()
+        # Note: Removed automatic go_home() to allow camera-mounted robot to stay in current position
         
         steps = plan.get("steps", [])
 
@@ -329,16 +328,26 @@ class TaskExecutor:
                     offset = [min(max(x, -100), 100) for x in offset]  # Limit offset to ±100mm
                     
                     if not self.dry_run:
-                        obj = self.obj_index.wait_for(target_label, timeout=step.get("timeout_sec", 5.0))
-                        target = [
-                            obj[0] + float(offset[0]),
-                            obj[1] + float(offset[1]),
-                            obj[2] + float(offset[2]),
-                        ]
-                        rpy = self.pick_rpy
-                        if act == "APPROACH_OBJECT":
-                            target[2] += hover
-                        self.runner.move_pose(target, rpy)
+                        try:
+                            obj = self.obj_index.wait_for(target_label, timeout=step.get("timeout_sec", 5.0))
+                            if obj is None:
+                                print(f"[WARN] Object '{target_label}' not detected within timeout")
+                                continue
+                            
+                            target = [
+                                obj[0] + float(offset[0]),
+                                obj[1] + float(offset[1]),
+                                obj[2] + float(offset[2]),
+                            ]
+                            rpy = self.pick_rpy
+                            if act == "APPROACH_OBJECT":
+                                target[2] += hover
+                            self.runner.move_pose(target, rpy)
+                        except Exception as e:
+                            print(f"[ERROR] Failed to approach object '{target_label}': {e}")
+                            continue
+                    else:
+                        print(f"[DRY RUN] Would approach object '{target_label}' with hover={hover}mm, offset={offset}")
 
                 elif act == "SCAN_FOR_OBJECTS":
                     # Horizontal sweep in front of the robot
@@ -346,23 +355,72 @@ class TaskExecutor:
                     sweep_mm = float(step.get("sweep_mm", 300))
                     steps = int(step.get("steps", 5))
                     pause_sec = float(step.get("pause_sec", 1.0))
+                    
+                    print(f"[SCAN] Starting scan: pattern={pattern}, sweep={sweep_mm}mm, steps={steps}, pause={pause_sec}s")
+                    
                     if not self.dry_run:
                         # Get current position
                         current_pos = self.runner.get_current_position()
-                        if current_pos is None:
-                            print("[WARN] Cannot get current position for scan, skipping.")
+                        print(f"[SCAN] Current position: {current_pos}")
+                        
+                        if current_pos is None or len(current_pos) < 3:
+                            print("[WARN] Cannot get current position for scan, using default position")
+                            # Use a safe default position
+                            x, y, z = 400, 0, 200
                         else:
-                            x, y, z = current_pos
-                            # Sweep left to right in Y axis
-                            y_start = y - sweep_mm / 2
-                            y_end = y + sweep_mm / 2
-                            for j in range(steps):
-                                y_target = y_start + (y_end - y_start) * j / max(steps - 1, 1)
-                                target = [x, y_target, z]
-                                print(f"[SCAN] Moving to scan position {j+1}/{steps}: {target}")
+                            # Ensure we have exactly 3 values
+                            if len(current_pos) >= 3:
+                                x, y, z = current_pos[0], current_pos[1], current_pos[2]
+                            else:
+                                print(f"[WARN] Invalid position format: {current_pos}, using default")
+                                x, y, z = 400, 0, 200
+                        
+                        # Sweep left to right in Y axis
+                        y_start = y - sweep_mm / 2
+                        y_end = y + sweep_mm / 2
+                        print(f"[SCAN] Sweep range: Y={y_start:.1f} to {y_end:.1f}")
+                        
+                        # Ensure we have at least 2 steps to avoid division by zero
+                        if steps < 2:
+                            steps = 2
+                            print(f"[SCAN] Adjusted steps to minimum of 2")
+                        
+                        for j in range(steps):
+                            # Calculate target position with safe division
+                            if steps == 1:
+                                y_target = y_start
+                            else:
+                                y_target = y_start + (y_end - y_start) * j / (steps - 1)
+                            
+                            target = [x, y_target, z]
+                            print(f"[SCAN] Moving to scan position {j+1}/{steps}: {target}")
+                            
+                            try:
                                 self.runner.move_pose(target, self.pick_rpy)
                                 print(f"[SCAN] Pausing {pause_sec}s for detection...")
                                 time.sleep(pause_sec)
+                            except Exception as e:
+                                print(f"[SCAN] Error at position {j+1}: {e}")
+                                continue
+                    else:
+                        # Dry run - just show what would happen
+                        print(f"[SCAN] DRY RUN: Would scan {steps} positions over {sweep_mm}mm sweep")
+                        
+                        # Ensure we have at least 2 steps to avoid division by zero
+                        if steps < 2:
+                            steps = 2
+                            print(f"[SCAN] DRY RUN: Adjusted steps to minimum of 2")
+                        
+                        for j in range(steps):
+                            # Calculate target position with safe division
+                            if steps == 1:
+                                y_target = -sweep_mm/2
+                            else:
+                                y_target = -sweep_mm/2 + (sweep_mm) * j / (steps - 1)
+                            
+                            target = [400, y_target, 200]
+                            print(f"[SCAN] DRY RUN: Would move to position {j+1}/{steps}: {target}")
+                            print(f"[SCAN] DRY RUN: Would pause {pause_sec}s for detection...")
 
                 elif act == "SLEEP":
                     sleep_time = float(step["seconds"])

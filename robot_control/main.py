@@ -42,6 +42,7 @@ class SystemConfig:
     wait_detections: bool
     min_detection_items: int
     log_level: str
+    use_fallback: bool
 
 
 def parse_arguments() -> SystemConfig:
@@ -130,6 +131,12 @@ Examples:
         help="Logging level"
     )
     
+    parser.add_argument(
+        "--use-fallback", 
+        action="store_true",
+        help="Force use of fallback planner (skip LLM)"
+    )
+    
     args = parser.parse_args()
     
     return SystemConfig(
@@ -143,7 +150,8 @@ Examples:
         dry_run=args.dry_run,
         wait_detections=args.wait_detections,
         min_detection_items=args.min_detection_items,
-        log_level=args.log_level
+        log_level=args.log_level,
+        use_fallback=args.use_fallback
     )
 
 
@@ -241,17 +249,37 @@ class TaskPlanner:
             
             # Import planning functions
             from robot_control.task_planner import plan_with_gemini, plan_fallback
+            import signal
             
             # Get pose names from world config
             pose_names = []
             if world_config and 'poses' in world_config:
                 pose_names = list(world_config['poses'].keys())
             
-            # Generate plan using LLM or fallback
-            plan = plan_with_gemini(task, pose_names)
+            # Check if we should force fallback planner
+            if hasattr(self.config, 'use_fallback') and self.config.use_fallback:
+                self.logger.info("Using fallback planner (forced)")
+                return plan_fallback(task)
             
-            self.logger.info(f"Generated plan with {len(plan['steps'])} steps")
-            return plan
+            # Set a timeout for LLM planning to prevent hanging
+            def timeout_handler(signum, frame):
+                raise TimeoutError("LLM planning timed out")
+            
+            # Set 10 second timeout for LLM planning
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(10)
+            
+            try:
+                # Generate plan using LLM
+                plan = plan_with_gemini(task, pose_names)
+                signal.alarm(0)  # Cancel timeout
+                self.logger.info(f"Generated plan with {len(plan['steps'])} steps")
+                return plan
+            except (TimeoutError, Exception) as e:
+                signal.alarm(0)  # Cancel timeout
+                self.logger.warning(f"LLM planning failed or timed out: {e}")
+                self.logger.info("Using fallback planner")
+                return plan_fallback(task)
             
         except Exception as e:
             self.logger.error(f"Failed to plan task: {e}")

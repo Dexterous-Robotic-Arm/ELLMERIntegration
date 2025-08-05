@@ -365,7 +365,8 @@ def validate_plan(plan: Dict[str, Any]) -> bool:
         "MOVE_TO_NAMED", "APPROACH_NAMED", "MOVE_TO_OBJECT", "APPROACH_OBJECT",
         "MOVE_TO_POSE", "RETREAT_Z", "OPEN_GRIPPER", "CLOSE_GRIPPER",
         "SET_GRIPPER_POSITION", "GRIPPER_GRASP", "GRIPPER_RELEASE",
-        "GRIPPER_HALF_OPEN", "GRIPPER_SOFT_CLOSE", "GRIPPER_TEST", "SLEEP"
+        "GRIPPER_HALF_OPEN", "GRIPPER_SOFT_CLOSE", "GRIPPER_TEST", "SLEEP",
+        "SCAN_FOR_OBJECTS"
     }
     
     for step in plan["steps"]:

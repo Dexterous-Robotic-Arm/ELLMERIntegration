@@ -60,7 +60,7 @@ class SafetyLimits:
     
     # Timing limits
     safety_check_interval: float = 0.1      # seconds
-    max_movement_distance: float = 200.0    # mm
+    max_movement_distance: float = 400.0    # mm (increased for scan operations)
 
 
 @dataclass
