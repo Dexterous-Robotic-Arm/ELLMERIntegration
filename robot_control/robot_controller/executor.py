@@ -359,7 +359,7 @@ class TaskExecutor:
                     print(f"[SCAN] Starting scan: pattern={pattern}, sweep={sweep_mm}mm, steps={steps}, pause={pause_sec}s")
                     
                     if not self.dry_run:
-                        # Get current position
+                        # Get current position for Z coordinate
                         current_pos = self.runner.get_current_position()
                         print(f"[SCAN] Current position: {current_pos}")
                         
@@ -368,17 +368,23 @@ class TaskExecutor:
                             # Use a safe default position
                             x, y, z = 400, 0, 200
                         else:
-                            # Ensure we have exactly 3 values
-                            if len(current_pos) >= 3:
-                                x, y, z = current_pos[0], current_pos[1], current_pos[2]
-                            else:
-                                print(f"[WARN] Invalid position format: {current_pos}, using default")
-                                x, y, z = 400, 0, 200
+                            # Use current Z position, but calculate optimal X and Y center
+                            z = current_pos[2]
+                            
+                            # Calculate optimal center position for maximum workspace utilization
+                            # X: center of workspace (150-650mm range)
+                            x = (150 + 650) / 2  # 400mm center
+                            
+                            # Y: center of workspace (-300 to +300mm range) 
+                            y = 0  # 0mm center
+                            
+                            print(f"[SCAN] Using optimal center: X={x:.1f}, Y={y:.1f}, Z={z:.1f}")
                         
-                        # Sweep left to right in Y axis
-                        y_start = y - sweep_mm / 2
-                        y_end = y + sweep_mm / 2
-                        print(f"[SCAN] Sweep range: Y={y_start:.1f} to {y_end:.1f}")
+                        # Calculate sweep range based on workspace limits
+                        y_min = max(-300, y - sweep_mm / 2)  # Respect workspace Y min
+                        y_max = min(300, y + sweep_mm / 2)   # Respect workspace Y max
+                        
+                        print(f"[SCAN] Sweep range: Y={y_min:.1f} to {y_max:.1f}")
                         
                         # Ensure we have at least 2 steps to avoid division by zero
                         if steps < 2:
@@ -388,9 +394,9 @@ class TaskExecutor:
                         for j in range(steps):
                             # Calculate target position with safe division
                             if steps == 1:
-                                y_target = y_start
+                                y_target = y_min
                             else:
-                                y_target = y_start + (y_end - y_start) * j / (steps - 1)
+                                y_target = y_min + (y_max - y_min) * j / (steps - 1)
                             
                             target = [x, y_target, z]
                             print(f"[SCAN] Moving to scan position {j+1}/{steps}: {target}")
