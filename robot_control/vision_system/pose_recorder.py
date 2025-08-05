@@ -112,16 +112,24 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
             self.arm = None
             print("Running in simulation mode - no XArm connection")
 
-        # RealSense - only if available
-        if REALSENSE_AVAILABLE:
-            self.pipeline = rs.pipeline()
-            cfg = rs.config()
-            cfg.enable_stream(rs.stream.color, 640,480,rs.format.bgr8,30)
-            cfg.enable_stream(rs.stream.depth, 640,480,rs.format.z16,30)
-            self.pipeline.start(cfg)
+        # RealSense - only if available and in standalone mode
+        if REALSENSE_AVAILABLE and standalone:
+            try:
+                self.pipeline = rs.pipeline()
+                cfg = rs.config()
+                cfg.enable_stream(rs.stream.color, 640,480,rs.format.bgr8,30)
+                cfg.enable_stream(rs.stream.depth, 640,480,rs.format.z16,30)
+                self.pipeline.start(cfg)
+                print("✅ RealSense camera connected")
+            except Exception as e:
+                print(f"❌ RealSense camera failed: {e}")
+                self.pipeline = None
         else:
             self.pipeline = None
-            print("Running in simulation mode - no RealSense camera")
+            if not standalone:
+                print("Running in integrated mode - camera handled by ROS2 publisher")
+            else:
+                print("Running in simulation mode - no RealSense camera")
 
         # YOLO - only if available
         if YOLO_AVAILABLE:
@@ -148,10 +156,20 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
             print(f"PoseRecorder initialized in integrated mode → logging to {self.csv_path}")
 
     def scan_and_publish(self):
+        if not self.pipeline:
+            if not self.standalone:
+                print("[Vision] No camera pipeline in integrated mode - skipping detection")
+            else:
+                print("[Vision] No camera pipeline - skipping detection")
+            return
+            
         frames = self.pipeline.wait_for_frames()
         c = frames.get_color_frame(); d = frames.get_depth_frame()
         if not c or not d:
-            self.get_logger().warn("No camera frame, skipping.")
+            if self.standalone:
+                self.get_logger().warn("No camera frame, skipping.")
+            else:
+                print("[Vision] No camera frame, skipping.")
             return
 
         color = np.asanyarray(c.get_data())
@@ -206,10 +224,13 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
 
     def destroy_node(self):
         self.csv_file.close()
-        self.pipeline.stop()
-        self.arm.move_gohome(wait=True)
-        self.arm.disconnect()
-        super().destroy_node()
+        if self.pipeline:
+            self.pipeline.stop()
+        if hasattr(self, 'arm') and self.arm:
+            self.arm.move_gohome(wait=True)
+            self.arm.disconnect()
+        if self.standalone:
+            super().destroy_node()
 
 def main(args=None):
     rclpy.init(args=args)

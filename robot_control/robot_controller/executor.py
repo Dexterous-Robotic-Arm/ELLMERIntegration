@@ -126,14 +126,9 @@ class TaskExecutor:
             print("[Vision] Waiting for vision system to initialize...")
             time.sleep(3)
         
-        # Test vision system
+        # Note: Vision system test skipped in integrated mode (camera handled by ROS2 publisher)
         if hasattr(self, 'vision_recorder') and self.vision_recorder:
-            print("[Vision] Testing vision detection...")
-            try:
-                self.vision_recorder.scan_and_publish()
-                print("[Vision] Vision detection test successful")
-            except Exception as e:
-                print(f"[Vision] Vision detection test failed: {e}")
+            print("[Vision] Vision system ready - camera handled by ROS2 publisher")
         else:
             self.obj_index = ObjectIndex()
             self._spin_thread = None
