@@ -34,7 +34,7 @@ def test_full_workspace_scan(robot_ip: str = "192.168.1.241"):
             test_pos = [initial_pos[0], initial_pos[1] + 30, initial_pos[2]]
             print(f"Testing movement to: {test_pos}")
             
-            runner.move_pose(test_pos, [0, -45, 0])  # Face camera outward at 45-degree angle
+            runner.move_pose(test_pos, [0, 45, 0])  # Tilt camera up on front axis
             time.sleep(3)
             
             new_pos = runner.get_current_position()
@@ -60,7 +60,7 @@ def test_full_workspace_scan(robot_ip: str = "192.168.1.241"):
             scan_center = [400, 0, current_pos[2]]  # Center of workspace
             print(f"Moving to scan center: {scan_center}")
             
-            runner.move_pose(scan_center, [0, -45, 0])  # Face camera outward at 45-degree angle
+            runner.move_pose(scan_center, [0, 45, 0])  # Tilt camera up on front axis
             time.sleep(3)
             
             center_pos = runner.get_current_position()

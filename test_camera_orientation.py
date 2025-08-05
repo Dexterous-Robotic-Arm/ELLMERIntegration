@@ -17,7 +17,7 @@ def test_camera_orientation(robot_ip: str = "192.168.1.241"):
     
     print("🤖 Testing Camera Orientation")
     print(f"📍 Connecting to robot at {robot_ip}")
-    print("📷 Camera should now face outward at 45-degree angle")
+    print("📷 Camera should now be tilted up on front axis")
     
     try:
         # Initialize robot connection
@@ -30,11 +30,11 @@ def test_camera_orientation(robot_ip: str = "192.168.1.241"):
         if current_pos is not None:
             # Test 1: Move to scan center with new orientation
             scan_center = [400, 0, current_pos[2]]
-            print(f"\n📋 Test 1: Moving to scan center with camera facing outward")
+            print(f"\n📋 Test 1: Moving to scan center with camera tilted up")
             print(f"Target: {scan_center}")
-            print(f"Orientation: [0, -45, 0] (camera faces outward at 45°)")
+            print(f"Orientation: [0, 45, 0] (camera tilted up on front axis)")
             
-            runner.move_pose(scan_center, [0, -45, 0])
+            runner.move_pose(scan_center, [0, 45, 0])
             time.sleep(2)
             
             # Test 2: Small movement to verify orientation
@@ -42,17 +42,17 @@ def test_camera_orientation(robot_ip: str = "192.168.1.241"):
             print(f"\n📋 Test 2: Small movement to verify orientation")
             print(f"Target: {test_pos}")
             
-            runner.move_pose(test_pos, [0, -45, 0])
+            runner.move_pose(test_pos, [0, 45, 0])
             time.sleep(2)
             
             # Test 3: Return to original position
             print(f"\n📋 Test 3: Returning to original position")
-            runner.move_pose(current_pos, [0, -45, 0])
+            runner.move_pose(current_pos, [0, 45, 0])
             time.sleep(2)
             
             print("\n✅ Camera orientation test completed!")
-            print("📷 Camera should now be facing outward at 45-degree angle")
-            print("🔍 This allows the camera to see objects in front of the robot")
+            print("📷 Camera should now be tilted up on front axis")
+            print("🔍 This allows the camera to see objects better")
         
     except Exception as e:
         print(f"❌ Error during camera orientation test: {e}")

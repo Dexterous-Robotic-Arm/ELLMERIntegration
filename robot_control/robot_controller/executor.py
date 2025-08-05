@@ -20,7 +20,7 @@ except ImportError:
 from .actions_xarm import XArmRunner
 
 DEFAULT_HOVER_MM = 80
-DEFAULT_PICK_RPY = [0, -45, 0]  # Face camera outward at 45-degree angle
+DEFAULT_PICK_RPY = [0, 45, 0]  # Tilt camera up on front axis
 
 # Safety limits for real-life testing
 MAX_EXECUTION_TIME = 300  # seconds - maximum time for any plan
@@ -28,11 +28,11 @@ MAX_STEPS_PER_PLAN = 50   # maximum number of steps in a plan
 SAFETY_CHECK_INTERVAL = 0.5  # seconds between safety checks
 
 # Named poses (edit to your workspace). Units: mm/deg
-# Updated for camera-mounted robot - camera faces outward at 45-degree angle
+# Updated for camera-mounted robot - camera tilted up on front axis
 WORLD_POSES = {
-    "home":             {"xyz_mm": [300,   0, 300], "rpy_deg": [0, -45, 0]},
-    "bin_drop":         {"xyz_mm": [250, 250, 120], "rpy_deg": [0, -45, 0]},
-    "table_pick_blue":  {"xyz_mm": [400,-150,  45], "rpy_deg": [0, -45, 0]},
+    "home":             {"xyz_mm": [300,   0, 300], "rpy_deg": [0, 45, 0]},
+    "bin_drop":         {"xyz_mm": [250, 250, 120], "rpy_deg": [0, 45, 0]},
+    "table_pick_blue":  {"xyz_mm": [400,-150,  45], "rpy_deg": [0, 45, 0]},
 }
 
 class ObjectIndex(Node if ROS2_AVAILABLE else object):
