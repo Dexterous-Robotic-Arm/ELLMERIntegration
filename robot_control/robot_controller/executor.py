@@ -441,13 +441,27 @@ class TaskExecutor:
                                     obj[2] + float(offset[2]),
                                 ]
                             else:
-                                # Align Y to object while keeping current X and Z
-                                target = [
-                                    current_pos[0],  # Keep current X
-                                    obj[1] + float(offset[1]),  # Align Y to object
-                                    current_pos[2]  # Keep current Z
-                                ]
-                                print(f"[ALIGN] Aligning Y to object: current Y={current_pos[1]:.1f}mm, object Y={obj[1]:.1f}mm, target Y={target[1]:.1f}mm")
+                                # Debug: Print coordinate systems
+                                print(f"[DEBUG] Object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}, Z={obj[2]:.1f}")
+                                print(f"[DEBUG] Robot coordinates: X={current_pos[0]:.1f}, Y={current_pos[1]:.1f}, Z={current_pos[2]:.1f}")
+                                
+                                # Check if object coordinates are in a different system (very large numbers)
+                                if abs(obj[0]) > 1000 or abs(obj[1]) > 1000 or abs(obj[2]) > 1000:
+                                    print(f"[WARN] Object coordinates seem to be in different system, using current position")
+                                    # Don't align to object coordinates, stay at current position
+                                    target = [
+                                        current_pos[0],  # Keep current X
+                                        current_pos[1],  # Keep current Y
+                                        current_pos[2]   # Keep current Z
+                                    ]
+                                else:
+                                    # Align Y to object while keeping current X and Z
+                                    target = [
+                                        current_pos[0],  # Keep current X
+                                        obj[1] + float(offset[1]),  # Align Y to object
+                                        current_pos[2]  # Keep current Z
+                                    ]
+                                    print(f"[ALIGN] Aligning Y to object: current Y={current_pos[1]:.1f}mm, object Y={obj[1]:.1f}mm, target Y={target[1]:.1f}mm")
                             
                             # Use constant J5 position (90° - camera pointing up)
                             rpy = self.constant_j5_rpy
