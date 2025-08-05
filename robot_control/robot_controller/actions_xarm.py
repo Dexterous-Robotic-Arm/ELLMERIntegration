@@ -399,14 +399,22 @@ class XArmRunner:
                            joint_speed: float, joint_acc: float) -> None:
         """Apply conservative speed limits to robot."""
         try:
+            # Set TCP (tool center point) acceleration limit
             self.arm.set_tcp_maxacc(min(2000, self.safety_limits.max_acceleration))
-            self.arm.set_position_speed(min(cart_speed, self.safety_limits.max_cartesian_speed))
-            self.arm.set_position_acc(min(cart_acc, self.safety_limits.max_acceleration))
-            self.arm.set_joint_maxvel(min(joint_speed, self.safety_limits.max_joint_speed))
+            
+            # Set TCP speed limit (this is the correct method)
+            self.arm.set_reduced_max_tcp_speed(min(cart_speed, self.safety_limits.max_cartesian_speed))
+            
+            # Set joint speed limit (this is the correct method)
+            self.arm.set_reduced_max_joint_speed(min(joint_speed, self.safety_limits.max_joint_speed))
+            
+            # Set joint acceleration limit
             self.arm.set_joint_maxacc(min(joint_acc, self.safety_limits.max_acceleration))
+            
             print("[Robot] Speed limits applied successfully")
         except Exception as e:
             print(f"[Robot] Failed to apply speed limits: {e}")
+            # Continue without speed limits if they fail
     
     def get_current_position(self) -> Optional[List[float]]:
         """Get current robot position with error checking."""
