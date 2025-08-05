@@ -111,7 +111,7 @@ def test_simple_movement(robot_ip: str = "192.168.1.241"):
             scan_center = [400, 0, current_pos[2]]
             print(f"Moving to scan center: {scan_center}")
             
-            runner.move_pose(scan_center, [180, 0, 0])
+            runner.move_pose(scan_center, [0, -45, 0])  # Face camera outward at 45-degree angle
             time.sleep(2)
             
             # Check new position
