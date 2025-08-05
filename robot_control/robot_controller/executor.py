@@ -431,15 +431,33 @@ class TaskExecutor:
                                 print(f"[WARN] Object '{target_label}' not detected within timeout")
                                 continue
                             
-                            target = [
-                                obj[0] + float(offset[0]),
-                                obj[1] + float(offset[1]),
-                                obj[2] + float(offset[2]),
-                            ]
-                            # Use constant J5 position for all movements (except home)
+                            # Get current position to maintain X and Z while aligning Y to object
+                            current_pos = self.runner.get_current_position()
+                            if current_pos is None or len(current_pos) < 3:
+                                print(f"[WARN] Cannot get current position, using object position directly")
+                                target = [
+                                    obj[0] + float(offset[0]),
+                                    obj[1] + float(offset[1]),
+                                    obj[2] + float(offset[2]),
+                                ]
+                            else:
+                                # Align Y to object while keeping current X and Z
+                                target = [
+                                    current_pos[0],  # Keep current X
+                                    obj[1] + float(offset[1]),  # Align Y to object
+                                    current_pos[2]  # Keep current Z
+                                ]
+                                print(f"[ALIGN] Aligning Y to object: current Y={current_pos[1]:.1f}mm, object Y={obj[1]:.1f}mm, target Y={target[1]:.1f}mm")
+                            
+                            # Use constant J5 position (90° - camera pointing up)
                             rpy = self.constant_j5_rpy
+                            print(f"[ALIGN] Using constant J5 position: {rpy}")
+                            
                             if act == "APPROACH_OBJECT":
                                 target[2] += hover
+                                print(f"[ALIGN] Adding hover offset: Z={target[2]:.1f}mm")
+                            
+                            print(f"[ALIGN] Moving to aligned position: {[f'{x:.1f}' for x in target]} with J5={rpy}")
                             self.runner.move_pose(target, rpy)
                         except Exception as e:
                             print(f"[ERROR] Failed to approach object '{target_label}': {e}")
