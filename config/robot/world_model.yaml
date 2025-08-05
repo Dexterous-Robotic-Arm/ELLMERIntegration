@@ -33,5 +33,5 @@ poses:
     rpy_deg: [180, 0, 0]
 
   object_pickup:
-    xyz_mm: [400, -150, -50]  # Hover just above detected objects (bottle was at Z=-133mm)
+    xyz_mm: [400, -150, 150]  # Hover 283mm above detected objects (bottle at -133mm + 283mm = 150mm)
     rpy_deg: [0, 90, 0]       # Camera tilted up for better viewing
