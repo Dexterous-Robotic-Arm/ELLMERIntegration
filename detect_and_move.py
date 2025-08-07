@@ -131,8 +131,8 @@ def scan_for_object_with_vision(object_type: str, robot_ip: str = "192.168.1.241
             color_image = np.asanyarray(color_frame.get_data())
             depth_image = np.asanyarray(depth_frame.get_data())
             
-            # Run YOLO detection
-            results = model(color_image, verbose=False)
+            # Run YOLO detection (force CPU to avoid CUDA compatibility issues)
+            results = model(color_image, verbose=False, device='cpu')
             
             for result in results:
                 boxes = result.boxes
