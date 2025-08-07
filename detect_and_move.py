@@ -277,15 +277,21 @@ def create_llm_plan(object_data: Dict[str, Any], object_type: str) -> Optional[D
 def create_custom_object_plan(object_data: Dict[str, Any], object_type: str) -> Dict[str, Any]:
     """Create a custom plan for approaching the detected object."""
     print("🔄 Creating custom object approach plan...")
+    print(f"🔍 Input object_data: {object_data}")
     
     # Get object position from detection data
     robot_pos = object_data.get('robot_pos', [400, 0, 250])
     depth = object_data.get('depth', 0.5)  # Default depth if not available
     
+    print(f"🔍 Extracted robot_pos: {robot_pos}")
+    
     # Move directly to the coordinates where object was found
+    # Use the exact robot position where the object was detected
     approach_x = robot_pos[0]  # Same X position where object was detected
-    approach_y = robot_pos[1]  # Same Y position where object was detected
+    approach_y = robot_pos[1]  # Same Y position where object was detected  
     approach_z = robot_pos[2]  # Same Z position where object was detected
+    
+    print(f"🎯 Moving to exact detection coordinates: X={approach_x}, Y={approach_y}, Z={approach_z}")
     
     return {
         "goal": f"Move towards the detected {object_type}, test the gripper operation, and return to the home position.",
@@ -463,6 +469,7 @@ def detect_and_move_with_llm_planning(robot_ip: str = "192.168.1.241", object_ty
         # If LLM plan is too simple (just MOVE_TO_NAMED), use custom plan
         if not plan_has_object_movement or not plan_has_meaningful_actions:
             print("⚠️ LLM plan doesn't include proper object movement, using custom plan...")
+            print(f"🔍 Object detection data: {object_data}")
             plan = create_custom_object_plan(object_data, object_type)
         
         # Step 3: Execute robot plan
