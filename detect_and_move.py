@@ -282,10 +282,10 @@ def create_custom_object_plan(object_data: Dict[str, Any], object_type: str) -> 
     robot_pos = object_data.get('robot_pos', [400, 0, 250])
     depth = object_data.get('depth', 0.5)  # Default depth if not available
     
-    # Calculate approach position (move closer to object)
-    approach_x = robot_pos[0] - 100  # Move 100mm closer to object
-    approach_y = robot_pos[1]  # Keep same Y position
-    approach_z = robot_pos[2]  # Keep same Z position
+    # Move directly to the coordinates where object was found
+    approach_x = robot_pos[0]  # Same X position where object was detected
+    approach_y = robot_pos[1]  # Same Y position where object was detected
+    approach_z = robot_pos[2]  # Same Z position where object was detected
     
     return {
         "goal": f"Move towards the detected {object_type}, test the gripper operation, and return to the home position.",
