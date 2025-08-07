@@ -152,8 +152,23 @@ def scan_for_object_with_vision(object_type: str, robot_ip: str = "192.168.1.241
                             # Calculate center
                             cx, cy = int((x1 + x2) / 2), int((y1 + y2) / 2)
                             
-                            # Get depth at center
-                            depth = depth_frame.get_distance(cx, cy)
+                            # Get depth at center with fallback
+                            try:
+                                depth = depth_frame.get_distance(cx, cy)
+                                if depth == 0.0:  # If depth is 0, try nearby pixels
+                                    for dx in [-5, 0, 5]:
+                                        for dy in [-5, 0, 5]:
+                                            test_depth = depth_frame.get_distance(cx + dx, cy + dy)
+                                            if test_depth > 0.0:
+                                                depth = test_depth
+                                                break
+                                        if depth > 0.0:
+                                            break
+                                if depth == 0.0:  # Still 0, use default
+                                    depth = 0.5  # Default 0.5m
+                            except Exception as e:
+                                print(f"⚠️ Depth measurement failed: {e}")
+                                depth = 0.5  # Default 0.5m
                             
                             print(f"🎯 TARGET FOUND at scan position {i+1}!")
                             print(f"   Object: {class_name} (confidence: {confidence:.2f})")
@@ -263,6 +278,15 @@ def create_custom_object_plan(object_data: Dict[str, Any], object_type: str) -> 
     """Create a custom plan for approaching the detected object."""
     print("🔄 Creating custom object approach plan...")
     
+    # Get object position from detection data
+    robot_pos = object_data.get('robot_pos', [400, 0, 250])
+    depth = object_data.get('depth', 0.5)  # Default depth if not available
+    
+    # Calculate approach position (move closer to object)
+    approach_x = robot_pos[0] - 100  # Move 100mm closer to object
+    approach_y = robot_pos[1]  # Keep same Y position
+    approach_z = robot_pos[2]  # Keep same Z position
+    
     return {
         "goal": f"Move towards the detected {object_type}, test the gripper operation, and return to the home position.",
         "steps": [
@@ -271,19 +295,35 @@ def create_custom_object_plan(object_data: Dict[str, Any], object_type: str) -> 
                 "name": "home"
             },
             {
-                "action": "MOVE_TO_NAMED", 
-                "name": "staging_area"
+                "action": "MOVE_TO_POSE",
+                "pose": {
+                    "xyz_mm": [approach_x, approach_y, approach_z],
+                    "rpy_deg": [0, 90, 0]
+                }
             },
             {
-                "action": "APPROACH_OBJECT",
-                "label": object_type,
-                "hover_mm": 120,
-                "timeout_sec": 5
+                "action": "SLEEP",
+                "seconds": 2.0
             },
             {
-                "action": "GRIPPER_TEST",
-                "cycles": 2,
-                "delay": 1.0
+                "action": "OPEN_GRIPPER",
+                "gripper": {"position": 850}
+            },
+            {
+                "action": "SLEEP",
+                "seconds": 1.0
+            },
+            {
+                "action": "CLOSE_GRIPPER",
+                "gripper": {"position": 200}
+            },
+            {
+                "action": "SLEEP",
+                "seconds": 1.0
+            },
+            {
+                "action": "OPEN_GRIPPER",
+                "gripper": {"position": 850}
             },
             {
                 "action": "RETREAT_Z",
@@ -327,25 +367,44 @@ def execute_robot_plan(plan: Dict[str, Any], robot_ip: str = "192.168.1.241") ->
         print(f"📊 Executing {len(steps)} steps")
         print(f"[Plan] Goal: {plan.get('goal', 'No goal specified')}")
         
-        # Get gripper status
-        gripper_status = executor.get_gripper_status()
-        print(f"[Plan] Gripper status: {gripper_status}")
+        # Get gripper status (if available)
+        try:
+            gripper_status = executor.get_gripper_status()
+            print(f"[Plan] Gripper status: {gripper_status}")
+        except AttributeError:
+            print("[Plan] Gripper status: Not available")
+            gripper_status = {"enabled": False, "position": None, "error": "Method not available"}
         
         for i, step in enumerate(steps, 1):
             print(f"[Plan] Step {i}/{len(steps)}: {step.get('action', 'UNKNOWN')} {step}")
             try:
-                executor.execute_step(step)
+                # Try execute_step first, fallback to execute if needed
+                if hasattr(executor, 'execute_step'):
+                    executor.execute_step(step)
+                else:
+                    # Execute single step plan
+                    single_step_plan = {"goal": f"Step {i}", "steps": [step]}
+                    executor.execute(single_step_plan)
                 print(f"✅ Step {i} completed successfully")
             except Exception as e:
                 print(f"❌ Step {i} failed: {e}")
                 continue
         
-        print(f"[Plan] Done. Execution time: {executor.get_execution_time():.1f}s, Steps completed: {len(steps)}")
+        # Get execution time (if available)
+        try:
+            execution_time = executor.get_execution_time()
+            print(f"[Plan] Done. Execution time: {execution_time:.1f}s, Steps completed: {len(steps)}")
+        except AttributeError:
+            print(f"[Plan] Done. Steps completed: {len(steps)}")
+        
         print("✅ Plan execution completed successfully!")
         
-        # Print execution stats
-        stats = executor.get_execution_stats()
-        print(f"📊 Execution stats: {stats}")
+        # Print execution stats (if available)
+        try:
+            stats = executor.get_execution_stats()
+            print(f"📊 Execution stats: {stats}")
+        except AttributeError:
+            print("📊 Execution stats: Not available")
         
         return True
         
@@ -390,16 +449,20 @@ def detect_and_move_with_llm_planning(robot_ip: str = "192.168.1.241", object_ty
             print("   - Check LLM service availability")
             return False
         
-        # Validate if plan includes object movement
+        # Validate if plan includes object movement or meaningful actions
         plan_has_object_movement = False
+        plan_has_meaningful_actions = False
+        
         for step in plan.get('steps', []):
             action = step.get('action', '')
-            if action in ['APPROACH_OBJECT', 'MOVE_TO_OBJECT', 'SCAN_FOR_OBJECTS']:
+            if action in ['APPROACH_OBJECT', 'MOVE_TO_OBJECT', 'SCAN_FOR_OBJECTS', 'MOVE_TO_POSE']:
                 plan_has_object_movement = True
-                break
+            if action in ['MOVE_TO_POSE', 'OPEN_GRIPPER', 'CLOSE_GRIPPER', 'APPROACH_OBJECT']:
+                plan_has_meaningful_actions = True
         
-        if not plan_has_object_movement:
-            print("⚠️ LLM plan doesn't include object movement, using custom plan...")
+        # If LLM plan is too simple (just MOVE_TO_NAMED), use custom plan
+        if not plan_has_object_movement or not plan_has_meaningful_actions:
+            print("⚠️ LLM plan doesn't include proper object movement, using custom plan...")
             plan = create_custom_object_plan(object_data, object_type)
         
         # Step 3: Execute robot plan
