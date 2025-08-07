@@ -369,6 +369,7 @@ def create_custom_object_plan(object_data: Dict[str, Any], object_type: str) -> 
                 "name": "home"
             }
         ]
+    }
 
 
 def execute_robot_plan(plan: Dict[str, Any], robot_ip: str = "192.168.1.241") -> bool:
