@@ -7,6 +7,7 @@ import sys
 import os
 import time
 import json
+import math
 from typing import Dict, Any, Optional, Tuple
 
 # Add the robot_control package to the path
@@ -281,17 +282,51 @@ def create_custom_object_plan(object_data: Dict[str, Any], object_type: str) -> 
     
     # Get object position from detection data
     robot_pos = object_data.get('robot_pos', [400, 0, 250])
-    depth = object_data.get('depth', 0.5)  # Default depth if not available
+    depth = object_data.get('depth', 0.5)  # Depth in meters
+    pixel_center = object_data.get('pixel_center', (320, 240))  # Camera center
     
     print(f"🔍 Extracted robot_pos: {robot_pos}")
+    print(f"🔍 Object depth: {depth}m")
+    print(f"🔍 Pixel center: {pixel_center}")
     
-    # Move directly to the coordinates where object was found
-    # Use the exact robot position where the object was detected
-    approach_x = robot_pos[0]  # Same X position where object was detected
-    approach_y = robot_pos[1]  # Same Y position where object was detected  
-    approach_z = robot_pos[2]  # Same Z position where object was detected
+    # Calculate actual bottle position in 3D space
+    # Camera is mounted on robot, so we need to calculate bottle position relative to robot
+    # Assuming camera is pointing forward (X direction)
+    # Depth gives us distance from camera to bottle
+    # Pixel coordinates give us Y and Z offsets
     
-    print(f"🎯 Moving to exact detection coordinates: X={approach_x}, Y={approach_y}, Z={approach_z}")
+    # Camera parameters (approximate for RealSense D435i)
+    camera_fov_h = 87  # degrees horizontal FOV
+    camera_fov_v = 58  # degrees vertical FOV
+    image_width = 640
+    image_height = 480
+    
+    # Calculate angular offsets from pixel coordinates
+    pixel_x, pixel_y = pixel_center
+    angle_y = (pixel_x - image_width/2) * (camera_fov_h / image_width)  # Yaw angle
+    angle_z = (pixel_y - image_height/2) * (camera_fov_v / image_height)  # Pitch angle
+    
+    # Convert to radians
+    angle_y_rad = math.radians(angle_y)
+    angle_z_rad = math.radians(angle_z)
+    
+    # Calculate 3D position of bottle relative to camera
+    # X = depth (forward)
+    # Y = depth * tan(yaw) (left/right)
+    # Z = depth * tan(pitch) (up/down)
+    bottle_x = depth * 1000  # Convert to mm
+    bottle_y = depth * 1000 * math.tan(angle_y_rad)
+    bottle_z = depth * 1000 * math.tan(angle_z_rad)
+    
+    # Calculate robot target position (move toward bottle)
+    # Robot should move to bottle position minus some approach distance
+    approach_distance = 100  # mm - keep 100mm away from bottle
+    target_x = robot_pos[0] + bottle_x - approach_distance
+    target_y = robot_pos[1] + bottle_y
+    target_z = robot_pos[2] + bottle_z
+    
+    print(f"🎯 Calculated bottle position: X={bottle_x:.1f}mm, Y={bottle_y:.1f}mm, Z={bottle_z:.1f}mm")
+    print(f"🎯 Moving to bottle coordinates: X={target_x:.1f}, Y={target_y:.1f}, Z={target_z:.1f}")
     
     return {
         "goal": f"Move towards the detected {object_type}, test the gripper operation, and return to the home position.",
@@ -303,7 +338,7 @@ def create_custom_object_plan(object_data: Dict[str, Any], object_type: str) -> 
             {
                 "action": "MOVE_TO_POSE",
                 "pose": {
-                    "xyz_mm": [approach_x, approach_y, approach_z],
+                    "xyz_mm": [target_x, target_y, target_z],
                     "rpy_deg": [0, 90, 0]
                 }
             },
@@ -340,7 +375,7 @@ def create_custom_object_plan(object_data: Dict[str, Any], object_type: str) -> 
                 "name": "home"
             }
         ]
-    }
+
 
 def execute_robot_plan(plan: Dict[str, Any], robot_ip: str = "192.168.1.241") -> bool:
     """Execute the robot plan using TaskExecutor."""
