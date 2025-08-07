@@ -58,11 +58,13 @@ def scan_for_object_with_vision(object_type: str, robot_ip: str = "192.168.1.241
     print("📋 Step 4: Connecting to robot...")
     try:
         robot = XArmRunner(robot_ip)
-        robot.connect()
-        current_pos = robot.get_position()
+        current_pos = robot.get_current_position()
         print(f"✅ Robot connected to {robot_ip}")
         print(f"[DEBUG] Raw position data: {current_pos}")
-        print(f"✅ Current position: X={current_pos[1][0]:.1f}, Y={current_pos[1][1]:.1f}, Z={current_pos[1][2]:.1f}")
+        if current_pos:
+            print(f"✅ Current position: X={current_pos[0]:.1f}, Y={current_pos[1]:.1f}, Z={current_pos[2]:.1f}")
+        else:
+            print("⚠️ Could not get current position")
     except Exception as e:
         print(f"❌ Failed to connect to robot: {e}")
         pipeline.stop()
@@ -90,7 +92,7 @@ def scan_for_object_with_vision(object_type: str, robot_ip: str = "192.168.1.241
     # Move to scan center first
     print(f"🔄 Moving to scan center: [{x_pos}, 0, {z_height}]")
     try:
-        robot.move_to_position([x_pos, 0, z_height], [0, 90, 0])
+        robot.move_pose([x_pos, 0, z_height], [0, 90, 0])
         print("✅ Arrived at scan center")
     except Exception as e:
         print(f"❌ Failed to move to scan center: {e}")
@@ -107,7 +109,7 @@ def scan_for_object_with_vision(object_type: str, robot_ip: str = "192.168.1.241
         
         # Move robot to scan position
         try:
-            robot.move_to_position([x_pos, y_pos, z_height], [0, 90, 0])
+            robot.move_pose([x_pos, y_pos, z_height], [0, 90, 0])
             print(f"✅ Moved to scan position {i+1}")
         except Exception as e:
             print(f"❌ Failed to move to scan position {i+1}: {e}")
