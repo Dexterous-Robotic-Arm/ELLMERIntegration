@@ -244,17 +244,8 @@ def create_llm_plan(object_data: Dict[str, Any], object_type: str) -> Optional[D
     pixel_center = object_data.get('pixel_center', (0, 0))
     robot_pos = object_data.get('robot_pos', [0, 0, 0])
     
-    task = f"""A {object_type} has been detected at a distance of {depth:.3f} meters with confidence {confidence:.2f}. 
-        The object is located at pixel coordinates {pixel_center} in the camera view.
-        The robot is currently at position X={robot_pos[0]}, Y={robot_pos[1]}, Z={robot_pos[2]}.
-        
-        Please create a plan to:
-        1. Move the robot toward the detected {object_type}
-        2. Approach the object safely
-        3. Test gripper operations (open and close)
-        4. Return to home position
-        
-        Use the scanning technique we have established for object detection and movement."""
+    # Ultra-compact task description to minimize tokens
+    task = f"Move to {object_type} at {depth:.1f}m, test gripper, return home"
     
     # Use LLM planning only - no fallbacks
     print("🔄 Generating plan with Gemini...")

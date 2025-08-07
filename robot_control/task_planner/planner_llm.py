@@ -159,23 +159,16 @@ def plan_with_gemini(task: str, pose_names: Optional[List[str]] = None) -> Dict[
         # Load action schema
         action_schema = load_action_schema()
         
-        # Build prompt
+        # Build optimized prompt (minimal tokens)
         pose_context = ""
         if pose_names:
-            pose_context = f"\nAvailable named poses: {', '.join(pose_names)}"
+            pose_context = f"Poses: {','.join(pose_names)}"
         
-        prompt = f"""
-{action_schema}
-
+        # Ultra-compact prompt to minimize token usage
+        prompt = f"""Task: {task}
 {pose_context}
-
-Task: {task}
-
-Generate a JSON plan for the robot to complete this task. 
-Return ONLY valid JSON object with 'goal' and 'steps' keys, no other text.
-
-Important: Return ONLY the JSON object, no markdown fences, no explanations.
-"""
+Actions: MOVE_TO_NAMED,MOVE_TO_POSE,APPROACH_OBJECT,OPEN_GRIPPER,CLOSE_GRIPPER,SLEEP,RETREAT_Z
+Return JSON: {{"goal":"description","steps":[{{"action":"ACTION","params"}}]}}"""
         
         # Generate plan
         response = model.generate_content(prompt)
