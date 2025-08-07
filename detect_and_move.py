@@ -303,10 +303,8 @@ def create_custom_object_plan(object_data: Dict[str, Any], object_type: str) -> 
     bottle_y = depth * 1000 * math.tan(angle_y_rad)
     bottle_z = depth * 1000 * math.tan(angle_z_rad)
     
-    # Calculate robot target position (move toward bottle)
-    # Robot should move to bottle position minus some approach distance
-    approach_distance = 100  # mm - keep 100mm away from bottle
-    target_x = robot_pos[0] + bottle_x - approach_distance
+    # Move directly to detected object position
+    target_x = robot_pos[0] + bottle_x
     target_y = robot_pos[1] + bottle_y
     target_z = robot_pos[2] + bottle_z
     
@@ -317,19 +315,11 @@ def create_custom_object_plan(object_data: Dict[str, Any], object_type: str) -> 
         "goal": f"Move towards the detected {object_type}, test the gripper operation, and return to the home position.",
         "steps": [
             {
-                "action": "MOVE_TO_NAMED",
-                "name": "home"
-            },
-            {
                 "action": "MOVE_TO_POSE",
                 "pose": {
                     "xyz_mm": [target_x, target_y, target_z],
                     "rpy_deg": [0, 90, 0]
                 }
-            },
-            {
-                "action": "SLEEP",
-                "seconds": 2.0
             },
             {
                 "action": "OPEN_GRIPPER",
@@ -350,102 +340,134 @@ def create_custom_object_plan(object_data: Dict[str, Any], object_type: str) -> 
             {
                 "action": "OPEN_GRIPPER",
                 "gripper": {"position": 850}
-            },
-            {
-                "action": "RETREAT_Z",
-                "dz_mm": 50
-            },
-            {
-                "action": "MOVE_TO_NAMED",
-                "name": "home"
             }
         ]
     }
 
 
 def execute_robot_plan(plan: Dict[str, Any], robot_ip: str = "192.168.1.241") -> bool:
-    """Execute the robot plan using TaskExecutor."""
+    """Execute the robot plan using working gripper code."""
     print("📋 Step 3: Executing robot plan...")
     print("🤖 Executing robot plan")
     print("=" * 60)
     
-    # Step 1: Load TaskExecutor
-    print("📋 Step 1: Loading TaskExecutor...")
+    # Initialize robot
+    print("🤖 Initializing robot...")
     try:
-        from robot_control.robot_controller.executor import TaskExecutor
-        print("✅ TaskExecutor imported successfully")
-    except ImportError as e:
-        print(f"❌ TaskExecutor import failed: {e}")
-        return False
-    
-    # Step 2: Initialize TaskExecutor
-    print("📋 Step 2: Initializing TaskExecutor...")
-    try:
-        executor = TaskExecutor(robot_ip, sim=False, dry_run=False)
-        print("✅ TaskExecutor initialized successfully")
+        robot = XArmRunner(robot_ip)
+        current_pos = robot.get_current_position()
+        if current_pos is None:
+            print("❌ Failed to connect to robot")
+            return False
+        print("✅ Robot connected successfully")
     except Exception as e:
-        print(f"❌ TaskExecutor initialization failed: {e}")
+        print(f"❌ Robot initialization failed: {e}")
         return False
     
-    # Step 3: Execute plan
-    print("📋 Step 3: Executing plan...")
+    # Initialize gripper with working code
+    print("🔧 Initializing gripper...")
+    try:
+        from working_gripper import initialize_gripper, open_gripper, close_gripper, disable_motor
+        portHandler, packetHandler = initialize_gripper()
+        gripper_enabled = True
+        print("✅ Gripper initialized successfully")
+    except Exception as e:
+        print(f"⚠️ Gripper initialization failed: {e}")
+        gripper_enabled = False
+        portHandler = None
+        packetHandler = None
+    
+    # Execute plan
+    print("📋 Executing plan...")
     try:
         steps = plan.get('steps', [])
         print(f"📊 Executing {len(steps)} steps")
         print(f"[Plan] Goal: {plan.get('goal', 'No goal specified')}")
         
-        # Get gripper status (if available)
-        try:
-            gripper_status = executor.get_gripper_status()
-            print(f"[Plan] Gripper status: {gripper_status}")
-        except AttributeError:
-            print("[Plan] Gripper status: Not available")
-            gripper_status = {"enabled": False, "position": None, "error": "Method not available"}
-        
         for i, step in enumerate(steps, 1):
-            print(f"[Plan] Step {i}/{len(steps)}: {step.get('action', 'UNKNOWN')} {step}")
+            action = step.get('action', 'UNKNOWN')
+            print(f"[Plan] Step {i}/{len(steps)}: {action}")
+            
             try:
-                # Try execute_step first, fallback to execute if needed
-                if hasattr(executor, 'execute_step'):
-                    executor.execute_step(step)
+                if action == 'MOVE_TO_POSE':
+                    pose = step.get('pose', {})
+                    xyz = pose.get('xyz_mm', [0, 0, 0])
+                    rpy = pose.get('rpy_deg', [0, 90, 0])
+                    print(f"🎯 Moving to pose: {xyz} with orientation {rpy}")
+                    robot.move_pose(xyz, rpy)
+                    print("✅ Moved to pose successfully")
+                
+                elif action == 'OPEN_GRIPPER':
+                    print("🔓 Opening gripper...")
+                    if gripper_enabled:
+                        open_gripper(portHandler, packetHandler)
+                        print("✅ Gripper opened successfully")
+                    else:
+                        print("⚠️ Gripper not available")
+                
+                elif action == 'CLOSE_GRIPPER':
+                    print("🔒 Closing gripper...")
+                    if gripper_enabled:
+                        close_gripper(portHandler, packetHandler)
+                        print("✅ Gripper closed successfully")
+                    else:
+                        print("⚠️ Gripper not available")
+                
+                elif action == 'SLEEP':
+                    seconds = step.get('seconds', 1.0)
+                    print(f"⏳ Sleeping for {seconds} seconds...")
+                    time.sleep(seconds)
+                    print("✅ Sleep completed")
+                
+                elif action == 'MOVE_TO_NAMED':
+                    name = step.get('name', 'home')
+                    print(f"🏠 Moving to named position: {name}")
+                    if name == 'home':
+                        robot.go_home()
+                    print(f"✅ Moved to {name}")
+                
+                elif action == 'RETREAT_Z':
+                    dz = step.get('dz_mm', 50)
+                    current_pos = robot.get_current_position()
+                    if current_pos:
+                        new_pos = current_pos.copy()
+                        new_pos[2] += dz
+                        robot.move_pose(new_pos, [0, 90, 0])
+                        print(f"✅ Retreated {dz}mm in Z")
+                    else:
+                        print("⚠️ Could not get current position")
+                
                 else:
-                    # Execute single step plan
-                    single_step_plan = {"goal": f"Step {i}", "steps": [step]}
-                    executor.execute(single_step_plan)
+                    print(f"⚠️ Unknown action: {action}")
+                    continue
+                
                 print(f"✅ Step {i} completed successfully")
+                
             except Exception as e:
                 print(f"❌ Step {i} failed: {e}")
                 continue
         
-        # Get execution time (if available)
-        try:
-            execution_time = executor.get_execution_time()
-            print(f"[Plan] Done. Execution time: {execution_time:.1f}s, Steps completed: {len(steps)}")
-        except AttributeError:
-            print(f"[Plan] Done. Steps completed: {len(steps)}")
-        
         print("✅ Plan execution completed successfully!")
-        
-        # Print execution stats (if available)
-        try:
-            stats = executor.get_execution_stats()
-            print(f"📊 Execution stats: {stats}")
-        except AttributeError:
-            print("📊 Execution stats: Not available")
-        
         return True
         
     except Exception as e:
         print(f"❌ Plan execution failed: {e}")
         return False
     finally:
-        # Step 4: Cleanup
+        # Cleanup
         print("📋 Step 4: Cleaning up...")
+        if gripper_enabled:
+            try:
+                disable_motor(portHandler, packetHandler)
+                print("✅ Gripper disconnected")
+            except Exception as e:
+                print(f"⚠️ Gripper cleanup warning: {e}")
+        
         try:
-            executor.shutdown()
-            print("✅ TaskExecutor shutdown completed")
+            robot.disconnect()
+            print("✅ Robot disconnected")
         except Exception as e:
-            print(f"⚠️ Cleanup warning: {e}")
+            print(f"⚠️ Robot cleanup warning: {e}")
 
 def detect_and_move_with_llm_planning(robot_ip: str = "192.168.1.241", object_type: str = "bottle"):
     """Detect an object and move toward it using LLM planning."""

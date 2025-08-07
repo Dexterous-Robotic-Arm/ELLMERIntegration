@@ -1,0 +1,32 @@
+# Configuration for XL330 gripper - DO NOT MODIFY THESE VALUES
+servo:
+  port: "/dev/ttyUSB0"  # Fixed port
+  baudrate: 4000000     # Fixed baudrate
+  id: 1                 # Fixed ID
+  protocol: 2.0         # Fixed protocol version
+
+# Control table addresses - DO NOT MODIFY
+addresses:
+  torque_enable: 64
+  goal_position: 116
+  current_limit: 102
+  p_gain: 84
+  d_gain: 80
+
+# Position values - DO NOT MODIFY
+positions:
+  open: 2048      # Fixed open position
+  closed: 1581    # Fixed closed position
+  half: 2287      # Fixed half-open position
+
+# Motor parameters - DO NOT MODIFY
+motor:
+  current_limit: 200
+  p_gain: 400
+  d_gain: 100
+
+# Model info - DO NOT MODIFY
+model:
+  name: "XL330-M288"
+  id: 1
+  protocol_version: 2.0
