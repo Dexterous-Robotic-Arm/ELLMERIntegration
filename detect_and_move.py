@@ -355,11 +355,20 @@ def execute_robot_plan(plan: Dict[str, Any], robot_ip: str = "192.168.1.241") ->
     print("🤖 Initializing robot...")
     try:
         robot = XArmRunner(robot_ip)
+        
+        # Check and reset robot state
+        current_state = robot.get_state()
+        if current_state[1] == 4:  # If stopped
+            print("🔄 Resetting robot state...")
+            robot.reset_error()
+            robot.set_state(0)  # Set to ready state
+            time.sleep(0.1)
+        
         current_pos = robot.get_current_position()
         if current_pos is None:
             print("❌ Failed to connect to robot")
             return False
-        print("✅ Robot connected successfully")
+        print(f"✅ Robot connected successfully at position: {current_pos}")
     except Exception as e:
         print(f"❌ Robot initialization failed: {e}")
         return False
@@ -393,7 +402,28 @@ def execute_robot_plan(plan: Dict[str, Any], robot_ip: str = "192.168.1.241") ->
                     pose = step.get('pose', {})
                     xyz = pose.get('xyz_mm', [0, 0, 0])
                     rpy = pose.get('rpy_deg', [0, 90, 0])
+                    
+                    # Validate coordinates
+                    if xyz[0] <= 0 or xyz[0] > 800:  # X range
+                        print(f"⚠️ Invalid X coordinate: {xyz[0]}, using 400mm")
+                        xyz[0] = 400
+                    if abs(xyz[1]) > 400:  # Y range
+                        print(f"⚠️ Invalid Y coordinate: {xyz[1]}, clamping to ±400mm")
+                        xyz[1] = max(min(xyz[1], 400), -400)
+                    if xyz[2] <= 0 or xyz[2] > 600:  # Z range
+                        print(f"⚠️ Invalid Z coordinate: {xyz[2]}, using 250mm")
+                        xyz[2] = 250
+                    
                     print(f"🎯 Moving to pose: {xyz} with orientation {rpy}")
+                    
+                    # Check robot state before moving
+                    current_state = robot.get_state()
+                    if current_state[1] == 4:  # If stopped
+                        print("🔄 Resetting robot state before move...")
+                        robot.reset_error()
+                        robot.set_state(0)
+                        time.sleep(0.1)
+                    
                     robot.move_pose(xyz, rpy)
                     print("✅ Moved to pose successfully")
                 

@@ -33,11 +33,33 @@ def initialize_gripper():
         raise RuntimeError("Failed to set baudrate")
     
     print("Setting up motor...")
+    # First disable torque to ensure clean state
+    packetHandler.write1ByteTxRx(portHandler, MOTOR_ID, ADDR_TORQUE_ENABLE, 0)
+    time.sleep(0.1)
+    
     # Exact working configuration - DO NOT MODIFY
-    packetHandler.write2ByteTxRx(portHandler, MOTOR_ID, ADDR_CURRENT_LIMIT, 200)
-    packetHandler.write2ByteTxRx(portHandler, MOTOR_ID, ADDR_P_GAIN, 400)
-    packetHandler.write2ByteTxRx(portHandler, MOTOR_ID, ADDR_D_GAIN, 100)
-    packetHandler.write1ByteTxRx(portHandler, MOTOR_ID, ADDR_TORQUE_ENABLE, 1)
+    result = packetHandler.write2ByteTxRx(portHandler, MOTOR_ID, ADDR_CURRENT_LIMIT, 200)
+    if result[0] != 0:
+        print(f"Failed to set current limit: {result}")
+        return None, None
+        
+    result = packetHandler.write2ByteTxRx(portHandler, MOTOR_ID, ADDR_P_GAIN, 400)
+    if result[0] != 0:
+        print(f"Failed to set P gain: {result}")
+        return None, None
+        
+    result = packetHandler.write2ByteTxRx(portHandler, MOTOR_ID, ADDR_D_GAIN, 100)
+    if result[0] != 0:
+        print(f"Failed to set D gain: {result}")
+        return None, None
+        
+    # Finally enable torque
+    result = packetHandler.write1ByteTxRx(portHandler, MOTOR_ID, ADDR_TORQUE_ENABLE, 1)
+    if result[0] != 0:
+        print(f"Failed to enable torque: {result}")
+        return None, None
+        
+    time.sleep(0.1)  # Wait for settings to take effect
     
     return portHandler, packetHandler
 
