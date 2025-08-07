@@ -256,16 +256,10 @@ def create_llm_plan(object_data: Dict[str, Any], object_type: str) -> Optional[D
         
         Use the scanning technique we have established for object detection and movement."""
     
-    try:
-        # Try Gemini first
-        print("🔄 Attempting to generate plan with Gemini...")
-        plan = plan_with_gemini(task)
-        print("✅ Gemini plan generated successfully!")
-    except Exception as e:
-        print(f"⚠️ Gemini failed: {e}")
-        print("🔄 Falling back to basic plan...")
-        plan = plan_fallback(task)
-        print("✅ Fallback plan generated successfully!")
+    # Use LLM planning only - no fallbacks
+    print("🔄 Generating plan with Gemini...")
+    plan = plan_with_gemini(task)
+    print("✅ Gemini plan generated successfully!")
     
     print("✅ Final plan generated successfully!")
     print(f"📊 Plan has {len(plan.get('steps', []))} steps")
@@ -490,22 +484,9 @@ def detect_and_move_with_llm_planning(robot_ip: str = "192.168.1.241", object_ty
             print("   - Check LLM service availability")
             return False
         
-        # Validate if plan includes object movement or meaningful actions
-        plan_has_object_movement = False
-        plan_has_meaningful_actions = False
-        
-        for step in plan.get('steps', []):
-            action = step.get('action', '')
-            if action in ['APPROACH_OBJECT', 'MOVE_TO_OBJECT', 'SCAN_FOR_OBJECTS', 'MOVE_TO_POSE']:
-                plan_has_object_movement = True
-            if action in ['MOVE_TO_POSE', 'OPEN_GRIPPER', 'CLOSE_GRIPPER', 'APPROACH_OBJECT']:
-                plan_has_meaningful_actions = True
-        
-        # If LLM plan is too simple (just MOVE_TO_NAMED), use custom plan
-        if not plan_has_object_movement or not plan_has_meaningful_actions:
-            print("⚠️ LLM plan doesn't include proper object movement, using custom plan...")
-            print(f"🔍 Object detection data: {object_data}")
-            plan = create_custom_object_plan(object_data, object_type)
+        # Use LLM plan directly - no fallbacks
+        print("✅ Using LLM-generated plan directly")
+        print(f"🔍 LLM plan: {plan}")
         
         # Step 3: Execute robot plan
         print("\n📋 Step 3: Executing robot plan...")

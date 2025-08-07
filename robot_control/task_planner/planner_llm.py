@@ -154,15 +154,7 @@ def plan_with_gemini(task: str, pose_names: Optional[List[str]] = None) -> Dict[
         
         # Configure Gemini
         genai.configure(api_key=api_key)
-        # Try different models if quota is exceeded
-        try:
-            model = genai.GenerativeModel('gemini-1.5-pro')
-        except Exception as e:
-            if "quota" in str(e).lower() or "429" in str(e):
-                logger.warning("Gemini-1.5-pro quota exceeded, trying gemini-pro")
-                model = genai.GenerativeModel('gemini-pro')
-            else:
-                raise e
+        model = genai.GenerativeModel('gemini-1.5-pro')
         
         # Load action schema
         action_schema = load_action_schema()
@@ -220,7 +212,7 @@ Important: Return ONLY the JSON object, no markdown fences, no explanations.
             
     except Exception as e:
         logger.error(f"Error generating plan with Gemini: {e}")
-        return plan_fallback(task)
+        raise e
 
 
 def plan_fallback(task: str) -> Dict[str, Any]:
