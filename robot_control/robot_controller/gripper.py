@@ -22,11 +22,11 @@ class XL330Config:
     """XL330-M288 specific configuration."""
     servo_id: int = 1
     servo_port: str = "/dev/ttyUSB0"
-    servo_baudrate: int = 4000000
+    servo_baudrate: int = 57600
     servo_protocol: float = 2.0
     
-    position_open: int = 1558    # 137 degrees
-    position_closed: int = 1138  # 100 degrees
+    position_open: int = 1200    # 137 degrees
+    position_closed: int = 900  # 100 degrees
     
     addr_torque_enable: int = 64
     addr_goal_position: int = 116
@@ -58,9 +58,9 @@ class XL330GripperController:
             return XL330Config(
                 servo_id=config_data.get('servo_id', 1),
                 servo_port=config_data.get('servo_port', '/dev/ttyUSB0'),
-                servo_baudrate=config_data.get('servo_baudrate', 4000000),
-                position_open=config_data.get('position_open', 1558),
-                position_closed=config_data.get('position_closed', 1138)
+                servo_baudrate=config_data.get('servo_baudrate', 57600),
+                position_open=config_data.get('position_open', 2000),
+                position_closed=config_data.get('position_closed', 900)
             )
         except Exception as e:
             print(f"[Gripper] Failed to load config: {e}")
@@ -281,5 +281,49 @@ def test_xl330_gripper():
     finally:
         gripper.disconnect()
 
+def continuous_gripper_test():
+    """Continuously open and close gripper - comment/uncomment to use."""
+    print("🔄 Starting Continuous Gripper Test")
+    print("===================================")
+    print("Press Ctrl+C to stop...")
+    
+    gripper = XL330GripperController()
+    
+    if not gripper.enabled:
+        print("❌ Gripper not enabled")
+        return
+    
+    try:
+        cycle = 0
+        while True:
+            cycle += 1
+            print(f"\n--- Cycle {cycle} ---")
+            
+            print("🔓 Opening gripper...")
+            gripper.open_gripper()
+            time.sleep(3)
+            position = gripper.get_gripper_position()
+            print(f"📍 Current position: {position} units")
+            
+            print("🔒 Closing gripper...")
+            gripper.close_gripper()
+            time.sleep(3)
+            position = gripper.get_gripper_position()
+            print(f"📍 Current position: {position} units")
+            
+            time.sleep(1)
+            
+    except KeyboardInterrupt:
+        print("\n⏹️ Test stopped by user")
+    except Exception as e:
+        print(f"❌ Test error: {e}")
+    finally:
+        gripper.disconnect()
+        print("✅ Gripper disconnected")
+
 if __name__ == "__main__":
+    # Basic test
     test_xl330_gripper()
+    
+    # Continuous test - uncomment to use
+    continuous_gripper_test()

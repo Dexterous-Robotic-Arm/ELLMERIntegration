@@ -8,6 +8,7 @@ import os
 import time
 import json
 import math
+import time
 from typing import Dict, Any, Optional, Tuple
 
 # Add the robot_control package to the path
@@ -17,8 +18,17 @@ from robot_control.robot_controller import XArmRunner
 from robot_control.robot_controller.executor import TaskExecutor
 from robot_control.task_planner.planner_llm import plan_with_gemini, plan_fallback
 
-def detect_and_move_to_object(robot_ip: str = "192.168.1.241") -> bool:
+# Global state tracking
+target_locked = False
+target_position = None
+target_object_name = None
+movement_start_time = None
+last_movement_time = None
+
+def detect_and_move_to_object(robot_ip: str = "192.168.1.241", target_object_type: str = None) -> bool:
     """Detect any object and move camera closer to it."""
+    global target_locked, target_position, target_object_name, movement_start_time, last_movement_time
+    
     print("🔍 Detecting objects and moving camera closer")
     print("=" * 60)
     
@@ -58,6 +68,7 @@ def detect_and_move_to_object(robot_ip: str = "192.168.1.241") -> bool:
     
     # Step 4: Connect to robot
     print("📋 Step 4: Connecting to robot...")
+    time.sleep(10)
     try:
         robot = XArmRunner(robot_ip)
         current_pos = robot.get_current_position()
@@ -70,6 +81,20 @@ def detect_and_move_to_object(robot_ip: str = "192.168.1.241") -> bool:
         print(f"❌ Failed to connect to robot: {e}")
         pipeline.stop()
         return False
+    
+    # Step 4.5: Initialize gripper
+    print("📋 Step 4.5: Initializing gripper...")
+    try:
+        from robot_control.robot_controller.gripper import XL330GripperController
+        gripper = XL330GripperController()
+        if not gripper.enabled:
+            print("⚠️ XL330 gripper not enabled - continuing without gripper")
+            gripper = None
+        else:
+            print("✅ XL330 gripper initialized successfully")
+    except Exception as e:
+        print(f"⚠️ Gripper initialization failed: {e}")
+        gripper = None
     
     # Step 5: Object detection and movement
     print("📋 Step 5: Starting object detection...")
@@ -94,7 +119,186 @@ def detect_and_move_to_object(robot_ip: str = "192.168.1.241") -> bool:
             # Run YOLO detection
             results = model(color_image, verbose=False, device='cpu', conf=0.3)
             
-            # Process detections
+            # Print all detected objects
+            detected_objects = []
+            for result in results:
+                boxes = result.boxes
+                if boxes is not None:
+                    for box in boxes:
+                        confidence = float(box.conf[0])
+                        class_id = int(box.cls[0])
+                        class_name = model.names[class_id]
+                        x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                        cx, cy = int((x1 + x2) / 2), int((y1 + y2) / 2)
+                        try:
+                            depth = depth_frame.get_distance(cx, cy)
+                            if depth == 0.0:
+                                depth = 0.5
+                        except:
+                            depth = 0.5
+                        detected_objects.append(f"{class_name}({confidence:.2f}) at ({cx},{cy}) depth:{depth:.2f}m")
+            if detected_objects:
+                print(f"📍 Detected: {', '.join(detected_objects)}")
+            
+            # Process detections - Initial lock OR position updates
+            
+            if not target_locked:
+                for result in results:
+                    boxes = result.boxes
+                    if boxes is not None:
+                        for box in boxes:
+                            # Get box coordinates
+                            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                            
+                            # Get confidence and class
+                            confidence = float(box.conf[0])
+                            class_id = int(box.cls[0])
+                            class_name = model.names[class_id]
+                            
+                            # Calculate center
+                            cx, cy = int((x1 + x2) / 2), int((y1 + y2) / 2)
+                            
+                            # Get depth at center
+                            try:
+                                depth = depth_frame.get_distance(cx, cy)
+                                if depth == 0.0:
+                                    depth = 0.5  # Default if no depth
+                            except:
+                                depth = 0.5
+                            
+                            # If object is detected and we want to move closer
+                            if confidence > 0.5:  # High confidence detection
+                                # Filter by target object type if specified
+                                if target_object_type and class_name != target_object_type:
+                                    continue  # Skip this object, not the target type
+                                
+                                print(f"🎯 LOCKING TARGET: {class_name} at center ({cx}, {cy}) with depth {depth:.2f}m")
+                                
+                                # Calculate FULL target position using same math as original
+                                current_pos = robot.get_current_position()
+                                if not current_pos:
+                                    current_pos = [400, 0, 250]
+                                
+                                # Camera parameters (same as original)
+                                camera_fov_h = 87  # degrees horizontal FOV
+                                camera_fov_v = 58  # degrees vertical FOV
+                                image_width = 640
+                                image_height = 480
+                                
+                                # Calculate angular offsets from pixel coordinates
+                                pixel_x, pixel_y = cx, cy
+                                angle_y = (pixel_x - image_width/2) * (camera_fov_h / image_width)  # Yaw angle
+                                angle_z = (pixel_y - image_height/2) * (camera_fov_v / image_height)  # Pitch angle
+                                
+                                # Convert to radians
+                                angle_y_rad = math.radians(angle_y)
+                                angle_z_rad = math.radians(angle_z)
+                                
+                                # Calculate 3D position of object relative to camera
+                                object_x = depth * 1000  # Convert to mm
+                                object_y = depth * 1000 * math.tan(angle_y_rad)
+                                object_z = depth * 1000 * math.tan(angle_z_rad)
+                                
+                                # Apply calibration offset (compensate for camera mounting)
+                                #object_y = object_y + 50  # Move 5cm right to compensate for left offset
+                                
+                                # Move 17cm closer to the object
+                                object_x = object_x - 130  # Subtract 170mm (17cm)
+                                
+                                # Calculate absolute target position
+                                target_x = current_pos[0] + object_x
+                                target_y = current_pos[1] + object_y
+                                target_z = current_pos[2] + object_z
+                                
+                                # Lock the target
+                                target_locked = True
+                                target_position = [target_x, target_y, target_z]
+                                target_object_name = class_name
+                                moving_to_target = True
+                                last_known_position = [target_x, target_y, target_z]
+                                
+                                print(f"🔒 TARGET LOCKED: Moving to {class_name} at position {target_position}")
+                                
+                                break  # Only lock first detected object
+                    if target_locked:  # Break outer loop too
+                        break
+            
+            elif moving_to_target:
+                # Phase 2: Update target position while moving (if same object is still visible)
+                for result in results:
+                    boxes = result.boxes
+                    if boxes is not None:
+                        for box in boxes:
+                            confidence = float(box.conf[0])
+                            class_id = int(box.cls[0])
+                            class_name = model.names[class_id]
+                            
+                            # Only update if it's the same object type with good confidence
+                            if class_name == target_object_name and confidence > 0.5:
+                                x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                                cx, cy = int((x1 + x2) / 2), int((y1 + y2) / 2)
+                                
+                                try:
+                                    depth = depth_frame.get_distance(cx, cy)
+                                    if depth == 0.0:
+                                        depth = 0.5
+                                except:
+                                    depth = 0.5
+                                
+                                # Recalculate updated position
+                                current_pos = robot.get_current_position()
+                                if current_pos:
+                                    # Same math as before
+                                    camera_fov_h = 87
+                                    camera_fov_v = 58
+                                    image_width = 640
+                                    image_height = 480
+                                    
+                                    pixel_x, pixel_y = cx, cy
+                                    angle_y = (pixel_x - image_width/2) * (camera_fov_h / image_width)
+                                    angle_z = (pixel_y - image_height/2) * (camera_fov_v / image_height)
+                                    
+                                    angle_y_rad = math.radians(angle_y)
+                                    angle_z_rad = math.radians(angle_z)
+                                    
+                                    object_x = depth * 1000
+                                    object_y = depth * 1000 * math.tan(angle_y_rad)
+                                    object_z = depth * 1000 * math.tan(angle_z_rad)
+                                    
+                                    object_x = object_x - 170  # Move 17cm closer
+                                    
+                                    updated_x = current_pos[0] + object_x
+                                    updated_y = current_pos[1] + object_y
+                                    updated_z = current_pos[2] + object_z
+                                    
+                                    # Update target position
+                                    target_position = [updated_x, updated_y, updated_z]
+                                    last_known_position = [updated_x, updated_y, updated_z]
+                                    print(f"🔄 UPDATING TARGET: {class_name} new position {target_position}")
+                                
+                                break  # Only update first matching object
+                        if class_name == target_object_name:  # Break outer loop if found
+                            break
+                
+                # Check if we should execute the movement (after some time or user trigger)
+                # For now, let's execute after a short delay or when 'e' is pressed
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord('e') or time.time() % 5 < 0.1:  # Execute every 5 seconds or when 'e' pressed
+                    print(f"🎯 EXECUTING MOVEMENT to final position: {last_known_position}")
+                    moving_to_target = False
+                    
+                    # Execute the movement sequence
+                    execute_movement_sequence(robot, gripper, last_known_position, target_object_name)
+                    
+                    # Reset after completion
+                    target_locked = False
+                    target_position = None
+                    target_object_name = None
+                    last_known_position = None
+                    print("🔓 TARGET UNLOCKED: Ready for next object")
+            
+            # Always draw detections for visualization
             for result in results:
                 boxes = result.boxes
                 if boxes is not None:
@@ -111,17 +315,6 @@ def detect_and_move_to_object(robot_ip: str = "192.168.1.241") -> bool:
                         # Calculate center
                         cx, cy = int((x1 + x2) / 2), int((y1 + y2) / 2)
                         
-                        # Draw bounding box
-                        cv2.rectangle(color_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                        
-                        # Draw center dot
-                        cv2.circle(color_image, (cx, cy), 5, (0, 0, 255), -1)
-                        
-                        # Draw label
-                        label = f"{class_name} {confidence:.2f}"
-                        cv2.putText(color_image, label, (x1, y1-10), 
-                                  cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-                        
                         # Get depth at center
                         try:
                             depth = depth_frame.get_distance(cx, cy)
@@ -130,27 +323,33 @@ def detect_and_move_to_object(robot_ip: str = "192.168.1.241") -> bool:
                         except:
                             depth = 0.5
                         
+                        # Draw bounding box
+                        color = (0, 0, 255) if target_locked else (0, 255, 0)  # Red if locked, green if available
+                        cv2.rectangle(color_image, (x1, y1), (x2, y2), color, 2)
+                        
+                        # Draw center dot
+                        cv2.circle(color_image, (cx, cy), 5, (0, 0, 255), -1)
+                        
+                        # Draw label
+                        label = f"{class_name} {confidence:.2f}"
+                        cv2.putText(color_image, label, (x1, y1-10), 
+                                  cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+                        
                         # Display depth info
                         depth_text = f"Depth: {depth:.2f}m"
                         cv2.putText(color_image, depth_text, (cx+10, cy+10), 
                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
-                        
-                        # If object is detected and we want to move closer
-                        if confidence > 0.5:  # High confidence detection
-                            print(f"🎯 Detected {class_name} at center ({cx}, {cy}) with depth {depth:.2f}m")
-                            
-                            # Calculate movement to get closer
-                            current_x = current_pos[0] if current_pos else 400
-                            target_x = current_x + (depth * 1000) * 0.3  # Move 30% closer
-                            
-                            # Move robot closer
-                            try:
-                                print(f"🔄 Moving from X={current_x:.1f}mm to X={target_x:.1f}mm")
-                                robot.move_pose([target_x, current_pos[1], current_pos[2]], [0, 90, 0])
-                                current_pos = robot.get_current_position()
-                                print(f"✅ Moved to X={current_pos[0]:.1f}mm")
-                            except Exception as e:
-                                print(f"❌ Failed to move: {e}")
+            
+            # Display target lock status
+            if target_locked and movement_start_time is not None:
+                time_since_start = time.time() - movement_start_time
+                status_text = f"MOVING TO: {target_object_name} ({time_since_start:.1f}s elapsed)"
+                cv2.putText(color_image, status_text, (10, 30), 
+                          cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 165, 0), 2)  # Orange for moving
+            else:
+                status_text = "READY FOR TARGET DETECTION"
+                cv2.putText(color_image, status_text, (10, 30), 
+                          cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)  # Green for ready
             
             # Display the image
             cv2.imshow('Object Detection', color_image)
@@ -165,6 +364,14 @@ def detect_and_move_to_object(robot_ip: str = "192.168.1.241") -> bool:
                 filename = f"object_detection_{timestamp}.jpg"
                 cv2.imwrite(filename, color_image)
                 print(f"💾 Saved frame as {filename}")
+            elif key == ord('r'):
+                # Reset target lock
+                target_locked = False
+                target_position = None
+                target_object_name = None
+                movement_start_time = None
+                last_movement_time = None
+                print("🔄 Target lock reset")
     
     except KeyboardInterrupt:
         print("\n🛑 Interrupted by user")
@@ -172,11 +379,109 @@ def detect_and_move_to_object(robot_ip: str = "192.168.1.241") -> bool:
     finally:
         # Cleanup
         pipeline.stop()
+        if gripper:
+            gripper.disconnect()
         robot.disconnect()
         cv2.destroyAllWindows()
         print("✅ Cleanup completed")
     
     return True
+
+def execute_movement_sequence(robot, gripper, target_position, object_name):
+    """Execute the complete movement and gripper sequence."""
+    print(f"🤖 Executing movement sequence for {object_name}")
+    print("=" * 50)
+    
+    try:
+        # Step 1: Open gripper first
+        print("🔓 Step 1: Opening gripper...")
+        if gripper and gripper.open_gripper():
+            print("✅ Gripper opened successfully")
+        else:
+            print("⚠️ Gripper not available or failed to open")
+        time.sleep(1.0)
+        
+        # Step 2: Move to target position
+        print(f"🎯 Step 2: Moving to target position {target_position}...")
+        try:
+            robot.move_pose(target_position, [0, 90, 0])
+            print(f"✅ Moved to target position: {target_position}")
+        except Exception as e:
+            print(f"❌ Failed to move to target: {e}")
+            return False
+        time.sleep(1.0)
+        
+        # Step 2.5: Move down 30cm before closing gripper
+        print("⬇️ Step 2.5: Moving down 30cm...")
+        try:
+            down_position = target_position.copy()
+            down_position[2] -= 300  # Move down 30cm (300mm)
+            robot.move_pose(down_position, [0, 90, 0])
+            print(f"✅ Moved down to: {down_position}")
+        except Exception as e:
+            print(f"❌ Failed to move down: {e}")
+            return False
+        time.sleep(1.0)
+        
+        # Step 3: Close gripper
+        print("🔒 Step 3: Closing gripper...")
+        if gripper and gripper.close_gripper():
+            print("✅ Gripper closed successfully")
+        else:
+            print("⚠️ Gripper not available or failed to close")
+        time.sleep(2.0)
+        
+        print(f"🎉 Movement sequence completed for {object_name}!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Movement sequence failed: {e}")
+        return False
+
+def execute_final_sequence(robot, gripper, target_position, object_name):
+    """Execute the final gripper sequence: move down 30cm and close gripper."""
+    print(f"🤖 Executing final sequence for {object_name}")
+    print("=" * 50)
+    
+    try:
+        # Step 1: Open gripper first (if not already open)
+        print("🔓 Step 1: Opening gripper...")
+        if gripper and gripper.open_gripper():
+            print("✅ Gripper opened successfully")
+        else:
+            print("⚠️ Gripper not available or failed to open")
+        time.sleep(1.0)
+        
+        # Step 2: Move down 30cm from current position
+        print("⬇️ Step 2: Moving down 30cm...")
+        try:
+            current_pos = robot.get_current_position()
+            if current_pos:
+                down_position = current_pos.copy()
+                down_position[2] -= 300  # Move down 30cm (300mm)
+                robot.move_pose(down_position, [0, 90, 0])
+                print(f"✅ Moved down to: {down_position}")
+            else:
+                print("⚠️ Could not get current position for down movement")
+        except Exception as e:
+            print(f"❌ Failed to move down: {e}")
+            return False
+        time.sleep(1.0)
+        
+        # Step 3: Close gripper
+        print("🔒 Step 3: Closing gripper...")
+        if gripper and gripper.close_gripper():
+            print("✅ Gripper closed successfully")
+        else:
+            print("⚠️ Gripper not available or failed to close")
+        time.sleep(2.0)
+        
+        print(f"🎉 Final sequence completed for {object_name}!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Final sequence failed: {e}")
+        return False
 
 def create_llm_plan(object_data: Dict[str, Any], object_type: str) -> Optional[Dict[str, Any]]:
     """Create LLM plan for approaching the detected object."""
@@ -464,13 +769,23 @@ def execute_robot_plan(plan: Dict[str, Any], robot_ip: str = "192.168.1.241") ->
 def detect_and_move_to_object_simple(robot_ip: str = "192.168.1.241"):
     """Simple object detection and camera movement."""
     
+    # Get target object type from command line arguments
+    import sys
+    target_object_type = None
+    if len(sys.argv) > 1:
+        target_object_type = sys.argv[1]
+        print(f"🎯 Target object filter: {target_object_type}")
+    
     print("🤖 Simple Object Detection and Camera Movement")
     print(f"📍 Robot IP: {robot_ip}")
-    print("🎯 Detecting any object and moving camera closer")
+    if target_object_type:
+        print(f"🎯 Only targeting: {target_object_type}")
+    else:
+        print("🎯 Targeting any detected object")
     print("=" * 60)
     
     try:
-        success = detect_and_move_to_object(robot_ip)
+        success = detect_and_move_to_object(robot_ip, target_object_type)
         
         if success:
             print(f"\n🎉 Successfully completed object detection and movement!")
@@ -496,8 +811,10 @@ if __name__ == "__main__":
     print("Controls:")
     print("  - Press 'q' to quit")
     print("  - Press 's' to save current frame")
-    print("  - Camera will automatically move closer to detected objects")
+    print("  - Press 'r' to reset target lock")
+    print("  - Robot will CONTINUOUSLY TRACK and ADJUST PATH while moving")
     print("")
+    
     
     success = detect_and_move_to_object_simple(robot_ip)
     
@@ -509,4 +826,4 @@ if __name__ == "__main__":
         print("   - Fine-tune movement distance")
     else:
         print(f"\n❌ Object detection and movement failed")
-        print("🔧 Check the troubleshooting steps above") 
+        print("🔧 Check the troubleshooting steps above")

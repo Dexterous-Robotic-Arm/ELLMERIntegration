@@ -154,7 +154,7 @@ def plan_with_gemini(task: str, pose_names: Optional[List[str]] = None) -> Dict[
         
         # Configure Gemini
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-pro')
+        model = genai.GenerativeModel('gemini-2.5-pro')
         
         # Load action schema
         action_schema = load_action_schema()
