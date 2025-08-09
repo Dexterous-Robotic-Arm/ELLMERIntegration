@@ -1,0 +1,141 @@
+# RAG-based Robot Control System Configuration
+# This file contains all the configuration settings for the RAG-based LLM planner
+
+# Robot Configuration
+robot:
+  ip: "192.168.1.241"
+  sim: false
+  dry_run: false
+  max_speed: 150.0  # mm/s
+  max_acceleration: 1000.0  # mm/s²
+  safety_limits:
+    workspace_x_min: 150.0
+    workspace_x_max: 650.0
+    workspace_y_min: -300.0
+    workspace_y_max: 300.0
+    workspace_z_min: 50.0
+    workspace_z_max: 500.0
+
+# Vision System Configuration
+vision:
+  enabled: true
+  camera_offset_mm: [0.0, 0.0, 22.5]
+  confidence_threshold: 0.35
+  scan_duration: 5.0  # seconds
+  scan_quality_threshold: 0.5
+
+# RAG Planner Configuration
+rag_planner:
+  max_retries: 3
+  scan_timeout: 10.0  # seconds
+  planning_timeout: 30.0  # seconds
+  execution_timeout: 300.0  # seconds
+  
+  # LLM Configuration
+  llm:
+    provider: "gemini"  # or "fallback"
+    model: "gemini-2.5-pro"
+    temperature: 0.1
+    max_tokens: 2048
+    
+  # Context Configuration
+  context:
+    max_history_length: 50
+    include_vision_feedback: true
+    include_execution_history: true
+    include_world_model: true
+    
+  # Planning Configuration
+  planning:
+    enable_adaptive_planning: true
+    enable_error_recovery: true
+    enable_scanning_on_confusion: true
+    max_plan_steps: 50
+
+# Action Schema Configuration
+actions:
+  schema_path: "config/llm/action_schema.md"
+  fallback_schema_enabled: true
+  
+  # Available actions (auto-extracted from schema)
+  movement_actions:
+    - "MOVE_TO_NAMED"
+    - "APPROACH_NAMED"
+    - "MOVE_TO_OBJECT"
+    - "APPROACH_OBJECT"
+    - "RETREAT_Z"
+    - "MOVE_TO_POSE"
+    - "SLEEP"
+    - "SCAN_AREA"
+  
+  gripper_actions:
+    - "OPEN_GRIPPER"
+    - "CLOSE_GRIPPER"
+    - "GRIPPER_GRASP"
+    - "GRIPPER_RELEASE"
+    - "GRIPPER_HALF_OPEN"
+    - "GRIPPER_SOFT_CLOSE"
+    - "GRIPPER_TEST"
+
+# World Model Configuration
+world_model:
+  path: "config/robot/world_model.yaml"
+  auto_load: true
+  
+  # Default poses (if world model not available)
+  default_poses:
+    home:
+      xyz_mm: [300, 0, 300]
+      rpy_deg: [0, 90, 0]
+    bin_drop:
+      xyz_mm: [250, 250, 120]
+      rpy_deg: [0, 90, 0]
+    table_pick_blue:
+      xyz_mm: [400, -150, 45]
+      rpy_deg: [0, 90, 0]
+
+# Execution Configuration
+execution:
+  enable_safety_checks: true
+  enable_collision_detection: true
+  enable_emergency_stop: true
+  
+  # Timing Configuration
+  step_timeout: 30.0  # seconds per step
+  movement_timeout: 60.0  # seconds for movement actions
+  gripper_timeout: 10.0  # seconds for gripper actions
+  
+  # Retry Configuration
+  max_step_retries: 3
+  retry_delay: 1.0  # seconds
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_enabled: true
+  file_path: "logs/rag_system.log"
+  console_enabled: true
+  
+  # Component-specific logging
+  components:
+    rag_planner: "INFO"
+    robot_controller: "INFO"
+    vision_system: "INFO"
+    executor: "INFO"
+
+# System Configuration
+system:
+  interactive_mode: false
+  loop_mode: false
+  auto_start: true
+  graceful_shutdown: true
+  
+  # Performance Configuration
+  max_memory_usage: "2GB"
+  max_cpu_usage: 80  # percentage
+  
+  # Monitoring Configuration
+  enable_monitoring: true
+  monitoring_interval: 5.0  # seconds
+  status_update_interval: 1.0  # seconds

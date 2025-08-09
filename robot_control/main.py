@@ -233,59 +233,51 @@ class VisionSystem:
 
 
 class TaskPlanner:
-    """Manages task planning using LLM."""
+    """Manages task planning using RAG system."""
     
     def __init__(self, config: SystemConfig):
         self.config = config
         self.logger = setup_logging(
             level=getattr(logging, config.log_level),
-            log_file="logs/task_planner.log"
+            log_file="logs/rag_planner.log"
         )
         
     def plan_task(self, task: str, world_config: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate a plan for the given task."""
+        """Generate a plan for the given task using RAG system."""
         try:
             self.logger.info(f"Planning task: {task}")
             
-            # Import planning functions
-            from robot_control.task_planner import plan_with_gemini, plan_fallback
-            import signal
+            # Use RAG system for planning
+            from robot_control.rag_system.planner.rag_planner import RAGPlanner
             
-            # Get pose names from world config
-            pose_names = []
-            if world_config and 'poses' in world_config:
-                pose_names = list(world_config['poses'].keys())
+            # Initialize RAG planner in simulation mode for legacy compatibility
+            rag_planner = RAGPlanner(
+                robot_controller=None,
+                vision_system=None,
+                config_path="config/",
+                max_retries=3,
+                scan_timeout=10.0
+            )
             
-            # Check if we should force fallback planner
-            if hasattr(self.config, 'use_fallback') and self.config.use_fallback:
-                self.logger.info("Using fallback planner (forced)")
-                return plan_fallback(task)
+            # Create RAG context
+            context = rag_planner._create_rag_context(task)
             
-            # Set a timeout for LLM planning to prevent hanging
-            def timeout_handler(signum, frame):
-                raise TimeoutError("LLM planning timed out")
+            # Generate plan
+            plan = rag_planner._generate_plan_with_llm(context)
             
-            # Set 10 second timeout for LLM planning
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(10)
-            
-            try:
-                # Generate plan using LLM
-                plan = plan_with_gemini(task, pose_names)
-                signal.alarm(0)  # Cancel timeout
-                self.logger.info(f"Generated plan with {len(plan['steps'])} steps")
-                return plan
-            except (TimeoutError, Exception) as e:
-                signal.alarm(0)  # Cancel timeout
-                self.logger.warning(f"LLM planning failed or timed out: {e}")
-                self.logger.info("Using fallback planner")
-                return plan_fallback(task)
+            self.logger.info(f"Generated plan with {len(plan.get('steps', []))} steps")
+            return plan
             
         except Exception as e:
             self.logger.error(f"Failed to plan task: {e}")
-            # Use fallback plan
-            from robot_control.task_planner import plan_fallback
-            return plan_fallback(task)
+            # Return a simple fallback plan
+            return {
+                "goal": task,
+                "steps": [
+                    {"action": "MOVE_TO_NAMED", "name": "home"},
+                    {"action": "SLEEP", "duration": 1.0}
+                ]
+            }
 
 
 # TaskExecutor is imported from robot_control.robot_controller.executor

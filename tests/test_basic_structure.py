@@ -77,7 +77,7 @@ class TestBasicStructure(unittest.TestCase):
         self.assertTrue(robot_control.exists())
         
         # Check main modules
-        modules = ["robot_controller", "vision_system", "task_planner", "utils"]
+        modules = ["robot_controller", "vision_system", "rag_system", "utils"]
         for module in modules:
             module_path = robot_control / module
             self.assertTrue(module_path.exists())

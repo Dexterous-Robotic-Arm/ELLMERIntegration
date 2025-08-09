@@ -21,7 +21,7 @@ camera:
 
 # Object Detection Settings
 detection:
-  model: "yolov8n.pt"
+  model: "yolov8x.pt"
   confidence_threshold: 0.35
   max_objects: 10
   

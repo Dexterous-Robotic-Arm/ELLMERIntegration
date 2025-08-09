@@ -133,7 +133,7 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
 
         # YOLO - only if available
         if YOLO_AVAILABLE:
-            self.model = YOLO("yolov8n.pt")
+            self.model = YOLO("yolov8x.pt")
             print("🖥️ YOLO model loaded - using CPU for inference")
         else:
             self.model = None

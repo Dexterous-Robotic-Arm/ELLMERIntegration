@@ -220,14 +220,22 @@ except Exception as e:
 #### 2. Task Planning Test
 ```bash
 python3 -c "
-from robot_control.task_planner.llm_planner import TaskPlanner
+from robot_control.rag_system.planner.rag_planner import RAGPlanner
 
-planner = TaskPlanner()
+# Create RAG planner in simulation mode
+planner = RAGPlanner(
+    robot_controller=None,
+    vision_system=None,
+    config_path='config/',
+    max_retries=3,
+    scan_timeout=10.0
+)
 
 # Test simple task planning
 task = 'pick up the red cup'
 try:
-    plan = planner.plan_task(task)
+    context = planner._create_rag_context(task)
+    plan = planner._generate_plan_with_llm(context)
     print('✅ Task planning successful')
     print(f'Generated plan with {len(plan.get(\"steps\", []))} steps')
 except Exception as e:
