@@ -242,7 +242,7 @@ class TaskPlanner:
             log_file="logs/rag_planner.log"
         )
         
-    def plan_task(self, task: str, world_config: Dict[str, Any]) -> Dict[str, Any]:
+    def plan_task(self, task: str, world_config: Dict[str, Any], executor=None) -> Dict[str, Any]:
         """Generate a plan for the given task using RAG system."""
         try:
             self.logger.info(f"Planning task: {task}")
@@ -250,9 +250,9 @@ class TaskPlanner:
             # Use RAG system for planning
             from robot_control.rag_system.planner.rag_planner import RAGPlanner
             
-            # Initialize RAG planner in simulation mode for legacy compatibility
+            # Initialize RAG planner with executor if available
             rag_planner = RAGPlanner(
-                robot_controller=None,
+                robot_controller=executor,  # Pass executor as robot_controller
                 vision_system=None,
                 config_path="config/",
                 max_retries=3,
@@ -360,8 +360,8 @@ class RobotControlSystem:
                     print(f"Robot connected: {runner.is_connected()}")
                 elif command:
                     # Execute task
-                    plan = self.task_planner.plan_task(command, world_config)
                     executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run)
+                    plan = self.task_planner.plan_task(command, world_config, executor)
                     executor.execute(plan)
                     
             except KeyboardInterrupt:
@@ -374,8 +374,8 @@ class RobotControlSystem:
         while True:
             try:
                 if self.config.task:
-                    plan = self.task_planner.plan_task(self.config.task, world_config)
                     executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run)
+                    plan = self.task_planner.plan_task(self.config.task, world_config, executor)
                     executor.execute(plan)
                     
                 time.sleep(1)
@@ -390,8 +390,8 @@ class RobotControlSystem:
             return
             
         self.logger.info(f"Executing task: {self.config.task}")
-        plan = self.task_planner.plan_task(self.config.task, world_config)
         executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run)
+        plan = self.task_planner.plan_task(self.config.task, world_config, executor)
         executor.execute(plan)
         
     def _cleanup(self):

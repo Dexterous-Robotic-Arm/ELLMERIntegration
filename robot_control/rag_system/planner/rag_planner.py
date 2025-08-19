@@ -242,7 +242,23 @@ class RAGPlanner:
             try:
                 # Configure Gemini
                 genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
-                model = genai.GenerativeModel('gemini-pro')
+                # Try different Gemini models in order of preference
+                model_names = ['gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-pro']
+                model = None
+                
+                for model_name in model_names:
+                    try:
+                        model = genai.GenerativeModel(model_name)
+                        # Test the model with a simple prompt
+                        response = model.generate_content("Hello")
+                        logger.info(f"Successfully initialized Gemini model: {model_name}")
+                        break
+                    except Exception as e:
+                        logger.warning(f"Failed to initialize {model_name}: {e}")
+                        continue
+                
+                if model is None:
+                    raise Exception("No Gemini model could be initialized")
                 logger.info("Gemini LLM initialized successfully")
                 return model
             except Exception as e:
@@ -953,11 +969,37 @@ Generate the plan now:
         result = {"success": False, "action": action, "message": ""}
         
         try:
-            if action == "SCAN_AREA":
-                duration = step.get("scan_duration", 5.0)
-                self.vision_feedback = self._scan_area(duration)
-                result["success"] = True
-                result["message"] = f"Scanned area for {duration}s"
+            if action == "SCAN_AREA" or action == "SCAN_FOR_OBJECTS":
+                # Use real scanning movement from executor
+                if self.robot_controller and hasattr(self.robot_controller, 'execute'):
+                    # Create a scan step for the executor
+                    scan_step = {
+                        "action": "SCAN_FOR_OBJECTS",
+                        "pattern": "horizontal",
+                        "sweep_mm": 300,
+                        "steps": 5,
+                        "pause_sec": 1.0
+                    }
+                    
+                    # Execute the scan using the executor's logic
+                    try:
+                        # Execute the scan step directly
+                        self.robot_controller.execute({"steps": [scan_step]})
+                        result["success"] = True
+                        result["message"] = f"Executed real scan movement with {scan_step['steps']} positions"
+                    except Exception as e:
+                        logger.error(f"Real scan failed: {e}")
+                        # Fallback to simulated scan
+                        duration = step.get("scan_duration", 5.0)
+                        self.vision_feedback = self._scan_area(duration)
+                        result["success"] = True
+                        result["message"] = f"Fallback simulated scan for {duration}s"
+                else:
+                    # Fallback to simulated scan
+                    duration = step.get("scan_duration", 5.0)
+                    self.vision_feedback = self._scan_area(duration)
+                    result["success"] = True
+                    result["message"] = f"Simulated scan for {duration}s (no robot controller)"
                 
             elif action == "MOVE_TO_NAMED":
                 pose_name = step.get("name", "home")
