@@ -3,20 +3,19 @@ Robot Control System
 
 A comprehensive robot control system for the ufactory850 robotic arm with
 Intel RealSense D435 camera, designed for real-world autonomous tasks using
-LLM planning and computer vision.
+True RAG-based intelligence and computer vision.
 
 Key Components:
-- rag_system: RAG-based LLM planning system (NEW)
+- rag_system: True RAG-based intelligent planning system with semantic knowledge retrieval
 - robot_controller: Robot control and execution
 - vision_system: Object detection and pose recording
 - utils: Utility functions
 
 Usage:
-    # RAG-based system (recommended)
-    from robot_control.rag_system import RAGPlanner, MovementLogic
-    from robot_control.rag_system.rag_main import main as rag_main
+    # True RAG-based system (recommended)
+    from robot_control.rag_system import TrueRAGPlanner, IntelligentRobotPlanner
     
-    # Legacy system
+    # Core components
     from robot_control.robot_controller import XArmRunner
     from robot_control.vision_system import PoseRecorder
 """

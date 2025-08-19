@@ -1,30 +1,23 @@
 #!/usr/bin/env python3
 """
-RAG-based Robot Control System
+True RAG-based Robot Control System
 
-This module provides a Retrieval-Augmented Generation (RAG) based robot control system
-that uses LLM as the central decision maker for robot tasks.
+This module provides a True Retrieval-Augmented Generation (RAG) based robot control system
+with semantic knowledge retrieval and intelligent planning.
 
 Key Components:
-- RAGPlanner: Main planning component with enhanced movement logic
-- MovementLogic: Enhanced movement logic from detect_and_move.py
-- RAGIntegration: Integration layer for connecting components
-- rag_main: Main entry point for RAG-based system
+- TrueRAGPlanner: Main RAG system with vector database and semantic search
+- IntelligentRobotPlanner: Fallback intelligent planner for when RAG is unavailable
 
 Usage:
-    from robot_control.rag_system import RAGPlanner, MovementLogic
-    from robot_control.rag_system.rag_main import main as rag_main
+    from robot_control.rag_system.true_rag_planner import TrueRAGPlanner
+    from robot_control.rag_system.planner.intelligent_planner import IntelligentRobotPlanner
 """
 
-from .planner.rag_planner import RAGPlanner
-from .planner.movement_logic import MovementLogic, CameraConfig, ObjectDetection
-from .integration.rag_integration import RAGIntegration, IntegrationConfig
+from .true_rag_planner import TrueRAGPlanner
+from .planner.intelligent_planner import IntelligentRobotPlanner
 
 __all__ = [
-    'RAGPlanner',
-    'MovementLogic', 
-    'CameraConfig',
-    'ObjectDetection',
-    'RAGIntegration',
-    'IntegrationConfig'
+    'TrueRAGPlanner',
+    'IntelligentRobotPlanner'
 ]
