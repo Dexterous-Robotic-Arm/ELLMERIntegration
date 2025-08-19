@@ -36,6 +36,8 @@ WORLD_POSES = {
     "home":             {"xyz_mm": [300,   0, 300], "rpy_deg": [0, 90, 0]},
     "bin_drop":         {"xyz_mm": [250, 250, 120], "rpy_deg": [0, 90, 0]},
     "table_pick_blue":  {"xyz_mm": [400,-150,  45], "rpy_deg": [0, 90, 0]},
+    "staging_area":     {"xyz_mm": [450, -150, 150], "rpy_deg": [0, 90, 0]},
+    "scan_center":      {"xyz_mm": [400,   0, 250], "rpy_deg": [0, 90, 0]},
 }
 
 class ObjectIndex(Node if ROS2_AVAILABLE else object):
@@ -475,7 +477,7 @@ class TaskExecutor:
                     else:
                         print(f"[DRY RUN] Would approach object '{target_label}' with hover={hover}mm, offset={offset}")
 
-                elif act == "SCAN_FOR_OBJECTS":
+                elif act == "SCAN_FOR_OBJECTS" or act == "SCAN_AREA":
                     # Horizontal sweep in front of the robot
                     pattern = step.get("pattern", "horizontal")
                     sweep_mm = float(step.get("sweep_mm", 300))
@@ -579,6 +581,16 @@ class TaskExecutor:
         # Final safety check
         execution_time = time.time() - self.execution_start_time if self.execution_start_time else 0
         print(f"[Plan] Done. Execution time: {execution_time:.1f}s, Steps completed: {self.step_count}")
+
+    def get_current_position(self):
+        """Get current robot position."""
+        try:
+            if self.runner:
+                return self.runner.get_current_position()
+            return None
+        except Exception as e:
+            print(f"[TaskExecutor] Error getting current position: {e}")
+            return None
 
     def get_execution_stats(self):
         """Get execution statistics"""

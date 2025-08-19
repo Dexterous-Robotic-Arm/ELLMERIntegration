@@ -222,7 +222,9 @@ class RAGPlanner:
   - **fields:** `pose` (object: `xyz_mm` [x,y,z], `rpy_deg` [r,p,y])
 - `SLEEP` — Wait for a number of seconds.  
   - **fields:** `seconds` (number)
-- `SCAN_AREA` — Scan the current area for objects.  
+- `SCAN_FOR_OBJECTS` — Physically move robot to scan the workspace area for objects.  
+  - **fields:** `pattern` (string, optional; default **"horizontal"**), `sweep_mm` (number, optional; default **300**), `steps` (number, optional; default **5**), `pause_sec` (number, optional; default **1.0**)
+- `SCAN_AREA` — Alternative name for SCAN_FOR_OBJECTS (same functionality).  
   - **fields:** `scan_duration` (number, optional; default **5**), `scan_area` (string, optional; default **"current"**)
 
 ### Gripper Actions
@@ -764,17 +766,37 @@ Generate the plan now:
         
         return True
     
-    def _generate_fallback_plan(self, context: RAGContext) -> Dict[str, Any]:
+    def _generate_fallback_plan(self, context) -> Dict[str, Any]:
         """
         Generate a fallback plan when LLM is not available.
         
         Args:
-            context: RAG context
+            context: RAG context or task description string
             
         Returns:
             Fallback plan
         """
-        task_lower = context.task_description.lower()
+        # Handle both RAGContext and string inputs
+        if isinstance(context, str):
+            task_description = context
+            task_lower = context.lower()
+            objects = []
+        else:
+            task_description = context.task_description
+            task_lower = context.task_description.lower()
+            objects = context.vision_feedback.objects_detected
+        
+        # Check for scanning tasks first
+        if any(word in task_lower for word in ["scan", "find", "look", "search", "detect"]):
+            return {
+                "goal": task_description,
+                "reasoning": "Fallback plan: Scanning task detected, performing comprehensive scan",
+                "steps": [
+                    {"action": "SCAN_FOR_OBJECTS", "pattern": "horizontal", "sweep_mm": 300, "steps": 5, "pause_sec": 1.0},
+                    {"action": "SLEEP", "seconds": 1},
+                    {"action": "MOVE_TO_NAMED", "name": "home"}
+                ]
+            }
         
         # Check for object-specific tasks
         if any(word in task_lower for word in ["pick up", "grab", "take"]):
@@ -828,13 +850,12 @@ Generate the plan now:
         
         # Default fallback plan
         return {
-            "goal": context.task_description,
-            "reasoning": "Fallback plan: Simple movement sequence",
+            "goal": task_description,
+            "reasoning": "Fallback plan: Simple movement sequence with scanning",
             "steps": [
-                {"action": "SCAN_AREA", "scan_duration": 5},
+                {"action": "SCAN_FOR_OBJECTS", "pattern": "horizontal", "sweep_mm": 300, "steps": 5, "pause_sec": 1.0},
                 {"action": "MOVE_TO_NAMED", "name": "home"},
-                {"action": "SLEEP", "seconds": 1},
-                {"action": "MOVE_TO_NAMED", "name": "home"}
+                {"action": "SLEEP", "seconds": 1}
             ]
         }
     
