@@ -75,13 +75,14 @@ class MovementLogic:
         pixel_x, pixel_y = detection.pixel_center
         depth = detection.depth
         
-        # Calculate angular offsets from pixel coordinates
-        angle_y = (pixel_x - self.camera_config.image_width/2) * (
-            self.camera_config.fov_horizontal / self.camera_config.image_width
-        )  # Yaw angle
-        angle_z = (pixel_y - self.camera_config.image_height/2) * (
-            self.camera_config.fov_vertical / self.camera_config.image_height
-        )  # Pitch angle
+        # Calculate angular offsets from pixel coordinates (corrected formula)
+        # FOV angle per pixel
+        angle_per_pixel_h = self.camera_config.fov_horizontal / self.camera_config.image_width
+        angle_per_pixel_v = self.camera_config.fov_vertical / self.camera_config.image_height
+        
+        # Angular offsets from center (degrees)
+        angle_y = (pixel_x - self.camera_config.image_width/2) * angle_per_pixel_h  # Yaw angle
+        angle_z = (pixel_y - self.camera_config.image_height/2) * angle_per_pixel_v  # Pitch angle
         
         # Convert to radians
         angle_y_rad = math.radians(angle_y)
