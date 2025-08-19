@@ -243,41 +243,66 @@ class TaskPlanner:
         )
         
     def plan_task(self, task: str, world_config: Dict[str, Any], executor=None) -> Dict[str, Any]:
-        """Generate a plan for the given task using RAG system."""
+        """Generate a plan using True RAG-based intelligence with semantic knowledge retrieval."""
         try:
-            self.logger.info(f"Planning task: {task}")
+            self.logger.info(f"Planning task with True RAG intelligence: {task}")
             
-            # Use RAG system for planning
-            from robot_control.rag_system.planner.rag_planner import RAGPlanner
+            # Use True RAG Planner for genuine RAG-based planning
+            from robot_control.rag_system.true_rag_planner import TrueRAGPlanner
             
-            # Initialize RAG planner with executor if available
-            rag_planner = RAGPlanner(
-                robot_controller=executor,  # Pass executor as robot_controller
-                vision_system=None,
+            # Initialize True RAG Planner
+            rag_planner = TrueRAGPlanner(
+                robot_controller=executor,
+                vision_system=executor.object_index if hasattr(executor, 'object_index') else None,
                 config_path="config/",
-                max_retries=3,
-                scan_timeout=10.0
+                db_path="data/vector_db"
             )
             
-            # Create RAG context
-            context = rag_planner._create_rag_context(task)
+            # Generate RAG-based plan
+            plan = rag_planner.plan_with_rag(task)
             
-            # Generate plan
-            plan = rag_planner._generate_plan_with_llm(context)
+            # Log RAG details
+            self.logger.info(f"RAG Plan Generated: {plan.get('goal', 'N/A')}")
+            self.logger.info(f"Knowledge Retrieved: {plan.get('rag_metadata', {}).get('retrieved_documents', 0)} documents")
+            self.logger.info(f"Knowledge Categories: {plan.get('rag_metadata', {}).get('knowledge_categories', [])}")
+            self.logger.info(f"RAG Understanding: {plan.get('understanding', 'N/A')}")
+            self.logger.info(f"Applied Knowledge: {plan.get('retrieved_knowledge_applied', 'N/A')}")
             
-            self.logger.info(f"Generated plan with {len(plan.get('steps', []))} steps")
             return plan
             
         except Exception as e:
-            self.logger.error(f"Failed to plan task: {e}")
-            # Return a simple fallback plan
-            return {
-                "goal": task,
-                "steps": [
-                    {"action": "MOVE_TO_NAMED", "name": "home"},
-                    {"action": "SLEEP", "duration": 1.0}
-                ]
-            }
+            self.logger.error(f"True RAG planning failed: {e}")
+            # Fallback to intelligent planner
+            try:
+                self.logger.info("Falling back to Intelligent Planner")
+                from robot_control.rag_system.planner.intelligent_planner import IntelligentRobotPlanner
+                
+                intelligent_planner = IntelligentRobotPlanner(
+                    robot_controller=executor,
+                    vision_system=executor.object_index if hasattr(executor, 'object_index') else None,
+                    config_path="config/",
+                    learning_enabled=True
+                )
+                
+                plan = intelligent_planner.plan_intelligent_task(task)
+                plan['fallback_used'] = 'intelligent_planner'
+                return plan
+                
+            except Exception as e2:
+                self.logger.error(f"Intelligent planner fallback failed: {e2}")
+                # Final basic fallback
+                return {
+                    "understanding": f"Basic fallback for: {task}",
+                    "reasoning": "Both RAG and intelligent planners unavailable, using basic approach",
+                    "goal": task,
+                    "approach": "Basic safe fallback",
+                    "steps": [
+                        {"action": "MOVE_TO_NAMED", "name": "home"},
+                        {"action": "SLEEP", "seconds": 1.0}
+                    ],
+                    "generated_by": "basic_fallback",
+                    "fallback_reason": f"RAG error: {e}, Intelligent error: {e2}"
+                }
 
 
 # TaskExecutor is imported from robot_control.robot_controller.executor
@@ -339,7 +364,9 @@ class RobotControlSystem:
     def _run_interactive(self, runner: XArmRunner, world_config: Dict[str, Any]):
         """Run in interactive mode."""
         self.logger.info("Running in interactive mode")
-        print("\nInteractive Robot Control System")
+        print("\n🤖 True RAG-Powered Robot Control System")
+        print("🧠 Powered by Semantic Knowledge Retrieval & AI Intelligence")
+        print("📚 Access to comprehensive robotics knowledge base")
         print("Type 'help' for commands, 'quit' to exit")
         
         while True:
@@ -349,20 +376,65 @@ class RobotControlSystem:
                 if command.lower() in ['quit', 'exit', 'q']:
                     break
                 elif command.lower() == 'help':
-                    print("Available commands:")
-                    print("  <task description> - Execute a task")
-                    print("  home - Move to home position")
-                    print("  status - Show robot status")
-                    print("  quit - Exit")
+                    print("🤖 Intelligent Robot Commands:")
+                    print("  📝 <any request> - Just tell me what you want in natural language!")
+                    print("  🏠 home - Move to home position")
+                    print("  📊 status - Show robot status")
+                    print("  ❌ quit - Exit")
+                    print("\n💡 Examples of what you can say:")
+                    print("  • 'move toward the cup'")
+                    print("  • 'pick up the bottle'")
+                    print("  • 'help me clean up'")
+                    print("  • 'find objects in the workspace'")
+                    print("  • 'get ready for cooking'")
+                    print("  • 'organize the items'")
+                    print("  • 'scan the area'")
+                    print("  • 'approach the microwave'")
+                    print("\n🧠 The AI will understand your intent and create an intelligent plan!")
                 elif command.lower() == 'home':
                     runner.move_gohome(wait=True)
                 elif command.lower() == 'status':
                     print(f"Robot connected: {runner.is_connected()}")
                 elif command:
-                    # Execute task
+                    # Execute task with intelligent AI
+                    print(f"\n🤖 AI Processing: '{command}'")
                     executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run)
                     plan = self.task_planner.plan_task(command, world_config, executor)
+                    
+                    # Show RAG and AI reasoning to user
+                    if plan.get('understanding'):
+                        print(f"🧠 AI Understanding: {plan['understanding']}")
+                    
+                    # Show RAG-specific information
+                    rag_metadata = plan.get('rag_metadata', {})
+                    if rag_metadata:
+                        print(f"📚 Knowledge Retrieved: {rag_metadata.get('retrieved_documents', 0)} documents")
+                        if rag_metadata.get('knowledge_categories'):
+                            print(f"📖 Knowledge Categories: {', '.join(rag_metadata['knowledge_categories'])}")
+                        print(f"🔍 Retrieval Method: {rag_metadata.get('retrieval_method', 'unknown')}")
+                        if rag_metadata.get('confidence_score'):
+                            print(f"📊 RAG Confidence: {rag_metadata['confidence_score']:.2f}")
+                    
+                    if plan.get('retrieved_knowledge_applied'):
+                        print(f"🎓 Applied Knowledge: {plan['retrieved_knowledge_applied']}")
+                    
+                    if plan.get('reasoning'):
+                        print(f"💭 AI Reasoning: {plan['reasoning']}")
+                    if plan.get('approach'):
+                        print(f"📋 AI Approach: {plan['approach']}")
+                    
+                    print(f"🎯 Goal: {plan.get('goal', 'N/A')}")
+                    print(f"📝 Steps: {len(plan.get('steps', []))} actions planned")
+                    
+                    # Show confidence level
+                    confidence = plan.get('confidence', 'Unknown')
+                    confidence_emoji = {'High': '🟢', 'Medium': '🟡', 'Low': '🔴'}.get(confidence, '⚪')
+                    print(f"{confidence_emoji} Confidence: {confidence}")
+                    
+                    # Execute the plan
+                    print("⚡ Executing plan...")
                     executor.execute(plan)
+                    print("✅ Task completed!")
                     
             except KeyboardInterrupt:
                 break

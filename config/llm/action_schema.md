@@ -29,6 +29,10 @@ These are the only allowed `action` values. Any other value is invalid.
   - **fields:** `pose` (object: `xyz_mm` [x,y,z], `rpy_deg` [r,p,y])
 - `SLEEP` — Wait for a number of seconds.  
   - **fields:** `seconds` (number)
+- `SCAN_FOR_OBJECTS` — Physically move robot to scan the workspace area for objects.  
+  - **fields:** `pattern` (string, optional; default **"horizontal"**), `sweep_mm` (number, optional; default **300**), `steps` (number, optional; default **5**), `pause_sec` (number, optional; default **1.0**)
+- `SCAN_AREA` — Alternative name for SCAN_FOR_OBJECTS (same functionality).  
+  - **fields:** `scan_duration` (number, optional; default **5**), `scan_area` (string, optional; default **"current"**)
 
 ### Gripper Actions
 - `OPEN_GRIPPER` — Open the gripper to specified position or fully open.  
@@ -152,7 +156,9 @@ These are the only allowed `action` values. Any other value is invalid.
               "GRIPPER_RELEASE",
               "GRIPPER_HALF_OPEN",
               "GRIPPER_SOFT_CLOSE",
-              "GRIPPER_TEST"
+              "GRIPPER_TEST",
+              "SCAN_FOR_OBJECTS",
+              "SCAN_AREA"
             ]
           },
           "name": { "type": "string" },
@@ -182,6 +188,12 @@ These are the only allowed `action` values. Any other value is invalid.
             "maxItems": 3
           },
           "seconds": { "type": "number", "minimum": 0 },
+          "pattern": { "type": "string" },
+          "sweep_mm": { "type": "number", "minimum": 0 },
+          "steps": { "type": "integer", "minimum": 1 },
+          "pause_sec": { "type": "number", "minimum": 0 },
+          "scan_duration": { "type": "number", "minimum": 0 },
+          "scan_area": { "type": "string" },
           "pose": {
             "type": "object",
             "additionalProperties": false,
@@ -272,6 +284,14 @@ These are the only allowed `action` values. Any other value is invalid.
           {
             "if": { "properties": { "action": { "const": "GRIPPER_TEST" } }, "required": ["action"] },
             "then": { "required": ["action", "cycles", "delay"] }
+          },
+          {
+            "if": { "properties": { "action": { "const": "SCAN_FOR_OBJECTS" } }, "required": ["action"] },
+            "then": { "required": ["action"] }
+          },
+          {
+            "if": { "properties": { "action": { "const": "SCAN_AREA" } }, "required": ["action"] },
+            "then": { "required": ["action"] }
           }
         ]
       }

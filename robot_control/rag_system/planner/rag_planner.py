@@ -145,6 +145,15 @@ class RAGPlanner:
         # Initialize enhanced movement logic
         self.movement_logic = MovementLogic()
         
+        # Initialize ObjectIndex for vision data access
+        try:
+            from robot_control.robot_controller.executor import ObjectIndex
+            self.object_index = ObjectIndex()
+            logger.info("ObjectIndex initialized for vision data access")
+        except Exception as e:
+            logger.warning(f"Failed to initialize ObjectIndex: {e}")
+            self.object_index = None
+        
         logger.info("RAG Planner initialized successfully with enhanced movement logic")
     
     def _load_action_schema(self) -> str:
@@ -278,19 +287,43 @@ class RAGPlanner:
     
     def _get_vision_feedback(self) -> VisionFeedback:
         """Get current vision feedback."""
-        if self.vision_system:
-            try:
-                # This would integrate with the actual vision system
-                # For now, return a mock feedback with enhanced object detection
-                return VisionFeedback(
-                    objects_detected=self._get_enhanced_object_detections(),
-                    confidence_scores=self._get_confidence_scores(),
-                    scan_quality=0.8
-                )
-            except Exception as e:
-                logger.error(f"Failed to get vision feedback: {e}")
-        
-        return VisionFeedback()
+        try:
+            # Try to get real vision data from ObjectIndex if available
+            if hasattr(self, 'object_index') and self.object_index:
+                with self.object_index._global_lock:
+                    detected_objects = []
+                    confidence_scores = {}
+                    
+                    for label, position in self.object_index.latest_mm.items():
+                        obj_data = {
+                            "class": label,
+                            "pos": position,  # Already in mm
+                            "confidence": 0.8,  # Default confidence
+                            "pixel_center": [320, 240],  # Default center
+                            "depth": position[0] / 1000.0,  # Convert to meters
+                            "bbox": [300, 200, 340, 280]  # Default bbox
+                        }
+                        detected_objects.append(obj_data)
+                        confidence_scores[label] = 0.8
+                    
+                    if detected_objects:
+                        logger.info(f"Got real vision data: {[obj['class'] for obj in detected_objects]}")
+                        return VisionFeedback(
+                            objects_detected=detected_objects,
+                            confidence_scores=confidence_scores,
+                            scan_quality=0.9
+                        )
+            
+            # If no object index or no real data, use enhanced mock detection
+            return VisionFeedback(
+                objects_detected=self._get_enhanced_object_detections(),
+                confidence_scores=self._get_confidence_scores(),
+                scan_quality=0.6  # Lower quality for mock data
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to get vision feedback: {e}")
+            return VisionFeedback()
     
     def _get_enhanced_object_detections(self) -> List[Dict[str, Any]]:
         """
@@ -680,6 +713,55 @@ When interacting with kitchen appliances or complex objects, consider:
 - Scan quality 0.3-0.7: Moderate - use existing data if sufficient
 - Scan quality 0.7-1.0: Good - no need to rescan unless specific objects missing
 
+## Task Examples and Patterns
+
+### "Move toward [object]" Tasks
+For tasks like "move toward cup", "move toward the bottle", etc.:
+1. **First check if object is detected**: Look at Current Vision Feedback
+2. **If object is detected**: Use APPROACH_OBJECT to move toward it
+3. **If object is NOT detected**: Use SCAN_FOR_OBJECTS first, then APPROACH_OBJECT
+4. **Always end with going home**: Add MOVE_TO_NAMED "home" at the end
+
+Example for "move toward cup":
+```json
+{
+  "goal": "move toward cup",
+  "reasoning": "Cup is detected in vision feedback, so I can approach it directly",
+  "steps": [
+    { "action": "APPROACH_OBJECT", "label": "cup", "hover_mm": 100, "timeout_sec": 5 },
+    { "action": "MOVE_TO_NAMED", "name": "home" }
+  ]
+}
+```
+
+Example when object is NOT detected:
+```json
+{
+  "goal": "move toward cup",
+  "reasoning": "Cup not detected, need to scan first then approach",
+  "steps": [
+    { "action": "SCAN_FOR_OBJECTS", "pattern": "horizontal", "sweep_mm": 300, "steps": 5, "pause_sec": 1.0 },
+    { "action": "APPROACH_OBJECT", "label": "cup", "hover_mm": 100, "timeout_sec": 5 },
+    { "action": "MOVE_TO_NAMED", "name": "home" }
+  ]
+}
+```
+
+### "Find [object]" Tasks
+For tasks like "find cup", "look for bottle", etc.:
+1. **Use SCAN_FOR_OBJECTS**: Always scan to find objects
+2. **End with going home**: Return to safe position
+
+### "Pick up [object]" Tasks
+For tasks like "pick up cup", "grab the bottle", etc.:
+1. **Check if object is detected**
+2. **Open gripper first**
+3. **Approach object**
+4. **Move to object**
+5. **Grasp object**
+6. **Retreat upward**
+7. **Go to drop location or home**
+
 ## Instructions
 
 1. **Analyze the task requirements**: Determine if vision is needed for this task
@@ -692,6 +774,7 @@ When interacting with kitchen appliances or complex objects, consider:
 8. **Apply object interaction guidelines**: Use appropriate strategies for different object types
 9. **Consider safety**: Always prioritize safety when interacting with objects
 10. **Adapt to object characteristics**: Adjust approach based on object type and state
+11. **Follow task patterns**: Use the examples above for common task types
 
 ## Action Schema:
 {self.action_schema}
@@ -786,7 +869,38 @@ Generate the plan now:
             task_lower = context.task_description.lower()
             objects = context.vision_feedback.objects_detected
         
-        # Check for scanning tasks first
+        # Check for "move toward" tasks first
+        if any(phrase in task_lower for phrase in ["move toward", "move to", "go to", "approach"]):
+            # Extract object name from task
+            target_object = None
+            for word in ["cup", "bottle", "bowl", "microwave", "oven", "stove", "fridge", "bin"]:
+                if word in task_lower:
+                    target_object = word
+                    break
+            
+            if target_object:
+                # Check if object is detected
+                if objects and any(obj.get('class', '').lower() == target_object for obj in objects):
+                    return {
+                        "goal": task_description,
+                        "reasoning": f"Fallback plan: {target_object} is detected, approaching it directly",
+                        "steps": [
+                            {"action": "APPROACH_OBJECT", "label": target_object, "hover_mm": 100, "timeout_sec": 5},
+                            {"action": "MOVE_TO_NAMED", "name": "home"}
+                        ]
+                    }
+                else:
+                    return {
+                        "goal": task_description,
+                        "reasoning": f"Fallback plan: {target_object} not detected, scanning first then approaching",
+                        "steps": [
+                            {"action": "SCAN_FOR_OBJECTS", "pattern": "horizontal", "sweep_mm": 300, "steps": 5, "pause_sec": 1.0},
+                            {"action": "APPROACH_OBJECT", "label": target_object, "hover_mm": 100, "timeout_sec": 5},
+                            {"action": "MOVE_TO_NAMED", "name": "home"}
+                        ]
+                    }
+        
+        # Check for scanning tasks
         if any(word in task_lower for word in ["scan", "find", "look", "search", "detect"]):
             return {
                 "goal": task_description,

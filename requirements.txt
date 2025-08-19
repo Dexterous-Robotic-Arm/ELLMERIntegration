@@ -19,6 +19,13 @@ dynamixel-sdk>=3.7.0
 google-generativeai>=0.3.0
 openai>=1.0.0
 
+# RAG Dependencies for True Intelligence
+chromadb>=0.4.15            # Vector database for semantic search
+sentence-transformers>=2.2.2 # Embedding models for semantic similarity
+faiss-cpu>=1.7.4            # Alternative vector search engine
+langchain>=0.1.0            # RAG framework and tools
+tiktoken>=0.5.1             # Token counting for embeddings
+
 # Computer Vision
 opencv-python>=4.8.0
 ultralytics>=8.0.0
