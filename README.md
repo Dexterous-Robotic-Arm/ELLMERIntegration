@@ -96,7 +96,7 @@ cd ELLMERIntegration
 chmod +x scripts/install_dependencies.sh
 ./scripts/install_dependencies.sh
 
-# Setup environment
+   # Setup environment
 source scripts/setup_env.sh
 ```
 
@@ -232,7 +232,7 @@ robot:
   safety_limits:
     max_velocity: 100.0
     max_acceleration: 50.0
-    workspace_limits:
+workspace_limits:
       x: [-500, 500]
       y: [-500, 500]
       z: [0, 500]

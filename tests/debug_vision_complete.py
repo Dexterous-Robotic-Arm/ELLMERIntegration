@@ -10,7 +10,7 @@ import json
 import numpy as np
 
 # Add the robot_control package to the path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def debug_vision_complete():
     """Complete debug of vision system."""
