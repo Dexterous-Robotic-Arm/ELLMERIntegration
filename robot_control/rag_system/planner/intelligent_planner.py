@@ -666,7 +666,7 @@ Now, using all your intelligence and reasoning capabilities, create a plan for t
         
         try:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-pro')
+            model = genai.GenerativeModel('gemini-2.0-flash-exp')
             logger.info("Advanced LLM initialized successfully")
             return model
         except Exception as e:

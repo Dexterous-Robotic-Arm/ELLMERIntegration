@@ -205,7 +205,7 @@ if not api_key:
 
 try:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel('gemini-2.0-flash-exp')
     
     # Test simple query
     response = model.generate_content('Hello, can you help me plan a robot task?')

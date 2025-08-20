@@ -628,7 +628,7 @@ Generate the intelligent plan now using the retrieved robotics knowledge:
         
         try:
             genai.configure(api_key=api_key)
-            return genai.GenerativeModel('gemini-pro')
+            return genai.GenerativeModel('gemini-2.0-flash-exp')
         except Exception as e:
             logger.error(f"Failed to initialize LLM: {e}")
             return None
