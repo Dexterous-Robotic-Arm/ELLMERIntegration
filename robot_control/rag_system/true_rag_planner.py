@@ -402,7 +402,8 @@ class TrueRAGPlanner:
             
         except Exception as e:
             logger.error(f"RAG planning failed: {e}")
-            return self._generate_fallback_plan(user_query)
+            # NO FALLBACKS - PURE RAG TESTING
+            raise RuntimeError(f"RAG planning failed and no fallbacks allowed for pure testing: {e}")
     
     def _retrieve_relevant_knowledge(self, query: str, n_results: int = 5) -> List[RAGDocument]:
         """Retrieve relevant knowledge using semantic search."""
@@ -462,7 +463,7 @@ class TrueRAGPlanner:
         """Generate plan using RAG-augmented context."""
         
         if not self.llm:
-            return self._generate_intelligent_fallback_with_rag(context)
+            raise RuntimeError("LLM not available - no fallbacks allowed for pure RAG testing")
         
         try:
             # Create RAG-augmented prompt
