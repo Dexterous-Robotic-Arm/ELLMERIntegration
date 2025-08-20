@@ -146,7 +146,7 @@ class RAGPromptTester:
         
         try:
             # Import required components
-            from robot_control.rag_system.true_rag_planner import TrueRAGPlanner, RAGContext, RAGDocument
+            from robot_control.rag_system import TrueRAGPlanner, RAGContext, RAGDocument
             
             # Create a minimal RAG planner (may fail on LLM init, but we only need prompt generation)
             try:

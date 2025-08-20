@@ -27,7 +27,7 @@ import traceback
 sys.path.insert(0, str(Path(__file__).parent))
 
 # Import RAG system
-from robot_control.rag_system.true_rag_planner import TrueRAGPlanner, RAGDocument, RAGContext
+from robot_control.rag_system import TrueRAGPlanner, RAGDocument, RAGContext
 from knowledge_base.robotics_knowledge import get_all_knowledge, search_knowledge_by_keywords
 
 # Test configuration

@@ -14,10 +14,12 @@ Usage:
     from robot_control.rag_system.planner.intelligent_planner import IntelligentRobotPlanner
 """
 
-from .true_rag_planner import TrueRAGPlanner
+from .true_rag_planner import TrueRAGPlanner, RAGDocument, RAGContext
 from .planner.intelligent_planner import IntelligentRobotPlanner
 
 __all__ = [
     'TrueRAGPlanner',
+    'RAGDocument', 
+    'RAGContext',
     'IntelligentRobotPlanner'
 ]
