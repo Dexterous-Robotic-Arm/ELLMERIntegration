@@ -570,11 +570,19 @@ Return a JSON object with this structure:
   "approach": "Approach based on retrieved patterns",
   "safety_considerations": "Safety aspects from knowledge base",
   "steps": [
-    {{"action": "ACTION_NAME", "parameters": {{}}, "knowledge_source": "which retrieved knowledge guided this step"}}
+    {{"action": "ACTION_NAME", "field1": "value1", "field2": "value2", "knowledge_source": "which retrieved knowledge guided this step"}}
   ],
   "confidence": "High/Medium/Low based on knowledge relevance",
   "fallback_plan": "Alternative approach if main plan fails"
 }}
+
+## EXAMPLE CORRECT ACTION FORMATS:
+- {{"action": "SCAN_AREA", "pattern": "horizontal", "sweep_mm": 300, "steps": 5}}
+- {{"action": "APPROACH_OBJECT", "label": "bottle", "hover_mm": 80, "timeout_sec": 5}}
+- {{"action": "MOVE_TO_OBJECT", "label": "bottle", "offset_mm": [0,0,0], "timeout_sec": 5}}
+- {{"action": "MOVE_TO_NAMED", "name": "home"}}
+
+⚠️  CRITICAL: Put action parameters at the TOP LEVEL, NOT inside a "parameters" object!
 
 Generate the intelligent plan now using the retrieved robotics knowledge:
 """

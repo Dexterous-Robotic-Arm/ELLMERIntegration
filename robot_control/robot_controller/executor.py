@@ -286,6 +286,15 @@ class TaskExecutor:
                 self._check_safety_status()
             
             act = step.get("action")
+            
+            # Fix parameter format if AI wrapped parameters in "parameters" object
+            if "parameters" in step and isinstance(step["parameters"], dict):
+                # Flatten nested parameters to top level
+                for key, value in step["parameters"].items():
+                    if key not in step:  # Don't overwrite existing top-level keys
+                        step[key] = value
+                print(f"[Plan] Fixed nested parameters for step {i}")
+            
             print(f"[Plan] Step {i}/{len(steps_list)}: {act} {step}")
 
             try:

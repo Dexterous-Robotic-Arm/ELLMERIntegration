@@ -387,4 +387,18 @@ These actions DO NOT EXIST and will cause execution failure:
 ]
 ```
 
-This knowledge ensures the RAG system generates only executable robot actions.
+### ⚠️ CRITICAL PARAMETER FORMAT RULES
+
+**✅ CORRECT FORMAT (parameters at top level):**
+```json
+{"action": "APPROACH_OBJECT", "label": "bottle", "hover_mm": 80, "timeout_sec": 5}
+```
+
+**❌ WRONG FORMAT (nested parameters object):**
+```json
+{"action": "APPROACH_OBJECT", "parameters": {"label": "bottle", "hover_mm": 80}}
+```
+
+**RULE: All action parameters must be at the TOP LEVEL of the JSON object, not nested inside a "parameters" field.**
+
+This knowledge ensures the RAG system generates only executable robot actions with correct parameter format.
