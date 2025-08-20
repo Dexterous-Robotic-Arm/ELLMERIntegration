@@ -299,3 +299,92 @@ These are the only allowed `action` values. Any other value is invalid.
   }
 }
 ```
+
+---
+
+## ⚠️ CRITICAL: RAG Knowledge Base Integration
+
+**FOR RAG SYSTEM USE ONLY** - The following section provides comprehensive action validation knowledge for the RAG system to prevent action hallucination.
+
+### Complete Valid Actions List - NO OTHER ACTIONS EXIST
+
+The robot executor ONLY supports these actions. Any other action names will cause execution failure:
+
+#### Movement Actions
+- **`MOVE_TO_NAMED`** - Move to named pose from world model
+  - Required: `name` (string)
+  - Example: `{"action": "MOVE_TO_NAMED", "name": "home"}`
+
+- **`APPROACH_OBJECT`** - Move to hover position above detected object  
+  - Required: `label` (string) or `labels` (array)
+  - Optional: `hover_mm` (default 80), `timeout_sec` (default 5)
+  - Example: `{"action": "APPROACH_OBJECT", "label": "bottle", "hover_mm": 80}`
+
+- **`MOVE_TO_OBJECT`** - Move to detected object position with offset
+  - Required: `label` (string) or `labels` (array) 
+  - Optional: `offset_mm` (default [0,0,0]), `timeout_sec` (default 5)
+  - Example: `{"action": "MOVE_TO_OBJECT", "label": "bottle", "offset_mm": [0,0,0]}`
+
+- **`RETREAT_Z`** - Move upward along Z axis
+  - Required: `dz_mm` (number > 0)
+  - Example: `{"action": "RETREAT_Z", "dz_mm": 100}`
+
+- **`SCAN_AREA`** / **`SCAN_FOR_OBJECTS`** - Scan workspace for objects
+  - Optional: `pattern`, `sweep_mm`, `steps`, `pause_sec`
+  - Example: `{"action": "SCAN_AREA", "pattern": "horizontal", "sweep_mm": 300}`
+
+#### Gripper Actions
+- **`OPEN_GRIPPER`** - Open gripper
+- **`CLOSE_GRIPPER`** - Close gripper  
+- **`GRIPPER_GRASP`** - Grasp with force feedback
+- **`GRIPPER_RELEASE`** - Release object
+- **`SET_GRIPPER_POSITION`** - Set specific position
+
+#### Utility Actions
+- **`SLEEP`** - Wait for specified time
+  - Required: `seconds` (number)
+  - Example: `{"action": "SLEEP", "seconds": 2.0}`
+
+### ❌ INVALID ACTIONS - NEVER USE THESE
+
+These actions DO NOT EXIST and will cause execution failure:
+
+- ❌ `MOVE_TO_POSITION_ABOVE_OBJECT` → Use `APPROACH_OBJECT` instead
+- ❌ `CHECK_FOR_OBSTACLES` → Use `SCAN_AREA` to detect obstacles  
+- ❌ `ADJUST_PATH` → Use `MOVE_TO_OBJECT` with `offset_mm` for path adjustment
+- ❌ `NAVIGATE_TO` → Use `MOVE_TO_NAMED` or `MOVE_TO_OBJECT`
+- ❌ `AVOID_OBSTACLE` → Use `SCAN_AREA` and proper positioning
+- ❌ `PLAN_PATH` → Not needed, use direct movement actions
+- ❌ `VERIFY_POSITION` → Not implemented
+- ❌ `CALCULATE_TRAJECTORY` → Not needed, handled internally
+
+### 🎯 Action Planning Rules for RAG
+
+1. **ONLY use actions from the valid list above**
+2. **NEVER invent new action names** 
+3. **Always use APPROACH_OBJECT for hovering above objects**
+4. **Use SCAN_AREA for any scanning/detection needs**
+5. **Combine simple actions instead of creating complex ones**
+6. **Validate every action name against the schema**
+
+### Common Task Patterns Using Valid Actions
+
+**Safe Object Approach:**
+```json
+[
+  {"action": "SCAN_AREA", "pattern": "horizontal"},
+  {"action": "APPROACH_OBJECT", "label": "bottle", "hover_mm": 80},
+  {"action": "MOVE_TO_OBJECT", "label": "bottle", "offset_mm": [0,0,0]}
+]
+```
+
+**Object Detection and Movement:**
+```json
+[
+  {"action": "SCAN_AREA", "sweep_mm": 300, "steps": 5},
+  {"action": "APPROACH_OBJECT", "label": "target", "hover_mm": 100},
+  {"action": "MOVE_TO_NAMED", "name": "home"}
+]
+```
+
+This knowledge ensures the RAG system generates only executable robot actions.

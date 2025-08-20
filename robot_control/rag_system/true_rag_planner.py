@@ -60,6 +60,18 @@ except ImportError:
     KNOWLEDGE_BASE_AVAILABLE = False
     print("Warning: Robotics knowledge base not available")
 
+# Load action schema for RAG
+def load_action_schema() -> str:
+    """Load action schema for RAG knowledge integration."""
+    try:
+        schema_path = Path(__file__).parent.parent.parent / "config" / "llm" / "action_schema.md"
+        if schema_path.exists():
+            return schema_path.read_text()
+        else:
+            return "Action schema not found"
+    except Exception as e:
+        return f"Failed to load action schema: {e}"
+
 logger = logging.getLogger(__name__)
 
 
@@ -307,10 +319,26 @@ class TrueRAGPlanner:
                     )
                     documents.append(doc)
             
+            # Add action schema as a critical knowledge document
+            action_schema_content = load_action_schema()
+            action_schema_doc = RAGDocument(
+                id="action_schema_critical",
+                content=f"CRITICAL ROBOT ACTION SCHEMA - ONLY VALID ACTIONS:\n\n{action_schema_content}",
+                metadata={
+                    "category": "action_validation",
+                    "item_type": "action_schema",
+                    "source": "config_llm_action_schema",
+                    "priority": "critical"
+                },
+                category="action_validation",
+                keywords=["action", "schema", "valid", "robot", "commands", "MOVE_TO_NAMED", "APPROACH_OBJECT", "SCAN_AREA", "GRIPPER"]
+            )
+            documents.append(action_schema_doc)
+            
             # Add documents to vector database
             self.vector_db.add_documents(documents)
             
-            logger.info(f"Indexed {len(documents)} knowledge documents")
+            logger.info(f"Indexed {len(documents)} knowledge documents (including action schema)")
             
         except Exception as e:
             logger.error(f"Failed to initialize knowledge base: {e}")
@@ -519,15 +547,18 @@ Robot Position: {context.robot_state.get('position', 'Unknown')}
 Gripper State: {context.robot_state.get('gripper_state', 'Unknown')}
 Detected Objects: {[obj.get('class', 'unknown') for obj in context.current_environment.get('objects', [])]}
 
-## INSTRUCTIONS
+## CRITICAL INSTRUCTIONS
 
 Using the retrieved robotics knowledge above, create an intelligent plan that:
 
-1. **Applies Retrieved Knowledge**: Use the patterns, strategies, and solutions from the retrieved knowledge
-2. **Adapts to Current Context**: Consider current robot state and environment
-3. **Follows Safety Guidelines**: Apply safety considerations from the knowledge base
-4. **Uses Proven Patterns**: Leverage successful movement patterns and task strategies
-5. **Handles Edge Cases**: Apply problem-solving strategies for potential issues
+1. **ONLY USES VALID ACTIONS**: Use ONLY actions from the retrieved action schema - NEVER invent new action names
+2. **Applies Retrieved Knowledge**: Use the patterns, strategies, and solutions from the retrieved knowledge
+3. **Validates Every Action**: Every action must be from the valid action list (MOVE_TO_NAMED, APPROACH_OBJECT, SCAN_AREA, etc.)
+4. **Adapts to Current Context**: Consider current robot state and environment
+5. **Follows Safety Guidelines**: Apply safety considerations from the knowledge base
+6. **Uses Proven Patterns**: Leverage successful movement patterns and task strategies
+
+⚠️  CRITICAL: If you use ANY action not in the valid action schema, the robot will fail completely!
 
 ## OUTPUT FORMAT
 Return a JSON object with this structure:
