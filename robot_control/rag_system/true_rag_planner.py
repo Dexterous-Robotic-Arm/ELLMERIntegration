@@ -487,7 +487,7 @@ class TrueRAGPlanner:
             
         except Exception as e:
             logger.error(f"RAG generation failed: {e}")
-            return self._generate_intelligent_fallback_with_rag(context)
+            raise RuntimeError(f"RAG generation failed and no fallbacks allowed for pure AI testing: {e}")
     
     def _create_rag_prompt(self, context: RAGContext) -> str:
         """Create a RAG-augmented prompt with retrieved knowledge."""
@@ -572,170 +572,10 @@ Generate the intelligent plan now using the retrieved robotics knowledge:
             
         except Exception as e:
             logger.error(f"Failed to parse RAG response: {e}")
-            return self._generate_intelligent_fallback_with_rag(context)
+            raise RuntimeError(f"Failed to parse RAG response and no fallbacks allowed for pure AI testing: {e}")
     
-    def _generate_intelligent_fallback_with_rag(self, context: RAGContext) -> Dict[str, Any]:
-        """Generate intelligent fallback plan using retrieved knowledge."""
-        
-        query = context.user_query.lower()
-        retrieved_docs = context.retrieved_documents
-        
-        # Apply retrieved knowledge to fallback planning
-        applicable_patterns = []
-        for doc in retrieved_docs:
-            if 'pattern' in doc.content.lower() or 'steps' in doc.content.lower():
-                applicable_patterns.append(doc)
-        
-        # Generate plan based on retrieved patterns
-        if any(phrase in query for phrase in ["move toward", "approach", "go to"]):
-            return self._create_movement_plan_with_knowledge(query, applicable_patterns)
-        elif any(phrase in query for phrase in ["pick up", "grab", "take"]):
-            return self._create_manipulation_plan_with_knowledge(query, applicable_patterns)
-        elif any(phrase in query for phrase in ["clean", "organize", "tidy"]):
-            return self._create_organization_plan_with_knowledge(query, applicable_patterns)
-        else:
-            return self._create_general_plan_with_knowledge(query, applicable_patterns)
-    
-    def _create_movement_plan_with_knowledge(self, query: str, patterns: List[RAGDocument]) -> Dict[str, Any]:
-        """Create movement plan using retrieved knowledge patterns."""
-        
-        # Extract target object
-        target_object = self._extract_target_from_query(query)
-        
-        # Find applicable movement pattern
-        movement_pattern = None
-        for pattern in patterns:
-            if 'approach' in pattern.content.lower() or 'movement' in pattern.content.lower():
-                movement_pattern = pattern
-                break
-        
-        steps = []
-        knowledge_applied = []
-        
-        # Apply retrieved knowledge to create steps
-        if movement_pattern:
-            knowledge_applied.append(f"Applied {movement_pattern.category} pattern for safe object approach")
-            if target_object:
-                steps = [
-                    {"action": "SCAN_FOR_OBJECTS", "pattern": "horizontal", "sweep_mm": 300, "steps": 5, "pause_sec": 1.0, "knowledge_source": "systematic_scanning_pattern"},
-                    {"action": "APPROACH_OBJECT", "label": target_object, "hover_mm": 100, "timeout_sec": 5, "knowledge_source": "safe_object_approach_pattern"},
-                    {"action": "MOVE_TO_NAMED", "name": "home", "knowledge_source": "safety_return_pattern"}
-                ]
-            else:
-                steps = [
-                    {"action": "SCAN_FOR_OBJECTS", "pattern": "horizontal", "sweep_mm": 300, "steps": 5, "pause_sec": 1.0},
-                    {"action": "MOVE_TO_NAMED", "name": "home"}
-                ]
-        else:
-            # Basic fallback
-            steps = [
-                {"action": "MOVE_TO_NAMED", "name": "home"}
-            ]
-        
-        return {
-            "understanding": f"Movement request toward {target_object or 'general area'}",
-            "retrieved_knowledge_applied": "; ".join(knowledge_applied) if knowledge_applied else "Limited knowledge available",
-            "reasoning": "Applied retrieved movement patterns with safety considerations",
-            "goal": f"Safely move toward {target_object or 'target location'}",
-            "approach": "Knowledge-based safe movement pattern",
-            "steps": steps,
-            "confidence": "High" if movement_pattern else "Medium",
-            "generated_by": "rag_fallback_movement"
-        }
-    
-    def _create_manipulation_plan_with_knowledge(self, query: str, patterns: List[RAGDocument]) -> Dict[str, Any]:
-        """Create manipulation plan using retrieved knowledge."""
-        
-        target_object = self._extract_target_from_query(query)
-        
-        # Find manipulation pattern
-        manipulation_pattern = None
-        for pattern in patterns:
-            if 'pick' in pattern.content.lower() or 'grasp' in pattern.content.lower():
-                manipulation_pattern = pattern
-                break
-        
-        steps = [
-            {"action": "SCAN_FOR_OBJECTS", "pattern": "horizontal", "sweep_mm": 300, "steps": 5, "pause_sec": 1.0},
-            {"action": "OPEN_GRIPPER", "gripper": {"position": 850, "speed": 200}},
-            {"action": "APPROACH_OBJECT", "label": target_object or "object", "hover_mm": 80, "timeout_sec": 5},
-            {"action": "MOVE_TO_OBJECT", "label": target_object or "object", "offset_mm": [0, 0, 0], "timeout_sec": 5},
-            {"action": "GRIPPER_GRASP", "target_position": 200, "speed": 100, "force": 50},
-            {"action": "RETREAT_Z", "dz_mm": 100},
-            {"action": "MOVE_TO_NAMED", "name": "home"}
-        ]
-        
-        return {
-            "understanding": f"Manipulation request to pick up {target_object or 'object'}",
-            "retrieved_knowledge_applied": f"Applied {manipulation_pattern.category if manipulation_pattern else 'basic'} manipulation pattern",
-            "reasoning": "Used knowledge-based pick and place sequence with safety considerations",
-            "goal": f"Pick up {target_object or 'target object'}",
-            "approach": "Knowledge-guided manipulation with force feedback",
-            "steps": steps,
-            "confidence": "High" if manipulation_pattern else "Medium",
-            "generated_by": "rag_fallback_manipulation"
-        }
-    
-    def _create_organization_plan_with_knowledge(self, query: str, patterns: List[RAGDocument]) -> Dict[str, Any]:
-        """Create organization plan using retrieved knowledge."""
-        
-        # Find organization pattern
-        org_pattern = None
-        for pattern in patterns:
-            if 'clean' in pattern.content.lower() or 'organiz' in pattern.content.lower():
-                org_pattern = pattern
-                break
-        
-        steps = [
-            {"action": "SCAN_FOR_OBJECTS", "pattern": "horizontal", "sweep_mm": 300, "steps": 7, "pause_sec": 1.5},
-            {"action": "MOVE_TO_NAMED", "name": "staging_area"},
-            {"action": "OPEN_GRIPPER", "gripper": {"position": 400, "speed": 150}},
-            {"action": "MOVE_TO_NAMED", "name": "home"}
-        ]
-        
-        return {
-            "understanding": "Organization and cleaning request",
-            "retrieved_knowledge_applied": f"Applied {org_pattern.category if org_pattern else 'basic'} organization strategy",
-            "reasoning": "Used systematic approach based on retrieved cleaning patterns",
-            "goal": "Organize and clean workspace",
-            "approach": "Knowledge-based systematic organization",
-            "steps": steps,
-            "confidence": "High" if org_pattern else "Medium",
-            "generated_by": "rag_fallback_organization"
-        }
-    
-    def _create_general_plan_with_knowledge(self, query: str, patterns: List[RAGDocument]) -> Dict[str, Any]:
-        """Create general plan using any available retrieved knowledge."""
-        
-        steps = [
-            {"action": "SCAN_FOR_OBJECTS", "pattern": "horizontal", "sweep_mm": 300, "steps": 5, "pause_sec": 1.0},
-            {"action": "MOVE_TO_NAMED", "name": "home"}
-        ]
-        
-        applied_knowledge = []
-        if patterns:
-            applied_knowledge = [f"Retrieved {len(patterns)} relevant knowledge items"]
-        
-        return {
-            "understanding": f"General request: {query}",
-            "retrieved_knowledge_applied": "; ".join(applied_knowledge) if applied_knowledge else "Limited specific knowledge available",
-            "reasoning": "Applied general robotics principles with available knowledge",
-            "goal": "Safe response to user request",
-            "approach": "Conservative approach with knowledge-based safety",
-            "steps": steps,
-            "confidence": "Medium",
-            "generated_by": "rag_fallback_general"
-        }
-    
-    # Helper methods
-    def _extract_target_from_query(self, query: str) -> Optional[str]:
-        """Extract target object from query."""
-        common_objects = ["cup", "bottle", "bowl", "plate", "microwave", "oven", "bin", "box"]
-        query_lower = query.lower()
-        for obj in common_objects:
-            if obj in query_lower:
-                return obj
-        return None
+    # ALL FALLBACK METHODS REMOVED - PURE AI TESTING ONLY
+    # The system now relies entirely on RAG + LLM for planning
     
     def _get_current_context(self) -> Dict[str, Any]:
         """Get current robot and environment context."""
@@ -802,18 +642,3 @@ Generate the intelligent plan now using the retrieved robotics knowledge:
         except Exception as e:
             logger.warning(f"Failed to initialize vision integration: {e}")
             self.object_index = None
-    
-    def _generate_fallback_plan(self, query: str) -> Dict[str, Any]:
-        """Generate basic fallback plan when RAG fails."""
-        return {
-            "understanding": f"Basic fallback for: {query}",
-            "reasoning": "RAG system unavailable, using basic fallback",
-            "goal": query,
-            "approach": "Basic safe approach",
-            "steps": [
-                {"action": "MOVE_TO_NAMED", "name": "home"},
-                {"action": "SLEEP", "seconds": 1.0}
-            ],
-            "confidence": "Low",
-            "generated_by": "basic_fallback"
-        }

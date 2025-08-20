@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 """
-True RAG-based Robot Control System
+Pure RAG-based Robot Control System
 
-This module provides a True Retrieval-Augmented Generation (RAG) based robot control system
-with semantic knowledge retrieval and intelligent planning.
+This module provides a PURE Retrieval-Augmented Generation (RAG) based robot control system
+with semantic knowledge retrieval and AI-only planning.
 
 Key Components:
-- TrueRAGPlanner: Main RAG system with vector database and semantic search
-- IntelligentRobotPlanner: Fallback intelligent planner for when RAG is unavailable
+- TrueRAGPlanner: Pure RAG system with vector database and semantic search
+- RAGDocument: Knowledge document structure
+- RAGContext: Planning context with retrieved knowledge
+
+NO FALLBACKS - System requires AI (Gemini API key) to function.
 
 Usage:
-    from robot_control.rag_system.true_rag_planner import TrueRAGPlanner
-    from robot_control.rag_system.planner.intelligent_planner import IntelligentRobotPlanner
+    from robot_control.rag_system import TrueRAGPlanner, RAGDocument, RAGContext
 """
 
 from .true_rag_planner import TrueRAGPlanner, RAGDocument, RAGContext
-from .planner.intelligent_planner import IntelligentRobotPlanner
 
 __all__ = [
     'TrueRAGPlanner',
     'RAGDocument', 
-    'RAGContext',
-    'IntelligentRobotPlanner'
+    'RAGContext'
 ]

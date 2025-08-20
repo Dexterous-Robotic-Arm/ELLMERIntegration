@@ -42,7 +42,7 @@ class SystemConfig:
     wait_detections: bool
     min_detection_items: int
     log_level: str
-    use_fallback: bool
+# Removed use_fallback - NO FALLBACKS ALLOWED for pure AI testing
 
 
 def parse_arguments() -> SystemConfig:
@@ -131,11 +131,7 @@ Examples:
         help="Logging level"
     )
     
-    parser.add_argument(
-        "--use-fallback", 
-        action="store_true",
-        help="Force use of fallback planner (skip LLM)"
-    )
+# Removed --use-fallback flag - NO FALLBACKS ALLOWED for pure AI testing
     
     args = parser.parse_args()
     
@@ -151,7 +147,7 @@ Examples:
         wait_detections=args.wait_detections,
         min_detection_items=args.min_detection_items,
         log_level=args.log_level,
-        use_fallback=args.use_fallback
+# Removed use_fallback - NO FALLBACKS ALLOWED
     )
 
 
@@ -271,38 +267,9 @@ class TaskPlanner:
             return plan
             
         except Exception as e:
-            self.logger.error(f"True RAG planning failed: {e}")
-            # Fallback to intelligent planner
-            try:
-                self.logger.info("Falling back to Intelligent Planner")
-                from robot_control.rag_system.planner.intelligent_planner import IntelligentRobotPlanner
-                
-                intelligent_planner = IntelligentRobotPlanner(
-                    robot_controller=executor,
-                    vision_system=executor.object_index if hasattr(executor, 'object_index') else None,
-                    config_path="config/",
-                    learning_enabled=True
-                )
-                
-                plan = intelligent_planner.plan_intelligent_task(task)
-                plan['fallback_used'] = 'intelligent_planner'
-                return plan
-                
-            except Exception as e2:
-                self.logger.error(f"Intelligent planner fallback failed: {e2}")
-                # Final basic fallback
-                return {
-                    "understanding": f"Basic fallback for: {task}",
-                    "reasoning": "Both RAG and intelligent planners unavailable, using basic approach",
-                    "goal": task,
-                    "approach": "Basic safe fallback",
-                    "steps": [
-                        {"action": "MOVE_TO_NAMED", "name": "home"},
-                        {"action": "SLEEP", "seconds": 1.0}
-                    ],
-                    "generated_by": "basic_fallback",
-                    "fallback_reason": f"RAG error: {e}, Intelligent error: {e2}"
-                }
+            # NO FALLBACKS - PURE AI TESTING ONLY
+            self.logger.error(f"RAG planning failed: {e}")
+            raise RuntimeError(f"AI RAG planning failed and no fallbacks allowed for pure AI testing: {e}")
 
 
 # TaskExecutor is imported from robot_control.robot_controller.executor

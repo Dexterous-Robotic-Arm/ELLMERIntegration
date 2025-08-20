@@ -13,7 +13,7 @@ Key Components:
 
 Usage:
     # True RAG-based system (recommended)
-    from robot_control.rag_system import TrueRAGPlanner, IntelligentRobotPlanner
+    from robot_control.rag_system import TrueRAGPlanner
     
     # Core components
     from robot_control.robot_controller import XArmRunner

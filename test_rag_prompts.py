@@ -182,14 +182,14 @@ Category: {doc.category}
 
 """
                         
-                        prompt += f"""
+                        prompt += """
 ## CURRENT ROBOT STATE
-Robot Position: {context.robot_state.get('position', 'Unknown')}
-Gripper State: {context.robot_state.get('gripper_state', 'Unknown')}
+Robot Position: """ + str(context.robot_state.get('position', 'Unknown')) + """
+Gripper State: """ + str(context.robot_state.get('gripper_state', 'Unknown')) + """
 
 ## DETECTED OBJECTS
 Currently detected objects with positions:
-{context.current_environment.get('objects', [])}
+""" + str(context.current_environment.get('objects', [])) + """
 
 ## INSTRUCTIONS
 Using the retrieved robotics knowledge above, create an intelligent plan that:
@@ -200,15 +200,15 @@ Using the retrieved robotics knowledge above, create an intelligent plan that:
 
 ## OUTPUT FORMAT
 Return a JSON object with this structure:
-{{
+{
   "understanding": "Your interpretation using retrieved knowledge",
   "reasoning": "Your reasoning based on knowledge and context", 
   "goal": "Clear task goal",
   "steps": [
-    {{"action": "ACTION_NAME", "parameters": {{}}}
+    {"action": "ACTION_NAME", "parameters": {}}
   ],
   "confidence": "High/Medium/Low"
-}}
+}
 
 Generate the intelligent plan now:
 """
