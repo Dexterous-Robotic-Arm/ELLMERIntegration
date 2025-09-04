@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field
 import hashlib
+import time as _time
 
 # Core dependencies
 import numpy as np
@@ -49,6 +50,13 @@ try:
 except ImportError:
     GEMINI_AVAILABLE = False
     print("Warning: Google Generative AI not available")
+
+try:
+    import yaml
+    YAML_AVAILABLE = True
+except ImportError:
+    YAML_AVAILABLE = False
+    print("Warning: PyYAML not available - using default RAG planner settings")
 
 # Import knowledge base
 import sys
@@ -263,6 +271,9 @@ class TrueRAGPlanner:
         self.vision_system = vision_system
         self.config_path = Path(config_path)
         self.db_path = Path(db_path)
+        self.rag_settings: Dict[str, Any] = {}
+        self._allowed_actions: Optional[set] = None
+        self._last_replan_notes: Optional[str] = None
         
         # Initialize vector database
         self.vector_db = VectorDatabase(db_path=str(self.db_path))
@@ -278,6 +289,9 @@ class TrueRAGPlanner:
         
         # Initialize LLM
         self.llm = self._initialize_llm()
+        
+        # Load RAG planner settings and allowed actions
+        self._load_rag_settings()
         
         # Load and index knowledge base
         self._initialize_knowledge_base()
@@ -343,6 +357,78 @@ class TrueRAGPlanner:
         except Exception as e:
             logger.error(f"Failed to initialize knowledge base: {e}")
     
+    def _load_rag_settings(self) -> None:
+        """Load RAG planner settings (retries, scanning on confusion, allowed actions)."""
+        try:
+            cfg_path = self.config_path / "llm" / "rag_config.yaml"
+            if YAML_AVAILABLE and cfg_path.exists():
+                with open(cfg_path, 'r') as f:
+                    cfg = yaml.safe_load(f) or {}
+                self.rag_settings = cfg
+                # Load allowed actions from config if present
+                actions_cfg = (cfg or {}).get('actions', {})
+                movement = set(actions_cfg.get('movement_actions', []) or [])
+                gripper = set(actions_cfg.get('gripper_actions', []) or [])
+                # Common aliases present in executor
+                extras = {"SCAN_FOR_OBJECTS", "SCAN_AREA", "SLEEP", "RETREAT_Z", "SET_GRIPPER_POSITION"}
+                self._allowed_actions = set(movement | gripper | extras)
+                logger.info("RAG settings loaded from rag_config.yaml")
+            else:
+                # Defaults if config missing
+                self.rag_settings = {
+                    'rag_planner': {
+                        'max_retries': 2,
+                        'enable_scanning_on_confusion': True
+                    }
+                }
+                self._allowed_actions = {
+                    "MOVE_TO_NAMED", "APPROACH_NAMED", "MOVE_TO_OBJECT", "APPROACH_OBJECT",
+                    "RETREAT_Z", "MOVE_TO_POSE", "SLEEP", "SCAN_AREA", "SCAN_FOR_OBJECTS",
+                    "OPEN_GRIPPER", "CLOSE_GRIPPER", "GRIPPER_GRASP", "GRIPPER_RELEASE",
+                    "GRIPPER_HALF_OPEN", "GRIPPER_SOFT_CLOSE", "GRIPPER_TEST", "SET_GRIPPER_POSITION"
+                }
+                logger.warning("RAG settings not found - using reasonable defaults")
+        except Exception as e:
+            logger.error(f"Failed to load RAG settings: {e}")
+            # Keep defaults on failure
+
+    def _get_allowed_actions(self) -> set:
+        """Return the set of allowed action names for validation."""
+        return self._allowed_actions or set()
+
+    def _extract_target_object_from_query(self, query: str) -> Optional[str]:
+        """Very simple heuristic to extract a likely target object class from the user query."""
+        q = (query or "").lower()
+        candidates = [
+            "cup", "bottle", "bowl", "plate", "spoon", "fork", "knife", "box", "book",
+            "mug", "can", "phone", "remote", "screw", "dowel"
+        ]
+        for c in candidates:
+            if c in q:
+                return c
+        return None
+
+    def _is_plan_valid(self, plan: Dict[str, Any], user_query: str, current_objects: List[Dict[str, Any]]) -> Tuple[bool, str]:
+        """Validate that a generated plan is usable; return (ok, reason_if_not)."""
+        if not isinstance(plan, dict):
+            return False, "plan_not_dict"
+        steps = plan.get('steps')
+        if not isinstance(steps, list) or len(steps) == 0:
+            return False, "no_steps"
+        allowed = self._get_allowed_actions()
+        for idx, step in enumerate(steps):
+            action = (step or {}).get('action')
+            if action not in allowed:
+                return False, f"unsupported_action:{action}"
+        # If query references an object class, ensure either objects exist or an initial scan step is present
+        target = self._extract_target_object_from_query(user_query)
+        if target:
+            have_any = any((obj.get('class', '').lower() == target) for obj in (current_objects or []))
+            has_scan = any(((s or {}).get('action') in {"SCAN_FOR_OBJECTS", "SCAN_AREA"}) for s in steps)
+            if not have_any and not has_scan:
+                return False, "needs_scan_for_target"
+        return True, "ok"
+
     def _create_searchable_content(self, item: Dict[str, Any], category: str) -> str:
         """Create searchable content from knowledge base items."""
         content_parts = [f"Category: {category}"]
@@ -398,39 +484,87 @@ class TrueRAGPlanner:
         """
         try:
             logger.info(f"Starting RAG-based planning for: '{user_query}'")
+            max_retries = int(((self.rag_settings or {}).get('rag_planner', {}) or {}).get('max_retries', 2))
+            enable_scan = bool(((self.rag_settings or {}).get('rag_planner', {}) or {}).get('enable_scanning_on_confusion', True))
+            attempts = 0
+            last_reason = ""
+            last_plan: Optional[Dict[str, Any]] = None
             
-            # Step 1: RETRIEVE - Find relevant knowledge
-            retrieved_docs = self._retrieve_relevant_knowledge(user_query)
-            
-            # Step 2: Get current context
-            current_context = self._get_current_context()
-            
-            # Step 3: AUGMENT - Create enriched context
-            rag_context = RAGContext(
-                user_query=user_query,
-                retrieved_documents=retrieved_docs,
-                current_environment=current_context.get('environment', {}),
-                robot_state=current_context.get('robot_state', {}),
-                execution_history=current_context.get('history', [])
-            )
-            
-            # Step 4: GENERATE - Create intelligent plan
-            plan = self._generate_plan_with_rag(rag_context)
-            
-            # Add RAG metadata
-            plan['rag_metadata'] = {
-                'retrieved_documents': len(retrieved_docs),
-                'knowledge_categories': list(set([doc.category for doc in retrieved_docs])),
-                'confidence_score': rag_context.confidence_score,
-                'retrieval_method': 'semantic_search' if self.vector_db.collection else 'keyword_fallback'
-            }
-            
-            logger.info(f"RAG planning completed with {len(retrieved_docs)} retrieved documents")
-            return plan
-            
+            while attempts <= max_retries:
+                attempts += 1
+                logger.info(f"RAG planning attempt {attempts}/{max_retries+1}")
+                # Step 1: RETRIEVE - Find relevant knowledge
+                retrieved_docs = self._retrieve_relevant_knowledge(user_query)
+                
+                # Step 2: Get current context
+                current_context = self._get_current_context()
+                
+                # Step 3: AUGMENT - Create enriched context
+                rag_context = RAGContext(
+                    user_query=user_query,
+                    retrieved_documents=retrieved_docs,
+                    current_environment=current_context.get('environment', {}),
+                    robot_state=current_context.get('robot_state', {}),
+                    execution_history=current_context.get('history', [])
+                )
+                
+                # Step 4: GENERATE - Create intelligent plan
+                self._last_replan_notes = last_reason if attempts > 1 else None
+                plan = self._generate_plan_with_rag(rag_context)
+                last_plan = plan
+                
+                # Validate plan
+                ok, reason = self._is_plan_valid(plan, user_query, rag_context.current_environment.get('objects', []))
+                if ok:
+                    # Add RAG metadata
+                    plan['rag_metadata'] = {
+                        'retrieved_documents': len(retrieved_docs),
+                        'knowledge_categories': list(set([doc.category for doc in retrieved_docs])),
+                        'confidence_score': rag_context.confidence_score,
+                        'retrieval_method': 'semantic_search' if self.vector_db.collection else 'keyword_fallback',
+                        'reprompt_attempts': attempts,
+                        'reprompt_outcome': 'success'
+                    }
+                    logger.info(f"RAG planning succeeded on attempt {attempts}")
+                    return plan
+                
+                # Not valid: optionally perform a scan to refresh context
+                last_reason = reason
+                logger.warning(f"Plan invalid (reason={reason}).")
+                if enable_scan and self.robot_controller is not None and attempts <= max_retries:
+                    try:
+                        logger.info("Triggering scan due to confusion/invalid plan...")
+                        scan_plan = {
+                            'goal': 'scan to refresh detections',
+                            'steps': [
+                                {"action": "SCAN_FOR_OBJECTS", "pattern": "horizontal", "sweep_mm": 300, "steps": 5, "pause_sec": 1.0},
+                                {"action": "SLEEP", "seconds": 1.0}
+                            ]
+                        }
+                        # Execute scan synchronously to refresh ObjectIndex
+                        self.robot_controller.execute(scan_plan)
+                        _time.sleep(0.5)
+                        # Update reason with newly detected classes
+                        new_objs = [o.get('class', 'unknown') for o in self._get_current_objects()]
+                        last_reason = f"replanning_after:{reason}; detected={new_objs}"
+                    except Exception as se:
+                        logger.error(f"Scan-on-confusion failed: {se}")
+                        # Continue to next attempt without scan effects
+                        last_reason = f"replanning_after:{reason}; scan_failed"
+                # loop to next attempt
+            # If we reach here, return the last plan with metadata
+            if isinstance(last_plan, dict):
+                last_plan.setdefault('rag_metadata', {})
+                last_plan['rag_metadata'].update({
+                    'reprompt_attempts': attempts,
+                    'reprompt_outcome': 'failed',
+                    'last_reason': last_reason
+                })
+                logger.error("RAG planning failed to produce a valid plan after retries - returning last attempt")
+                return last_plan
+            raise RuntimeError("RAG planning failed: no plan produced")
         except Exception as e:
             logger.error(f"RAG planning failed: {e}")
-            # NO FALLBACKS - PURE RAG TESTING
             raise RuntimeError(f"RAG planning failed and no fallbacks allowed for pure testing: {e}")
     
     def _retrieve_relevant_knowledge(self, query: str, n_results: int = 5) -> List[RAGDocument]:
@@ -546,6 +680,9 @@ Category: {doc.category}
 Robot Position: {context.robot_state.get('position', 'Unknown')}
 Gripper State: {context.robot_state.get('gripper_state', 'Unknown')}
 Detected Objects: {[obj.get('class', 'unknown') for obj in context.current_environment.get('objects', [])]}
+
+## REPLANNING CONTEXT
+{self._last_replan_notes or 'N/A'}
 
 ## CRITICAL INSTRUCTIONS
 
