@@ -315,3 +315,4 @@ For support and questions:
 - Google Gemini LLM
 - YOLO object detection
 - ROS2 community
+- ELIXIR Research Lab
