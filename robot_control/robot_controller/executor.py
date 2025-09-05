@@ -75,8 +75,17 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
                     lab = it.get("class")
                     pos = it.get("pos", [0,0,0])
                     if lab and isinstance(pos, list) and len(pos) == 3:
-                        self.latest_mm[lab] = [float(pos[0])*k, float(pos[1])*k, float(pos[2])*k]
-                        print(f"[ObjectIndex] Updated {lab} position: {self.latest_mm[lab]}")
+                        # Store enhanced object data with bbox info if available
+                        enhanced_obj = {
+                            'pos': [float(pos[0])*k, float(pos[1])*k, float(pos[2])*k],
+                            'conf': it.get('conf', 0.0),
+                            'bbox': it.get('bbox', {}),
+                            'bbox_size': it.get('bbox_size', {})
+                        }
+                        self.latest_mm[lab] = enhanced_obj
+                        print(f"[ObjectIndex] Updated {lab} position: {enhanced_obj['pos']}")
+                        if enhanced_obj.get('bbox_size', {}).get('area'):
+                            print(f"[ObjectIndex] {lab} bbox area: {enhanced_obj['bbox_size']['area']}")
         except Exception as e:
             print(f"[ObjectIndex] Error processing message: {e}")
             pass
@@ -167,6 +176,13 @@ class TaskExecutor:
             self.obj_index = ObjectIndex()
             self._spin_thread = threading.Thread(target=rclpy.spin, args=(self.obj_index,), daemon=True)
             self._spin_thread.start()
+            # Create vision control publisher for camera switching
+            try:
+                self._vision_ctrl_pub = self.obj_index.create_publisher(StringMsg, '/vision_control', 10)
+                print("[Vision] Vision control publisher created on /vision_control")
+            except Exception as e:
+                self._vision_ctrl_pub = None
+                print(f"[Vision] Failed to create vision control publisher: {e}")
             
             # Wait for vision system to initialize
             if self.vision_process:
@@ -179,6 +195,7 @@ class TaskExecutor:
         else:
             self.obj_index = ObjectIndex()
             self._spin_thread = None
+            self._vision_ctrl_pub = None
 
     def _start_vision_system(self):
         """Start the vision system for object detection."""
@@ -329,6 +346,47 @@ class TaskExecutor:
 
                 elif act == "RETREAT_Z":
                     dz_mm = float(step["dz_mm"])
+                elif act == "SWITCH_CAMERA":
+                    target = (step.get("target") or "").strip().lower()
+                    if target not in ("tool", "confirm"):
+                        print(f"[Vision] Invalid SWITCH_CAMERA target: {target}")
+                    else:
+                        self._switch_camera(target)
+
+                elif act == "CONFIRM_ALIGNMENT":
+                    label = step.get("label")
+                    timeout = float(step.get("timeout_sec", 5.0))
+                    tol_mm = float(step.get("tolerance_mm", 50.0))
+                    if not label:
+                        raise ValueError("CONFIRM_ALIGNMENT requires 'label'")
+                    # Switch to confirmation camera
+                    self._switch_camera('confirm')
+                    # Wait for object on confirm cam
+                    try:
+                        obj = self.obj_index.wait_for(label, timeout=timeout)
+                    except Exception as e:
+                        print(f"[CONFIRM] '{label}' not visible on confirmation camera: {e}")
+                        if not self._runtime_replan_used:
+                            self._attempt_runtime_replan(i, act, f"confirm_not_visible:{label}", plan)
+                            return
+                        continue
+                    curr = self.runner.get_current_position() or [0.0, 0.0, 0.0]
+                    dx = float(curr[0]) - float(obj[0])
+                    dy = float(curr[1]) - float(obj[1])
+                    dist_xy = (dx**2 + dy**2) ** 0.5
+                    print(f"[CONFIRM] XY delta to '{label}': {dist_xy:.1f} mm (tol={tol_mm} mm)")
+                    if dist_xy <= tol_mm:
+                        print("[CONFIRM] Alignment OK")
+                    elif dist_xy <= tol_mm * 1.5:
+                        print("[CONFIRM] Not sure; triggering replan for refinement")
+                        if not self._runtime_replan_used:
+                            self._attempt_runtime_replan(i, act, f"confirm_not_sure:dx={dx:.1f},dy={dy:.1f}", plan)
+                            return
+                    else:
+                        print("[CONFIRM] NO alignment; triggering replan")
+                        if not self._runtime_replan_used:
+                            self._attempt_runtime_replan(i, act, f"confirm_no_alignment:dx={dx:.1f},dy={dy:.1f}", plan)
+                            return
                     # Limit retreat distance for safety
                     if abs(dz_mm) > 150:
                         print(f"[WARN] Large retreat {dz_mm}mm, limiting to 150mm")
@@ -462,17 +520,33 @@ class TaskExecutor:
                                 print(f"[DEBUG] Object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}, Z={obj[2]:.1f}")
                                 print(f"[DEBUG] Robot coordinates: X={current_pos[0]:.1f}, Y={current_pos[1]:.1f}, Z={current_pos[2]:.1f}")
                             
-                            # DIRECT OBJECT COORDINATE ALIGNMENT
-                            # Simply move robot to the detected object's X and Y coordinates
+                            # ENHANCED OBJECT COORDINATE ALIGNMENT
+                            # Use bounding box information for better centering if available
                             
-                            print(f"[DIRECT] Moving robot to object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}")
-                            
-                            # Move robot directly to object's X and Y coordinates
-                            target = [
-                                obj[0],           # Move to object's X coordinate
-                                obj[1],           # Move to object's Y coordinate  
-                                current_pos[2]    # Keep current Z height
-                            ]
+                            # Check if we have enhanced object data with bounding box info
+                            if isinstance(obj, dict) and 'pos' in obj:
+                                obj_pos = obj['pos']
+                                bbox_info = obj.get('bbox', {})
+                                bbox_size = obj.get('bbox_size', {})
+                                
+                                print(f"[ENHANCED] Object at: X={obj_pos[0]:.1f}, Y={obj_pos[1]:.1f}, Z={obj_pos[2]:.1f}")
+                                if bbox_size:
+                                    print(f"[ENHANCED] Bbox size: {bbox_size['width']}x{bbox_size['height']} (area: {bbox_size['area']})")
+                                
+                                # Use object position from enhanced data
+                                target = [
+                                    obj_pos[0],       # Move to object's X coordinate
+                                    obj_pos[1],       # Move to object's Y coordinate  
+                                    current_pos[2]    # Keep current Z height
+                                ]
+                            else:
+                                # Fallback to legacy format (list of coordinates)
+                                print(f"[DIRECT] Moving robot to object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}")
+                                target = [
+                                    obj[0],           # Move to object's X coordinate
+                                    obj[1],           # Move to object's Y coordinate  
+                                    current_pos[2]    # Keep current Z height
+                                ]
                             
                             print(f"[ALIGN] Robot moving to: X={target[0]:.1f}, Y={target[1]:.1f}, Z={target[2]:.1f}")
                             
@@ -506,58 +580,7 @@ class TaskExecutor:
                     print(f"[SCAN] Starting scan: pattern={pattern}, sweep={sweep_mm}mm, steps={steps}, pause={pause_sec}s")
                     
                     if not self.dry_run:
-                        # Get current position for Z coordinate
-                        current_pos = self.runner.get_current_position()
-                        print(f"[SCAN] Current position: {current_pos}")
-                        
-                        # Use fixed scan position for maximum workspace utilization
-                        scan_x = 400.0  # Center of X workspace
-                        scan_z = 250.0  # Good height for scanning
-                        
-                        if current_pos is not None and len(current_pos) >= 3:
-                            # Use current Z if reasonable
-                            if 100 <= current_pos[2] <= 400:
-                                scan_z = current_pos[2]
-                        
-                        # Move to scan center position first
-                        scan_center = [scan_x, 0, scan_z]
-                        print(f"[SCAN] Moving to scan center: {scan_center}")
-                        
-                        try:
-                            self.runner.move_pose(scan_center, self.constant_j5_rpy)
-                            print(f"[SCAN] Arrived at scan center")
-                        except Exception as e:
-                            print(f"[SCAN] Failed to move to scan center: {e}")
-                            return
-                        
-                        # Calculate sweep range
-                        y_min = max(-300, -sweep_mm / 2)
-                        y_max = min(300, sweep_mm / 2)
-                        
-                        print(f"[SCAN] Sweep range: Y={y_min:.1f} to {y_max:.1f}")
-                        
-                        # Ensure minimum steps
-                        if steps < 2:
-                            steps = 2
-                        
-                        # Perform scan sweep
-                        for j in range(steps):
-                            # Calculate target position
-                            if steps == 1:
-                                y_target = y_min
-                            else:
-                                y_target = y_min + (y_max - y_min) * j / (steps - 1)
-                            
-                            target = [scan_x, y_target, scan_z]
-                            print(f"[SCAN] Moving to scan position {j+1}/{steps}: {target}")
-                            
-                            try:
-                                self.runner.move_pose(target, self.constant_j5_rpy)
-                                print(f"[SCAN] Pausing {pause_sec}s for detection...")
-                                time.sleep(pause_sec)
-                            except Exception as e:
-                                print(f"[SCAN] Error at position {j+1}: {e}")
-                                continue
+                        self._execute_linear_scan(pattern, sweep_mm, steps, pause_sec)
                     else:
                         # Dry run
                         print(f"[SCAN] DRY RUN: Would scan {steps} positions over {sweep_mm}mm sweep")
@@ -568,6 +591,20 @@ class TaskExecutor:
                             target = [400, y_target, 250]
                             print(f"[SCAN] DRY RUN: Would move to position {j+1}/{steps}: {target}")
                             print(f"[SCAN] DRY RUN: Would pause {pause_sec}s for detection...")
+
+                elif act == "ARC_SCAN":
+                    # Arc sweep for better coverage when linear scan fails
+                    radius_mm = float(step.get("radius_mm", 400))
+                    arc_degrees = float(step.get("arc_degrees", 90))
+                    steps = int(step.get("steps", 7))
+                    pause_sec = float(step.get("pause_sec", 1.5))
+                    
+                    print(f"[ARC_SCAN] Starting arc scan: radius={radius_mm}mm, arc={arc_degrees}°, steps={steps}, pause={pause_sec}s")
+                    
+                    if not self.dry_run:
+                        self._execute_arc_scan(radius_mm, arc_degrees, steps, pause_sec)
+                    else:
+                        print(f"[ARC_SCAN] DRY RUN: Would perform arc scan with {steps} positions over {arc_degrees}° arc")
 
                 elif act == "SLEEP":
                     sleep_time = float(step["seconds"])
@@ -675,3 +712,131 @@ class TaskExecutor:
                 print(f"[Vision] Error stopping vision system: {e}")
         
         self.runner.disconnect()
+
+    def _switch_camera(self, target: str):
+        """Publish a camera switch request (tool/confirm) to the vision node via ROS 2."""
+        target = (target or "").strip().lower()
+        if target not in ("tool", "confirm"):
+            return
+        if ROS2_AVAILABLE and self._vision_ctrl_pub is not None:
+            try:
+                msg = StringMsg(data=target)
+                self._vision_ctrl_pub.publish(msg)
+                print(f"[Vision] Requested camera switch to: {target}")
+            except Exception as e:
+                print(f"[Vision] Failed to publish camera switch: {e}")
+        else:
+            print(f"[Vision] Camera switch requested to '{target}', but ROS2 publisher is unavailable")
+
+    def _execute_linear_scan(self, pattern: str, sweep_mm: float, steps: int, pause_sec: float):
+        """Execute linear scanning pattern."""
+        # Get current position for Z coordinate
+        current_pos = self.runner.get_current_position()
+        print(f"[SCAN] Current position: {current_pos}")
+        
+        # Use fixed scan position for maximum workspace utilization
+        scan_x = 400.0  # Center of X workspace
+        scan_z = 250.0  # Good height for scanning
+        
+        if current_pos is not None and len(current_pos) >= 3:
+            # Use current Z if reasonable
+            if 100 <= current_pos[2] <= 400:
+                scan_z = current_pos[2]
+        
+        # Move to scan center position first
+        scan_center = [scan_x, 0, scan_z]
+        print(f"[SCAN] Moving to scan center: {scan_center}")
+        
+        try:
+            self.runner.move_pose(scan_center, self.constant_j5_rpy)
+            print(f"[SCAN] Arrived at scan center")
+        except Exception as e:
+            print(f"[SCAN] Failed to move to scan center: {e}")
+            return
+        
+        # Calculate sweep range
+        y_min = max(-300, -sweep_mm / 2)
+        y_max = min(300, sweep_mm / 2)
+        
+        print(f"[SCAN] Sweep range: Y={y_min:.1f} to {y_max:.1f}")
+        
+        # Ensure minimum steps
+        if steps < 2:
+            steps = 2
+        
+        # Perform scan sweep
+        for j in range(steps):
+            # Calculate target position
+            if steps == 1:
+                y_target = y_min
+            else:
+                y_target = y_min + (y_max - y_min) * j / (steps - 1)
+            
+            target = [scan_x, y_target, scan_z]
+            print(f"[SCAN] Moving to scan position {j+1}/{steps}: {target}")
+            
+            try:
+                self.runner.move_pose(target, self.constant_j5_rpy)
+                print(f"[SCAN] Pausing {pause_sec}s for detection...")
+                time.sleep(pause_sec)
+            except Exception as e:
+                print(f"[SCAN] Error at position {j+1}: {e}")
+                continue
+
+    def _execute_arc_scan(self, radius_mm: float, arc_degrees: float, steps: int, pause_sec: float):
+        """Execute arc scanning pattern for better workspace coverage."""
+        import math
+        
+        # Get current position for Z coordinate
+        current_pos = self.runner.get_current_position()
+        scan_z = 250.0  # Default scanning height
+        
+        if current_pos is not None and len(current_pos) >= 3:
+            if 100 <= current_pos[2] <= 400:
+                scan_z = current_pos[2]
+        
+        # Arc center (robot base position approximately)
+        arc_center_x = 200.0  # Slightly in front of robot base
+        arc_center_y = 0.0
+        
+        # Convert arc degrees to radians
+        arc_rad = math.radians(arc_degrees)
+        start_angle = -arc_rad / 2  # Start from left side of arc
+        
+        print(f"[ARC_SCAN] Arc center: [{arc_center_x}, {arc_center_y}], radius: {radius_mm}mm")
+        print(f"[ARC_SCAN] Arc span: {arc_degrees}° ({steps} positions)")
+        
+        # Ensure minimum steps
+        if steps < 2:
+            steps = 2
+        
+        # Perform arc sweep
+        for j in range(steps):
+            # Calculate angle for this step
+            if steps == 1:
+                angle = 0.0  # Center of arc
+            else:
+                angle = start_angle + (arc_rad * j / (steps - 1))
+            
+            # Calculate target position on arc
+            target_x = arc_center_x + radius_mm * math.cos(angle)
+            target_y = arc_center_y + radius_mm * math.sin(angle)
+            
+            # Ensure target is within workspace limits
+            target_x = max(150, min(650, target_x))
+            target_y = max(-300, min(300, target_y))
+            
+            target = [target_x, target_y, scan_z]
+            angle_deg = math.degrees(angle)
+            
+            print(f"[ARC_SCAN] Moving to arc position {j+1}/{steps}: {target} (angle: {angle_deg:.1f}°)")
+            
+            try:
+                self.runner.move_pose(target, self.constant_j5_rpy)
+                print(f"[ARC_SCAN] Pausing {pause_sec}s for detection...")
+                time.sleep(pause_sec)
+            except Exception as e:
+                print(f"[ARC_SCAN] Error at arc position {j+1}: {e}")
+                continue
+        
+        print("[ARC_SCAN] Arc scan completed")

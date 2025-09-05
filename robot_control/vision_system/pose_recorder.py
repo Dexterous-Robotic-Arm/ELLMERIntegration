@@ -11,6 +11,7 @@ import os
 import csv
 import numpy as np
 import logging
+import yaml
 
 # Optional imports - only import if available
 try:
@@ -50,7 +51,7 @@ except ImportError:
     SCIPY_AVAILABLE = False
     print("Warning: SciPy not available")
 
-CAMERA_OFFSET_MM = [0.0, 0.0, 22.5]            # camera vs flange along tool Z
+CAMERA_OFFSET_MM = [0.0, 0.0, 22.5]            # tool camera vs flange along tool Z
 CAMERA_OFFSET_M  = [x/1000.0 for x in CAMERA_OFFSET_MM]
 CONF_MIN = 0.35
 
@@ -112,20 +113,69 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
             self.arm = None
             print("Running in simulation mode - no XArm connection")
 
-        # RealSense - only if available and in standalone mode
+        # Load multi-camera config if available
+        self.vision_cfg = {}
+        try:
+            cfg_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config', 'vision', 'camera_config.yaml')
+            if os.path.exists(cfg_path):
+                with open(cfg_path, 'r') as f:
+                    self.vision_cfg = yaml.safe_load(f) or {}
+        except Exception as e:
+            print(f"[Vision] Failed to load camera_config.yaml: {e}")
+
+        # RealSense - initialize optional tool and confirmation cameras
+        self.active_camera = 'tool'  # 'tool' or 'confirm'
+        self.pipeline_tool = None
+        self.pipeline_confirm = None
+        self.tool_serial = ((self.vision_cfg.get('cameras', {}) or {}).get('tool_cam', {}) or {}).get('serial')
+        self.confirm_serial = ((self.vision_cfg.get('cameras', {}) or {}).get('confirm_cam', {}) or {}).get('serial')
+
+        # Confirmation camera extrinsics relative to base (meters and radians)
+        self.confirm_offset_m = [0.0, 0.0, 0.0]
+        self.confirm_rpy_rad = [0.0, 0.0, 0.0]
+        try:
+            ccfg = (self.vision_cfg.get('cameras', {}) or {}).get('confirm_cam', {}) or {}
+            off = ccfg.get('offset', {}) or {}
+            self.confirm_offset_m = [float(off.get('x', 0.0)), float(off.get('y', 0.0)), float(off.get('z', 0.0))]
+            orpy = ccfg.get('orientation_deg', {}) or {}
+            # default yaw 10 degrees to left if not set
+            self.confirm_rpy_rad = np.deg2rad([
+                float(orpy.get('roll', 0.0)),
+                float(orpy.get('pitch', 0.0)),
+                float(orpy.get('yaw', 10.0))
+            ])
+        except Exception:
+            pass
+
         if REALSENSE_AVAILABLE and standalone:
+            # Tool camera
             try:
-                self.pipeline = rs.pipeline()
-                cfg = rs.config()
-                cfg.enable_stream(rs.stream.color, 640,480,rs.format.bgr8,30)
-                cfg.enable_stream(rs.stream.depth, 640,480,rs.format.z16,30)
-                self.pipeline.start(cfg)
-                print("✅ RealSense camera connected")
+                self.pipeline_tool = rs.pipeline()
+                cfg_t = rs.config()
+                if self.tool_serial:
+                    cfg_t.enable_device(self.tool_serial)
+                cfg_t.enable_stream(rs.stream.color, 640,480,rs.format.bgr8,30)
+                cfg_t.enable_stream(rs.stream.depth, 640,480,rs.format.z16,30)
+                self.pipeline_tool.start(cfg_t)
+                print("✅ Tool RealSense camera connected")
             except Exception as e:
-                print(f"❌ RealSense camera failed: {e}")
-                self.pipeline = None
+                print(f"❌ Tool RealSense camera failed: {e}")
+                self.pipeline_tool = None
+
+            # Confirmation camera
+            try:
+                self.pipeline_confirm = rs.pipeline()
+                cfg_c = rs.config()
+                if self.confirm_serial:
+                    cfg_c.enable_device(self.confirm_serial)
+                cfg_c.enable_stream(rs.stream.color, 640,480,rs.format.bgr8,30)
+                cfg_c.enable_stream(rs.stream.depth, 640,480,rs.format.z16,30)
+                self.pipeline_confirm.start(cfg_c)
+                print("✅ Confirmation RealSense camera connected")
+            except Exception as e:
+                print(f"⚠️ Confirmation RealSense camera failed: {e}")
+                self.pipeline_confirm = None
         else:
-            self.pipeline = None
             if not standalone:
                 print("Running in integrated mode - camera handled by ROS2 publisher")
             else:
@@ -149,21 +199,45 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
                 "timestamp","joint1","joint2","joint3","joint4","joint5","joint6","eef_x","eef_y","eef_z"
             ])
 
+        # Optional ROS2 subscriber for camera switching
+        if ROS2_AVAILABLE and self.standalone:
+            try:
+                self.ctrl_sub = self.create_subscription(String, '/vision_control', self._on_control_msg, 10)
+                print("[Vision] Subscribed to /vision_control for camera switching")
+            except Exception as e:
+                print(f"[Vision] Failed to create control subscriber: {e}")
+
         if self.standalone:
             self.timer = self.create_timer(1.0, self.scan_and_publish)
             self.get_logger().info(f"PoseRecorder running → logging to {self.csv_path}")
         else:
             print(f"PoseRecorder initialized in integrated mode → logging to {self.csv_path}")
 
+    def _on_control_msg(self, msg: String):
+        try:
+            data = msg.data.strip()
+            if data.startswith('{'):
+                obj = json.loads(data)
+                cam = obj.get('set_active_camera')
+            else:
+                cam = data
+            if cam in ('tool', 'confirm'):
+                self.active_camera = cam
+                print(f"[Vision] Active camera set to: {self.active_camera}")
+        except Exception as e:
+            print(f"[Vision] Control message error: {e}")
+
     def scan_and_publish(self):
-        if not self.pipeline:
+        # Choose pipeline by active camera
+        pipeline = self.pipeline_tool if self.active_camera == 'tool' else self.pipeline_confirm
+        if not pipeline:
             if not self.standalone:
                 print("[Vision] No camera pipeline in integrated mode - skipping detection")
             else:
                 print("[Vision] No camera pipeline - skipping detection")
             return
             
-        frames = self.pipeline.wait_for_frames()
+        frames = pipeline.wait_for_frames()
         c = frames.get_color_frame(); d = frames.get_depth_frame()
         if not c or not d:
             if self.standalone:
@@ -195,14 +269,38 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
             code, tcp_pose = self.arm.get_position()
             if code != 0: 
                 continue
-            T_f2c = get_transform_matrix(*CAMERA_OFFSET_M, [0,0,0])
-            T_b2f = pose_to_transform((code, tcp_pose))
-            T_b2c = T_b2f @ T_f2c
+            # Build base->camera transform for active camera
+            if self.active_camera == 'tool':
+                T_f2c = get_transform_matrix(*CAMERA_OFFSET_M, [0,0,0])
+                T_b2f = pose_to_transform((code, tcp_pose))
+                T_b2c = T_b2f @ T_f2c
+            else:
+                # Confirmation camera: assume mount fixed to base with small left yaw + J1 yaw
+                try:
+                    joints = self.arm.get_servo_angle()[1]
+                    j1_deg = float(joints[0]) if joints and len(joints) > 0 else 0.0
+                except Exception:
+                    j1_deg = 0.0
+                T_b2c = get_transform_matrix(
+                    self.confirm_offset_m[0], self.confirm_offset_m[1], self.confirm_offset_m[2],
+                    [self.confirm_rpy_rad[0], self.confirm_rpy_rad[1], np.deg2rad(j1_deg) + self.confirm_rpy_rad[2]]
+                )
+
+            # Calculate bounding box center and dimensions for better object centering
+            bbox_width = x2 - x1
+            bbox_height = y2 - y1
+            bbox_area = bbox_width * bbox_height
 
             pt_cam = rs.rs2_deproject_pixel_to_point(intrin, [cx,cy], depth_m)  # meters
             pt_base_h = T_b2c @ np.array([*pt_cam,1.0]).reshape(4,1)
             px,py,pz = pt_base_h[:3,0].tolist()
-            detected.append({"class": self.model.names[cls_id], "pos":[px,py,pz], "conf":conf})
+            detected.append({
+                "class": self.model.names[cls_id], 
+                "pos": [px,py,pz], 
+                "conf": conf,
+                "bbox": {"x1": x1, "y1": y1, "x2": x2, "y2": y2, "cx": cx, "cy": cy},
+                "bbox_size": {"width": bbox_width, "height": bbox_height, "area": bbox_area}
+            })
 
         payload = {"t": time.time(), "units": "m", "items": detected}
         if self.det_pub:
@@ -224,8 +322,14 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
 
     def destroy_node(self):
         self.csv_file.close()
-        if self.pipeline:
-            self.pipeline.stop()
+        # Stop any active pipelines
+        try:
+            if self.pipeline_tool:
+                self.pipeline_tool.stop()
+            if self.pipeline_confirm:
+                self.pipeline_confirm.stop()
+        except Exception:
+            pass
         if hasattr(self, 'arm') and self.arm:
             self.arm.move_gohome(wait=True)
             self.arm.disconnect()

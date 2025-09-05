@@ -370,7 +370,7 @@ class TrueRAGPlanner:
                 movement = set(actions_cfg.get('movement_actions', []) or [])
                 gripper = set(actions_cfg.get('gripper_actions', []) or [])
                 # Common aliases present in executor
-                extras = {"SCAN_FOR_OBJECTS", "SCAN_AREA", "SLEEP", "RETREAT_Z", "SET_GRIPPER_POSITION"}
+                extras = {"SCAN_FOR_OBJECTS", "SCAN_AREA", "ARC_SCAN", "SLEEP", "RETREAT_Z", "SET_GRIPPER_POSITION", "SWITCH_CAMERA", "CONFIRM_ALIGNMENT"}
                 self._allowed_actions = set(movement | gripper | extras)
                 logger.info("RAG settings loaded from rag_config.yaml")
             else:
@@ -383,9 +383,10 @@ class TrueRAGPlanner:
                 }
                 self._allowed_actions = {
                     "MOVE_TO_NAMED", "APPROACH_NAMED", "MOVE_TO_OBJECT", "APPROACH_OBJECT",
-                    "RETREAT_Z", "MOVE_TO_POSE", "SLEEP", "SCAN_AREA", "SCAN_FOR_OBJECTS",
+                    "RETREAT_Z", "MOVE_TO_POSE", "SLEEP", "SCAN_AREA", "SCAN_FOR_OBJECTS", "ARC_SCAN",
                     "OPEN_GRIPPER", "CLOSE_GRIPPER", "GRIPPER_GRASP", "GRIPPER_RELEASE",
-                    "GRIPPER_HALF_OPEN", "GRIPPER_SOFT_CLOSE", "GRIPPER_TEST", "SET_GRIPPER_POSITION"
+                    "GRIPPER_HALF_OPEN", "GRIPPER_SOFT_CLOSE", "GRIPPER_TEST", "SET_GRIPPER_POSITION",
+                    "SWITCH_CAMERA", "CONFIRM_ALIGNMENT"
                 }
                 logger.warning("RAG settings not found - using reasonable defaults")
         except Exception as e:
@@ -715,8 +716,11 @@ Return a JSON object with this structure:
 
 ## EXAMPLE CORRECT ACTION FORMATS:
 - {{"action": "SCAN_AREA", "pattern": "horizontal", "sweep_mm": 300, "steps": 5}}
+- {{"action": "ARC_SCAN", "radius_mm": 400, "arc_degrees": 90, "steps": 7, "pause_sec": 1.5}}
 - {{"action": "APPROACH_OBJECT", "label": "bottle", "hover_mm": 80, "timeout_sec": 5}}
 - {{"action": "MOVE_TO_OBJECT", "label": "bottle", "offset_mm": [0,0,0], "timeout_sec": 5}}
+- {{"action": "SWITCH_CAMERA", "target": "confirm"}}
+- {{"action": "CONFIRM_ALIGNMENT", "label": "bottle", "timeout_sec": 5, "tolerance_mm": 50}}
 - {{"action": "MOVE_TO_NAMED", "name": "home"}}
 
 ⚠️  CRITICAL: Put action parameters at the TOP LEVEL, NOT inside a "parameters" object!
