@@ -111,7 +111,7 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
                 return p
             time.sleep(0.05)
         print(f"[ObjectIndex] Timeout waiting for '{label}'. Available objects: {list(self.latest_mm.keys())}")
-        raise TimeoutError(f"Object '{label}' not seen on /detected_objects within {timeout}s")
+        return None  # Return None instead of raising exception
 
 class TaskExecutor:
     def __init__(self, arm_ip: str, world_yaml: str = None, sim: bool = False, dry_run: bool = False):
@@ -523,8 +523,9 @@ class TaskExecutor:
                             # ENHANCED OBJECT COORDINATE ALIGNMENT
                             # Use bounding box information for better centering if available
                             
-                            # Check if we have enhanced object data with bounding box info
+                            # Handle both enhanced object format (dict) and legacy format (list)
                             if isinstance(obj, dict) and 'pos' in obj:
+                                # Enhanced object data with bounding box info
                                 obj_pos = obj['pos']
                                 bbox_info = obj.get('bbox', {})
                                 bbox_size = obj.get('bbox_size', {})
@@ -533,20 +534,41 @@ class TaskExecutor:
                                 if bbox_size:
                                     print(f"[ENHANCED] Bbox size: {bbox_size['width']}x{bbox_size['height']} (area: {bbox_size['area']})")
                                 
+                                # Check for invalid coordinates (all zeros or unreasonable values)
+                                if abs(obj_pos[0]) < 1 and abs(obj_pos[1]) < 1:
+                                    print(f"[WARN] Enhanced object coordinates appear invalid (too close to origin): {obj_pos}")
+                                    if not self._runtime_replan_used:
+                                        self._attempt_runtime_replan(i, act, f"invalid_enhanced_coordinates:{obj_pos}", plan)
+                                        return
+                                    continue
+                                
                                 # Use object position from enhanced data
                                 target = [
-                                    obj_pos[0],       # Move to object's X coordinate
-                                    obj_pos[1],       # Move to object's Y coordinate  
-                                    current_pos[2]    # Keep current Z height
+                                    obj_pos[0] + float(offset[0]),       # Move to object's X coordinate + offset
+                                    obj_pos[1] + float(offset[1]),       # Move to object's Y coordinate + offset
+                                    current_pos[2] + float(offset[2])    # Keep current Z height + offset
+                                ]
+                            elif isinstance(obj, (list, tuple)) and len(obj) >= 3:
+                                # Legacy format (list of coordinates)
+                                print(f"[DIRECT] Object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}, Z={obj[2]:.1f}")
+                                
+                                # Check for invalid coordinates (all zeros or unreasonable values)
+                                if abs(obj[0]) < 1 and abs(obj[1]) < 1:
+                                    print(f"[WARN] Object coordinates appear invalid (too close to origin): {obj}")
+                                    if not self._runtime_replan_used:
+                                        self._attempt_runtime_replan(i, act, f"invalid_coordinates:{obj}", plan)
+                                        return
+                                    continue
+                                
+                                target = [
+                                    obj[0] + float(offset[0]),           # Move to object's X coordinate + offset
+                                    obj[1] + float(offset[1]),           # Move to object's Y coordinate + offset
+                                    current_pos[2] + float(offset[2])    # Keep current Z height + offset
                                 ]
                             else:
-                                # Fallback to legacy format (list of coordinates)
-                                print(f"[DIRECT] Moving robot to object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}")
-                                target = [
-                                    obj[0],           # Move to object's X coordinate
-                                    obj[1],           # Move to object's Y coordinate  
-                                    current_pos[2]    # Keep current Z height
-                                ]
+                                # Error: unexpected object format
+                                print(f"[ERROR] Unexpected object format: {type(obj)} = {obj}")
+                                raise ValueError(f"Object data format not supported: {type(obj)} = {obj}")
                             
                             print(f"[ALIGN] Robot moving to: X={target[0]:.1f}, Y={target[1]:.1f}, Z={target[2]:.1f}")
                             

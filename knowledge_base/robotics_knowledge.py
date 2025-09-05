@@ -54,6 +54,41 @@ MOVEMENT_PATTERNS = [
     },
     
     {
+        "id": "arc_scanning_pattern",
+        "title": "Arc-Based Area Scanning",
+        "description": "Advanced scanning pattern using arc movement for comprehensive workspace coverage when linear scan fails",
+        "context": "object detection, exploration, enhanced coverage, failed linear scan recovery",
+        "pattern": [
+            "Move to arc center position",
+            "Calculate arc positions based on radius and angle span",
+            "Sweep in arc pattern with multiple stops",
+            "Pause at each arc position for object detection",
+            "Cover areas not visible in linear scan",
+            "Return to starting position"
+        ],
+        "parameters": {
+            "radius": "400mm",
+            "arc_degrees": "90 degrees",
+            "scan_positions": 7,
+            "pause_duration": "1.5 seconds",
+            "camera_angle": "90 degrees downward"
+        },
+        "advantages": [
+            "Better coverage of workspace edges",
+            "Finds objects missed by linear scan",
+            "Approaches objects from multiple angles",
+            "Improves detection of partially occluded objects"
+        ],
+        "when_to_use": [
+            "Linear scan failed to find target object",
+            "Need comprehensive workspace exploration", 
+            "Objects may be at workspace periphery",
+            "Initial scan returned insufficient results"
+        ],
+        "applicable_tasks": ["find", "search", "scan", "explore", "detect", "arc scan", "comprehensive search"]
+    },
+    
+    {
         "id": "pick_and_place_sequence",
         "title": "Complete Pick and Place Operation",
         "description": "Full sequence for picking up objects and placing them elsewhere",
