@@ -140,42 +140,20 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
     
     def _get_tag_position_3d(self, tag_id: int) -> Optional[List[float]]:
         """Get 3D position of AprilTag from TF tree in robot base frame."""
-        try:
-            # Resolve transform in requested base frame (robot base if available, otherwise camera optical)
-            source_frame = self.robot_base_frame
-            target_frame = f"tag36h11:{tag_id}_hand"
-            
-            # Debug: Print available frames
-            self.get_logger().info(f"Looking for transform from {source_frame} to {target_frame}")
-            
-            # Try to get the transform
-            transform = self.tf_buffer.lookup_transform(
-                source_frame,
-                target_frame,
-                rclpy.time.Time(),
-                timeout=rclpy.duration.Duration(seconds=0.1)
-            )
-            
-            # Extract position (convert from meters to mm)
-            pos = transform.transform.translation
-            # Transform from camera frame to robot frame
-            # Camera frame: X=up/down, Y=left/right, Z=forward/backward
-            # Robot frame: X=forward/backward, Y=left/right, Z=up/down
-            position_mm = [
-                pos.z * 1000.0,  # Camera Z (forward/backward) -> Robot X (forward/backward)
-                pos.y * 1000.0,  # Camera Y (left/right) -> Robot Y (left/right)
-                pos.x * 1000.0   # Camera X (up/down) -> Robot Z (up/down)
-            ]
-            
-            # Debug: Print the coordinate transformation
-            self.get_logger().info(f"AprilTag {tag_id} in '{source_frame}': X={position_mm[0]:.1f}, Y={position_mm[1]:.1f}, Z={position_mm[2]:.1f}mm")
-            
-            return position_mm
-            
-        except Exception as e:
-            # Try alternative frame names
+        # Try different frame name combinations
+        frame_combinations = [
+            (self.robot_base_frame, f"tag36h11:{tag_id}_hand"),
+            (self.robot_base_frame, f"tag36h11:{tag_id}"),
+            ("cam_hand_color_optical_frame", f"tag36h11:{tag_id}_hand"),
+            ("cam_hand_color_optical_frame", f"tag36h11:{tag_id}")
+        ]
+        
+        for source_frame, target_frame in frame_combinations:
             try:
-                target_frame = f"tag36h11:{tag_id}"
+                # Debug: Print frame lookup attempt
+                self.get_logger().debug(f"Trying transform from {source_frame} to {target_frame}")
+                
+                # Try to get the transform
                 transform = self.tf_buffer.lookup_transform(
                     source_frame,
                     target_frame,
@@ -183,7 +161,12 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
                     timeout=rclpy.duration.Duration(seconds=0.1)
                 )
                 
+                # Extract position (convert from meters to mm)
                 pos = transform.transform.translation
+                
+                # Debug: Print raw TF coordinates
+                self.get_logger().debug(f"Raw TF coordinates for tag {tag_id}: x={pos.x:.3f}, y={pos.y:.3f}, z={pos.z:.3f}m")
+                
                 # Transform from camera frame to robot frame
                 # Camera frame: X=up/down, Y=left/right, Z=forward/backward
                 # Robot frame: X=forward/backward, Y=left/right, Z=up/down
@@ -193,11 +176,19 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
                     pos.x * 1000.0   # Camera X (up/down) -> Robot Z (up/down)
                 ]
                 
+                # Debug: Print the coordinate transformation
+                self.get_logger().info(f"[AprilTag Bridge] Tag {tag_id} transform SUCCESS: {source_frame}->{target_frame}")
+                self.get_logger().info(f"[AprilTag Bridge] Final coordinates: X={position_mm[0]:.1f}, Y={position_mm[1]:.1f}, Z={position_mm[2]:.1f}mm")
+                
                 return position_mm
                 
-            except Exception as e2:
-                self.get_logger().debug(f"Could not get TF for tag {tag_id}: {e2}")
-                return None
+            except Exception as e:
+                self.get_logger().debug(f"Transform failed {source_frame}->{target_frame}: {e}")
+                continue
+        
+        # If all frame combinations failed
+        self.get_logger().warning(f"Could not get TF transform for tag {tag_id} with any frame combination")
+        return None
     
     def _stabilize_coordinates(self, class_name: str, position: List[float]) -> List[float]:
         """Apply coordinate stabilization to reduce noise."""
