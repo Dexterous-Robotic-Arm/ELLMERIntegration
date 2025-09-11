@@ -60,6 +60,13 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
             self.tf_buffer = Buffer()
             self.tf_listener = TransformListener(self.tf_buffer, self)
             
+            # Parameters
+            # Base frame in which to publish/tag poses. If your robot base is available in TF,
+            # set this to that frame (e.g., 'base_link', 'xarm_base_link'). Otherwise, it will
+            # default to the camera optical frame so values match your TF echo.
+            self.declare_parameter('robot_base_frame', 'cam_hand_color_optical_frame')
+            self.robot_base_frame = self.get_parameter('robot_base_frame').get_parameter_value().string_value
+
             # Object mapping (AprilTag ID -> object name)
             self.object_mapping = {
                 0: "bottle",
@@ -134,9 +141,8 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
     def _get_tag_position_3d(self, tag_id: int) -> Optional[List[float]]:
         """Get 3D position of AprilTag from TF tree in robot base frame."""
         try:
-            # Since camera is on end effector, we need to get the transform from robot base to tag
-            # This gives us the tag's position in the robot's base frame
-            source_frame = "cam_hand_color_optical_frame"
+            # Resolve transform in requested base frame (robot base if available, otherwise camera optical)
+            source_frame = self.robot_base_frame
             target_frame = f"tag36h11:{tag_id}_hand"
             
             # Debug: Print available frames
@@ -159,7 +165,7 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
             ]
             
             # Debug: Print the coordinate transformation
-            self.get_logger().info(f"AprilTag {tag_id} in robot base frame: X={position_mm[0]:.1f}, Y={position_mm[1]:.1f}, Z={position_mm[2]:.1f}mm")
+            self.get_logger().info(f"AprilTag {tag_id} in '{source_frame}': X={position_mm[0]:.1f}, Y={position_mm[1]:.1f}, Z={position_mm[2]:.1f}mm")
             
             return position_mm
             
@@ -168,7 +174,7 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
             try:
                 target_frame = f"tag36h11:{tag_id}"
                 transform = self.tf_buffer.lookup_transform(
-                    source_frame,  # Still base_link
+                    source_frame,
                     target_frame,
                     rclpy.time.Time(),
                     timeout=rclpy.duration.Duration(seconds=0.1)
