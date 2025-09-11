@@ -62,21 +62,28 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
 
     def _normalize_object_name(self, class_name: str) -> str:
         """Normalize object names to match robot expectations."""
+        print(f"[ObjectIndex] Normalizing '{class_name}'")
+        
         # Map AprilTag names to simple object names
         if class_name.startswith("april_tag_"):
             # Extract object name from april_tag_X_objectname format
             parts = class_name.split("_")
+            print(f"[ObjectIndex] Split parts: {parts}")
             if len(parts) >= 3:
-                return parts[2]  # Return the object name part
+                result = parts[2]  # Return the object name part
+                print(f"[ObjectIndex] Extracted object name: '{result}'")
+                return result
         
-        # Handle other naming patterns
-        if "_" in class_name and "bottle" in class_name.lower():
+        # Handle other naming patterns - simple fallback
+        if "bottle" in class_name.lower():
+            print(f"[ObjectIndex] Found bottle in '{class_name}', returning 'bottle'")
             return "bottle"
-        if "_" in class_name and "cup" in class_name.lower():
+        if "cup" in class_name.lower():
             return "cup"
-        if "_" in class_name and "book" in class_name.lower():
+        if "book" in class_name.lower():
             return "book"
             
+        print(f"[ObjectIndex] No normalization applied, returning '{class_name}'")
         return class_name
     
     def _on_msg(self, msg):
