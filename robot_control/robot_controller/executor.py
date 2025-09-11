@@ -207,8 +207,8 @@ class TaskExecutor:
             if hasattr(self, 'vision_recorder') and self.vision_recorder:
                 print("[Vision] Vision system ready - camera handled by ROS2 publisher")
         else:
-        self.obj_index = ObjectIndex()
-        self._spin_thread = None
+            self.obj_index = ObjectIndex()
+            self._spin_thread = None
     
     def _is_coordinate_safe(self, coordinates: list) -> bool:
         """Validate if coordinates are within safe robot workspace."""
