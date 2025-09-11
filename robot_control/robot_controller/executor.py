@@ -468,6 +468,8 @@ class TaskExecutor:
                                 current_pos[2]    # Keep current Z height
                             ]
                             
+                            print(f"[DIRECT] Moving to object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}")
+                            
                             print(f"[ALIGN] Robot moving to: X={target[0]:.1f}, Y={target[1]:.1f}, Z={target[2]:.1f}")
                             
                             # Use constant J5 position (90° - camera pointing up)

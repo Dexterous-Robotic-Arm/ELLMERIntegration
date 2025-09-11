@@ -815,8 +815,8 @@ class XArmRunner:
                 print("[Robot] Robot not ready for movement")
                 return
             
-            # Use safe speed
-            safe_speed = min(speed if speed is not None else 100, 150)
+            # Use safe speed - reduced for safety
+            safe_speed = min(speed if speed is not None else 50, 80)
             
             # Execute movement directly without safety checks
             self.arm.set_position(x=xyz_mm[0], y=xyz_mm[1], z=xyz_mm[2],
