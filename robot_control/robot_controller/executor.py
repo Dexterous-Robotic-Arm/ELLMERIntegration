@@ -181,25 +181,17 @@ class TaskExecutor:
     def _start_vision_system(self):
         """Start the vision system for object detection."""
         try:
-            # Create vision system in integrated mode (no ROS2 node)
-            from robot_control.vision_system.pose_recorder import PoseRecorder
+            # Vision system is now handled by main.py launching apriltag_bridge.py
+            # No need to start pose_recorder.py here anymore
+            print("[Vision] Vision system handled by main.py (apriltag_bridge.py)")
+            self.vision_recorder = None
             
-            print("[Vision] Initializing vision system in integrated mode...")
-            self.vision_recorder = PoseRecorder(standalone=False)
-            print("[Vision] Vision system initialized successfully")
+            # Vision system as a separate process for ROS2 publishing
+            # DISABLED: main.py now handles vision system via apriltag_bridge.py
+            print("[Vision] Skipping vision process - handled by main.py")
+            self.vision_process = None
             
-            # Start vision system as a separate process for ROS2 publishing
-            vision_script = os.path.join(os.path.dirname(__file__), "..", "vision_system", "pose_recorder.py")
-            
-            if os.path.exists(vision_script):
-                print("[Vision] Starting ROS2 vision publisher...")
-                self.vision_process = subprocess.Popen([
-                    sys.executable, vision_script
-                ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                print("[Vision] ROS2 vision publisher started successfully")
-            else:
-                print("[Vision] Vision script not found, ROS2 publishing disabled")
-                self.vision_process = None
+            # Vision system now handled by main.py
         except Exception as e:
             print(f"[Vision] Error starting vision system: {e}")
             self.vision_process = None
