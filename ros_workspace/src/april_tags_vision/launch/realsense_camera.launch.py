@@ -48,6 +48,11 @@ def generate_launch_description():
             'depth_width': 640,
             'depth_height': 480,
             'depth_fps': 30.0,
+            # Fix QoS compatibility issues
+            'qos_overrides./camera/cam_hand/color/camera_info.reliability': 'best_effort',
+            'qos_overrides./camera/cam_hand/color/camera_info.durability': 'volatile',
+            'qos_overrides./camera/cam_hand/color/image_raw.reliability': 'best_effort',
+            'qos_overrides./camera/cam_hand/color/image_raw.durability': 'volatile',
         }]
     )
     
