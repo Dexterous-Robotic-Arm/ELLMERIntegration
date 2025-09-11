@@ -92,7 +92,7 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
                 # Get tag ID and basic info
                 tag_id = detection.id
                 object_name = self.object_mapping.get(tag_id, f"unknown_object_{tag_id}")
-                class_name = f"april_tag_{tag_id}_{object_name}"
+                class_name = object_name  # Use simple object name for robot control
                 
                 # Get 3D position from TF
                 position_3d = self._get_tag_position_3d(tag_id)
@@ -115,7 +115,7 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
                     detected_objects.append(detection_obj)
                     
                     self.get_logger().info(
-                        f"Detected {object_name} (ID: {tag_id}) at {stabilized_pos}mm"
+                        f"Detected {class_name} (AprilTag ID: {tag_id}) at {stabilized_pos}mm"
                     )
                     
             except Exception as e:
