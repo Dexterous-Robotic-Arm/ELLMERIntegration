@@ -4,29 +4,21 @@
   <name>april_tags_vision</name>
   <version>1.0.0</version>
   <description>April Tags detection package for robot vision system</description>
-  <maintainer email="robot@example.com">Robot Team</maintainer>
+  <maintainer email="ellmer@example.com">ELLMER Integration</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
 
-  <!-- Dependencies -->
   <depend>rclpy</depend>
   <depend>std_msgs</depend>
-  <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
-  <depend>vision_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>cv_bridge</depend>
+  <depend>image_transport</depend>
   <depend>tf2_ros</depend>
   <depend>tf2_geometry_msgs</depend>
-  <depend>cv_bridge</depend>
 
-  <!-- Python dependencies -->
-  <exec_depend>python3-opencv</exec_depend>
-  <exec_depend>python3-numpy</exec_depend>
-  <exec_depend>python3-scipy</exec_depend>
-
-  <!-- Test dependencies -->
-  <test_depend>ament_cmake_pytest</test_depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 

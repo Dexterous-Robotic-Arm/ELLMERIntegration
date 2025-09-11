@@ -1,68 +1,38 @@
 #!/usr/bin/env python3
 """
-April Tags Detector ROS Node
-Publishes April Tag detections to ROS topics.
+April Tags Detector ROS2 Node
+==============================
+
+ROS2 node for April Tags detection with RealSense camera.
 """
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
-
-import numpy as np
-import cv2
-import time
-import json
-from typing import List, Dict, Any
-
-# ROS message imports
-from std_msgs.msg import String, Header
 from sensor_msgs.msg import Image, CameraInfo
-from geometry_msgs.msg import Point, Point2D, Pose, Quaternion
-from april_tags_vision.msg import AprilTagDetection, AprilTagDetectionArray
-
-# CV Bridge for image conversion
+from geometry_msgs.msg import Point, Quaternion
+from std_msgs.msg import Header
 from cv_bridge import CvBridge
+import numpy as np
+import time
 
-# April Tags detector
+from april_tags_vision.msg import AprilTagDetection, AprilTagDetectionArray
 from april_tags_vision.april_tag_detector import AprilTagDetector
 
-# Optional imports
-try:
-    import pyrealsense2 as rs
-    REALSENSE_AVAILABLE = True
-except ImportError:
-    REALSENSE_AVAILABLE = False
-    print("Warning: RealSense SDK not available")
-
-try:
-    from xarm.wrapper import XArmAPI
-    XARM_AVAILABLE = True
-except ImportError:
-    XARM_AVAILABLE = False
-    print("Warning: XArm SDK not available")
-
-try:
-    from scipy.spatial.transform import Rotation as R
-    SCIPY_AVAILABLE = True
-except ImportError:
-    SCIPY_AVAILABLE = False
-    print("Warning: SciPy not available")
-
 class AprilTagsDetectorNode(Node):
-    """ROS Node for April Tags detection."""
+    """April Tags detector ROS2 node."""
     
     def __init__(self):
         super().__init__('april_tags_detector')
         
         # Parameters
-        self.declare_parameter('tag_size_mm', 50.0)
+        self.declare_parameter('tag_size_mm', 100.0)
         self.declare_parameter('confidence_threshold', 0.8)
         self.declare_parameter('camera_frame_id', 'camera_link')
         self.declare_parameter('robot_frame_id', 'base_link')
         self.declare_parameter('publish_rate', 10.0)
         self.declare_parameter('enable_3d_pose', True)
         self.declare_parameter('enable_robot_coords', True)
-        self.declare_parameter('show_debug_image', False)
+        self.declare_parameter('show_debug_image', True)
         
         # Get parameters
         self.tag_size_mm = self.get_parameter('tag_size_mm').value
@@ -74,355 +44,167 @@ class AprilTagsDetectorNode(Node):
         self.enable_robot_coords = self.get_parameter('enable_robot_coords').value
         self.show_debug_image = self.get_parameter('show_debug_image').value
         
-        # Initialize April Tags detector
+        # Initialize detector
         self.detector = AprilTagDetector(
             tag_size_mm=self.tag_size_mm,
             confidence_threshold=self.confidence_threshold
         )
         
-        # CV Bridge for image conversion
+        # CV bridge
         self.bridge = CvBridge()
         
-        # Camera calibration
-        self.camera_info = None
-        self.camera_matrix = None
-        self.dist_coeffs = None
-        
-        # Robot connection (optional)
-        self.robot = None
-        if XARM_AVAILABLE and self.enable_robot_coords:
-            try:
-                robot_ip = self.declare_parameter('robot_ip', '192.168.1.241').value
-                self.robot = XArmAPI(robot_ip)
-                self.robot.connect()
-                self.robot.motion_enable(True)
-                self.robot.set_mode(0)
-                self.robot.set_state(0)
-                self.get_logger().info("✅ Connected to robot")
-            except Exception as e:
-                self.get_logger().warn(f"⚠️ Failed to connect to robot: {e}")
-                self.robot = None
-        
-        # RealSense pipeline (optional)
-        self.pipeline = None
-        if REALSENSE_AVAILABLE:
-            try:
-                self.pipeline = rs.pipeline()
-                config = rs.config()
-                config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
-                config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-                self.pipeline.start(config)
-                self.get_logger().info("✅ RealSense camera connected")
-            except Exception as e:
-                self.get_logger().warn(f"⚠️ RealSense camera not available: {e}")
-                self.pipeline = None
-        
-        # QoS profile for reliable communication
-        qos_profile = QoSProfile(
-            reliability=ReliabilityPolicy.RELIABLE,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=10
-        )
-        
-        # Publishers
-        self.detections_pub = self.create_publisher(
-            AprilTagDetectionArray,
-            '/april_tags/detections',
-            qos_profile
-        )
-        
-        self.debug_image_pub = self.create_publisher(
-            Image,
-            '/april_tags/debug_image',
-            qos_profile
-        )
-        
-        # Legacy publisher for compatibility
-        self.legacy_pub = self.create_publisher(
-            String,
-            '/detected_objects',
-            qos_profile
-        )
+        # Object mapping
+        self.object_mapping = {
+            0: "bottle", 1: "book", 2: "cup", 3: "pen", 4: "phone",
+            5: "laptop", 6: "notebook", 7: "stapler", 8: "keyboard",
+            9: "mouse", 10: "calculator"
+        }
         
         # Subscribers
         self.image_sub = self.create_subscription(
             Image,
             '/camera/color/image_raw',
             self.image_callback,
-            qos_profile
+            10
         )
         
         self.camera_info_sub = self.create_subscription(
             CameraInfo,
             '/camera/color/camera_info',
             self.camera_info_callback,
-            qos_profile
+            10
         )
         
-        # Timer for periodic detection
-        self.timer = self.create_timer(1.0 / self.publish_rate, self.detection_timer_callback)
+        # Publishers
+        self.detections_pub = self.create_publisher(
+            AprilTagDetectionArray,
+            '/april_tags/detections',
+            10
+        )
         
-        self.get_logger().info("🏷️ April Tags Detector Node started")
-        self.get_logger().info(f"   Tag size: {self.tag_size_mm}mm")
-        self.get_logger().info(f"   Confidence threshold: {self.confidence_threshold}")
-        self.get_logger().info(f"   Publish rate: {self.publish_rate}Hz")
-        self.get_logger().info(f"   3D pose estimation: {self.enable_3d_pose}")
-        self.get_logger().info(f"   Robot coordinates: {self.enable_robot_coords}")
+        if self.show_debug_image:
+            self.debug_image_pub = self.create_publisher(
+                Image,
+                '/april_tags/debug_image',
+                10
+            )
+        
+        # Timer for publishing
+        self.timer = self.create_timer(1.0 / self.publish_rate, self.publish_detections)
+        
+        # Storage
+        self.latest_image = None
+        self.latest_camera_info = None
+        self.latest_detections = []
+        
+        self.get_logger().info('April Tags detector node started')
+        self.get_logger().info(f'Tag size: {self.tag_size_mm}mm')
+        self.get_logger().info(f'Confidence threshold: {self.confidence_threshold}')
     
-    def camera_info_callback(self, msg: CameraInfo):
-        """Callback for camera info to set calibration parameters."""
-        if self.camera_info is None:
-            self.camera_info = msg
-            
-            # Extract camera matrix and distortion coefficients
-            self.camera_matrix = np.array(msg.k).reshape(3, 3)
-            self.dist_coeffs = np.array(msg.d)
-            
-            # Set calibration in detector
-            self.detector.set_camera_calibration(self.camera_matrix, self.dist_coeffs)
-            
-            self.get_logger().info("✅ Camera calibration parameters set")
-    
-    def image_callback(self, msg: Image):
-        """Callback for image messages."""
+    def image_callback(self, msg):
+        """Handle incoming image messages."""
         try:
-            # Convert ROS image to OpenCV format
-            cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+            # Convert ROS image to OpenCV
+            self.latest_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
             
-            # Process the image
-            self.process_image(cv_image, msg.header)
+            # Detect tags
+            detections = self.detector.detect_tags(self.latest_image)
+            
+            # Convert to ROS messages
+            self.latest_detections = []
+            for detection in detections:
+                ros_detection = AprilTagDetection()
+                ros_detection.tag_id = detection.tag_id
+                ros_detection.object_name = self.object_mapping.get(detection.tag_id, f"unknown_object_{detection.tag_id}")
+                ros_detection.center.x = detection.center[0]
+                ros_detection.center.y = detection.center[1]
+                ros_detection.center.z = 0.0
+                ros_detection.confidence = detection.confidence
+                ros_detection.tag_family = "tagStandard41h12"
+                ros_detection.tag_size_mm = self.tag_size_mm
+                ros_detection.frame_id = self.camera_frame_id
+                ros_detection.has_3d_pose = detection.position_3d is not None
+                
+                if detection.position_3d:
+                    ros_detection.position_3d.x = detection.position_3d[0]
+                    ros_detection.position_3d.y = detection.position_3d[1]
+                    ros_detection.position_3d.z = detection.position_3d[2]
+                
+                self.latest_detections.append(ros_detection)
             
         except Exception as e:
-            self.get_logger().error(f"❌ Error processing image: {e}")
+            self.get_logger().error(f'Error processing image: {e}')
     
-    def detection_timer_callback(self):
-        """Timer callback for periodic detection using RealSense."""
-        if self.pipeline is None:
+    def camera_info_callback(self, msg):
+        """Handle camera info messages."""
+        try:
+            self.latest_camera_info = msg
+            
+            # Set camera calibration
+            camera_matrix = np.array([
+                [msg.k[0], msg.k[1], msg.k[2]],
+                [msg.k[3], msg.k[4], msg.k[5]],
+                [msg.k[6], msg.k[7], msg.k[8]]
+            ])
+            
+            dist_coeffs = np.array(msg.d)
+            
+            self.detector.set_camera_calibration(camera_matrix, dist_coeffs)
+            
+        except Exception as e:
+            self.get_logger().error(f'Error processing camera info: {e}')
+    
+    def publish_detections(self):
+        """Publish detection results."""
+        if not self.latest_detections:
             return
         
-        try:
-            # Get frames from RealSense
-            frames = self.pipeline.wait_for_frames()
-            color_frame = frames.get_color_frame()
-            depth_frame = frames.get_depth_frame()
-            
-            if not color_frame or not depth_frame:
-                return
-            
-            # Convert to OpenCV format
-            color_image = np.asanyarray(color_frame.get_data())
-            
-            # Set camera calibration if not already set
-            if self.camera_matrix is None:
-                camera_matrix, dist_coeffs = self.detector.get_camera_matrix_from_realsense(depth_frame)
-                if camera_matrix is not None:
-                    self.detector.set_camera_calibration(camera_matrix, dist_coeffs)
-                    self.camera_matrix = camera_matrix
-                    self.dist_coeffs = dist_coeffs
-            
-            # Create header
-            header = Header()
-            header.stamp = self.get_clock().now().to_msg()
-            header.frame_id = self.camera_frame_id
-            
-            # Process the image
-            self.process_image(color_image, header)
-            
-        except Exception as e:
-            self.get_logger().error(f"❌ Error in timer callback: {e}")
-    
-    def process_image(self, image: np.ndarray, header: Header):
-        """Process image and publish detections."""
-        start_time = time.time()
-        
-        # Detect April Tags
-        tag_detections = self.detector.detect_tags(image)
-        
-        # Convert to ROS messages
-        ros_detections = []
-        legacy_detections = []
-        
-        for tag in tag_detections:
-            # Create AprilTagDetection message
-            detection_msg = self.create_detection_message(tag, header)
-            ros_detections.append(detection_msg)
-            
-            # Create legacy format for compatibility
-            legacy_detection = self.create_legacy_detection(tag)
-            legacy_detections.append(legacy_detection)
-        
         # Create detection array message
-        detection_array_msg = AprilTagDetectionArray()
-        detection_array_msg.header = header
-        detection_array_msg.detections = ros_detections
-        detection_array_msg.num_detections = len(ros_detections)
-        detection_array_msg.processing_time_ms = (time.time() - start_time) * 1000
-        detection_array_msg.camera_frame_id = self.camera_frame_id
-        detection_array_msg.robot_frame_id = self.robot_frame_id
+        detection_array = AprilTagDetectionArray()
+        detection_array.header.stamp = self.get_clock().now().to_msg()
+        detection_array.header.frame_id = self.camera_frame_id
+        detection_array.detections = self.latest_detections
+        detection_array.num_detections = len(self.latest_detections)
+        detection_array.processing_time_ms = 0.0  # Could calculate actual processing time
         
         # Publish detections
-        self.detections_pub.publish(detection_array_msg)
-        
-        # Publish legacy format
-        if legacy_detections:
-            legacy_payload = {
-                "t": time.time(),
-                "units": "mm",
-                "items": legacy_detections
-            }
-            self.legacy_pub.publish(String(data=json.dumps(legacy_payload)))
+        self.detections_pub.publish(detection_array)
         
         # Publish debug image if enabled
-        if self.show_debug_image:
-            debug_image = self.detector.draw_detections(image, tag_detections)
+        if self.show_debug_image and self.latest_image is not None:
             try:
-                debug_msg = self.bridge.cv2_to_imgmsg(debug_image, "bgr8")
-                debug_msg.header = header
+                # Draw detections on image
+                debug_image = self.detector.draw_detections(self.latest_image, [
+                    self.detector.TagDetection(
+                        tag_id=d.tag_id,
+                        center=(d.center.x, d.center.y),
+                        confidence=d.confidence,
+                        corners=[(0, 0), (0, 0), (0, 0), (0, 0)]  # Simplified for debug
+                    ) for d in self.latest_detections
+                ])
+                
+                # Convert to ROS image and publish
+                debug_msg = self.bridge.cv2_to_imgmsg(debug_image, 'bgr8')
+                debug_msg.header.stamp = self.get_clock().now().to_msg()
+                debug_msg.header.frame_id = self.camera_frame_id
                 self.debug_image_pub.publish(debug_msg)
+                
             except Exception as e:
-                self.get_logger().error(f"❌ Error publishing debug image: {e}")
-        
-        # Log detection results
-        if tag_detections:
-            self.get_logger().info(f"🏷️ Detected {len(tag_detections)} April Tags")
-            for tag in tag_detections:
-                self.get_logger().info(f"   Tag ID: {tag['tag_id']}, Confidence: {tag['confidence']:.3f}")
-    
-    def create_detection_message(self, tag: Dict[str, Any], header: Header) -> AprilTagDetection:
-        """Create AprilTagDetection ROS message from tag data."""
-        detection = AprilTagDetection()
-        detection.header = header
-        
-        # Tag identification
-        detection.tag_id = tag["tag_id"]
-        detection.tag_family = tag["tag_family"]
-        detection.tag_size_mm = tag["tag_size_mm"]
-        
-        # Detection properties
-        detection.confidence = tag["confidence"]
-        detection.decision_margin = tag["decision_margin"]
-        detection.hamming = tag["hamming"]
-        detection.goodness = tag["goodness"]
-        
-        # 2D image coordinates
-        center = tag["center"]
-        detection.center = Point2D(x=float(center[0]), y=float(center[1]))
-        
-        # Corners
-        for corner in tag["corners"]:
-            detection.corners.append(Point2D(x=float(corner[0]), y=float(corner[1])))
-        
-        # 3D pose information
-        if "pose_3d" in tag and tag["pose_3d"] and self.enable_3d_pose:
-            pose_3d = tag["pose_3d"]
-            detection.pose_3d = Pose()
-            detection.pose_3d.position = Point(
-                x=pose_3d["translation"][0],
-                y=pose_3d["translation"][1],
-                z=pose_3d["translation"][2]
-            )
-            detection.distance = pose_3d["distance"]
-            detection.pose_valid = True
-        else:
-            detection.pose_valid = False
-            detection.distance = 0.0
-        
-        # Robot coordinates (if available)
-        if self.robot and self.enable_robot_coords:
-            robot_coords = self.get_robot_coordinates(tag)
-            if robot_coords:
-                detection.position_robot = Point(
-                    x=robot_coords["position"][0],
-                    y=robot_coords["position"][1],
-                    z=robot_coords["position"][2]
-                )
-                detection.orientation_robot = Quaternion(
-                    x=robot_coords["orientation"][0],
-                    y=robot_coords["orientation"][1],
-                    z=robot_coords["orientation"][2],
-                    w=robot_coords["orientation"][3]
-                )
-                detection.robot_coords_valid = True
-            else:
-                detection.robot_coords_valid = False
-        else:
-            detection.robot_coords_valid = False
-        
-        return detection
-    
-    def create_legacy_detection(self, tag: Dict[str, Any]) -> Dict[str, Any]:
-        """Create legacy detection format for compatibility."""
-        legacy_detection = {
-            "class": f"april_tag_{tag['tag_id']}",
-            "tag_id": tag["tag_id"],
-            "pos": [0.0, 0.0, 0.0],  # Will be filled by robot coordinates if available
-            "conf": tag["confidence"],
-            "pixel_center": tag["center"],
-            "image_size": [640, 480],  # Default image size
-            "tag_family": tag["tag_family"]
-        }
-        
-        # Add robot coordinates if available
-        if self.robot and self.enable_robot_coords:
-            robot_coords = self.get_robot_coordinates(tag)
-            if robot_coords:
-                legacy_detection["pos"] = robot_coords["position"]
-        
-        return legacy_detection
-    
-    def get_robot_coordinates(self, tag: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Get robot coordinates for a tag (placeholder implementation)."""
-        # This is a simplified implementation
-        # In a real system, you would:
-        # 1. Get robot pose
-        # 2. Transform camera coordinates to robot base frame
-        # 3. Apply camera-to-robot transformation
-        
-        if not self.robot:
-            return None
-        
-        try:
-            # Get robot pose
-            code, pose = self.robot.get_position()
-            if code != 0:
-                return None
-            
-            # Simplified transformation (you would implement proper coordinate transformation here)
-            # For now, return the tag center as robot coordinates
-            center = tag["center"]
-            robot_coords = {
-                "position": [float(center[0]), float(center[1]), 0.0],  # Simplified
-                "orientation": [0.0, 0.0, 0.0, 1.0]  # Identity quaternion
-            }
-            
-            return robot_coords
-            
-        except Exception as e:
-            self.get_logger().error(f"❌ Error getting robot coordinates: {e}")
-            return None
-    
-    def destroy_node(self):
-        """Cleanup on node destruction."""
-        if self.pipeline:
-            self.pipeline.stop()
-        if self.robot:
-            self.robot.disconnect()
-        super().destroy_node()
-
+                self.get_logger().error(f'Error publishing debug image: {e}')
 
 def main(args=None):
     """Main function."""
     rclpy.init(args=args)
     
+    node = AprilTagsDetectorNode()
+    
     try:
-        node = AprilTagsDetectorNode()
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
     finally:
-        if rclpy.ok():
-            rclpy.shutdown()
-
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

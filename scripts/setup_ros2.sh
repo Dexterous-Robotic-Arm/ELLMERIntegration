@@ -18,7 +18,7 @@ if ! command -v colcon &> /dev/null; then
     echo "   echo \"deb [arch=\$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu \$(. /etc/os-release && echo \$UBUNTU_CODENAME) main\" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null"
     echo "   sudo apt update"
     echo "   sudo apt upgrade -y"
-    echo "   sudo apt install ros-humble-desktop python3-colcon-common-extensions python3-rosdep python3-argcomplete -y"
+    echo "   sudo apt install ros-humble-desktop python3-colcon-common-extensions python3-rosdep python3-argcomplete ros-humble-ament-cmake ros-humble-ament-cmake-auto -y"
     echo ""
     echo "2. Setup ROS2 environment:"
     echo "   echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc"
@@ -40,7 +40,11 @@ cd ros_workspace
 # Install dependencies
 echo "📦 Installing ROS2 dependencies..."
 sudo apt update
-sudo apt install ros-humble-realsense2-camera ros-humble-image-proc ros-humble-apriltag-ros -y
+sudo apt install ros-humble-realsense2-camera ros-humble-image-proc ros-humble-apriltag-ros python3-colcon-common-extensions python3-rosdep python3-argcomplete -y
+
+# Install ament_cmake and other build tools
+echo "🔧 Installing ROS2 build tools..."
+sudo apt install ros-humble-ament-cmake ros-humble-ament-cmake-auto ros-humble-ament-cmake-gtest ros-humble-ament-cmake-pytest -y
 
 # Build the package
 echo "🏗️ Building April Tags Vision package..."

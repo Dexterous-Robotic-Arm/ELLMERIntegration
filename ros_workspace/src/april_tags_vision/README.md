@@ -1,253 +1,171 @@
-# April Tags Vision ROS Package
+# April Tags Vision - ROS2 Package
 
-A ROS 2 package for April Tags detection with RealSense camera integration and robot coordinate transformation.
+ROS2 package for April Tags detection with RealSense camera and robot integration.
 
-## Features
+## 🚀 Quick Start
 
-- **April Tags Detection**: Detects TagStandard41h12 family April Tags
-- **3D Pose Estimation**: Calculates 3D pose of detected tags
-- **RealSense Integration**: Works with Intel RealSense D435 camera
-- **Robot Integration**: Transforms coordinates to robot base frame
-- **ROS 2 Compatible**: Full ROS 2 Humble/Iron support
-- **Multiple Output Formats**: Both custom and legacy message formats
-
-## Dependencies
-
-### System Dependencies
+### Build the Package
 ```bash
-# Install ROS 2 (Ubuntu 22.04)
-sudo apt install ros-humble-desktop
-
-# Install RealSense SDK
-sudo apt install librealsense2-dkms librealsense2-utils librealsense2-dev
-
-# Install Python dependencies
-pip install apriltag opencv-python numpy scipy
-```
-
-### ROS Dependencies
-- `rclpy`
-- `std_msgs`
-- `sensor_msgs`
-- `geometry_msgs`
-- `vision_msgs`
-- `tf2_ros`
-- `tf2_geometry_msgs`
-- `cv_bridge`
-
-## Installation
-
-1. **Clone the package**:
-```bash
-cd ~/ros2_ws/src
-git clone <repository-url> april_tags_vision
-```
-
-2. **Build the package**:
-```bash
-cd ~/ros2_ws
+cd ros_workspace
 colcon build --packages-select april_tags_vision
 source install/setup.bash
 ```
 
-3. **Install Python dependencies**:
+### Launch Components
+
+#### 1. RealSense Camera
 ```bash
-pip install apriltag opencv-python numpy scipy
+ros2 launch april_tags_vision realsense_camera.launch.py \
+  camera_name:=cam_hand \
+  serial_no:="153122078759" \
+  camera_info_url:=file:///home/apriltag_ws/calibration/cam_hand.yaml
 ```
 
-## Usage
-
-### Basic Detection
-
-Launch the April Tags detector with RealSense camera:
-
+#### 2. Image Processing
 ```bash
-ros2 launch april_tags_vision april_tags_detector.launch.py
+ros2 launch april_tags_vision image_proc.launch.py
 ```
 
-### With Robot Integration
-
-Launch with robot coordinate transformation:
-
+#### 3. April Tags Detection
 ```bash
-ros2 launch april_tags_vision april_tags_with_robot.launch.py
+ros2 launch april_tags_vision april_tags_detection.launch.py \
+  tag_size:=0.1 \
+  tag_ids:="[0,1,2,3,4,5,6,7,8,9,10]"
 ```
 
-### Custom Parameters
-
-Launch with custom parameters:
-
+#### 4. Complete System
 ```bash
-ros2 launch april_tags_vision april_tags_detector.launch.py \
-    tag_size_mm:=100.0 \
-    confidence_threshold:=0.9 \
-    show_debug_image:=true
+ros2 launch april_tags_vision complete_system.launch.py
 ```
 
 ### Test the Package
-
-Run the test node to monitor detections:
-
 ```bash
+# Terminal 1: Launch detector
+ros2 launch april_tags_vision april_tags_detector.launch.py
+
+# Terminal 2: Test detections
 ros2 run april_tags_vision test_april_tags.py
 ```
 
-## Topics
+## 🏷️ Configuration
 
-### Published Topics
+- **Tag Family**: TagStandard41h12
+- **Tag Size**: 100mm
+- **Object Mapping**:
+  - ID 0 = bottle
+  - ID 1 = book
+  - ID 2 = cup
+  - ID 3 = pen
+  - ID 4 = phone
+  - ID 5 = laptop
+  - ID 6 = notebook
+  - ID 7 = stapler
+  - ID 8 = keyboard
+  - ID 9 = mouse
+  - ID 10 = calculator
 
-- `/april_tags/detections` (`april_tags_vision/msg/AprilTagDetectionArray`)
-  - Main detection results with full 3D pose information
+## 📦 Package Structure
 
-- `/april_tags/debug_image` (`sensor_msgs/msg/Image`)
-  - Debug image with drawn detections (if enabled)
-
-- `/detected_objects` (`std_msgs/msg/String`)
-  - Legacy format for compatibility with existing systems
-
-### Subscribed Topics
-
-- `/camera/color/image_raw` (`sensor_msgs/msg/Image`)
-  - Input color images from camera
-
-- `/camera/color/camera_info` (`sensor_msgs/msg/CameraInfo`)
-  - Camera calibration information
-
-## Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `tag_size_mm` | float | 50.0 | Physical size of April Tags in millimeters |
-| `confidence_threshold` | float | 0.8 | Minimum confidence for detection (0.0-1.0) |
-| `camera_frame_id` | string | "camera_link" | Camera frame ID |
-| `robot_frame_id` | string | "base_link" | Robot base frame ID |
-| `publish_rate` | float | 10.0 | Detection publish rate in Hz |
-| `enable_3d_pose` | bool | true | Enable 3D pose estimation |
-| `enable_robot_coords` | bool | true | Enable robot coordinate transformation |
-| `show_debug_image` | bool | false | Show debug image with detections |
-| `robot_ip` | string | "192.168.1.241" | Robot IP address |
-
-## Messages
-
-### AprilTagDetection
-
-```yaml
-std_msgs/Header header
-int32 tag_id
-string tag_family
-float32 tag_size_mm
-float32 confidence
-float32 decision_margin
-int32 hamming
-float32 goodness
-geometry_msgs/Point2D center
-geometry_msgs/Point2D[] corners
-geometry_msgs/Pose pose_3d
-float64 distance
-bool pose_valid
-geometry_msgs/Point position_robot
-geometry_msgs/Quaternion orientation_robot
-bool robot_coords_valid
+```
+april_tags_vision/
+├── package.xml                    # Package metadata
+├── CMakeLists.txt                 # Build configuration
+├── msg/                          # Custom messages
+│   ├── AprilTagDetection.msg
+│   └── AprilTagDetectionArray.msg
+├── launch/                       # Launch files
+│   ├── april_tags_detector.launch.py
+│   ├── realsense_camera.launch.py
+│   ├── image_proc.launch.py
+│   ├── april_tags_detection.launch.py
+│   └── complete_system.launch.py
+├── config/                      # Configuration files
+│   └── april_tags.yaml
+├── scripts/                     # Executable scripts
+│   ├── april_tags_detector_node.py
+│   └── test_april_tags.py
+├── april_tags_vision/           # Python package
+│   ├── __init__.py
+│   └── april_tag_detector.py
+└── README.md                    # This file
 ```
 
-### AprilTagDetectionArray
+## 🔧 Features
 
-```yaml
-std_msgs/Header header
-AprilTagDetection[] detections
-int32 num_detections
-float32 processing_time_ms
-string camera_frame_id
-string robot_frame_id
-```
+- **ROS2 Integration**: Full ROS2 package
+- **RealSense Support**: Direct camera integration
+- **3D Pose Estimation**: Accurate positioning
+- **Object Mapping**: Tag ID to object name
+- **Custom Messages**: Structured detection data
+- **Launch Files**: Easy system startup
+- **Configuration**: YAML-based settings
 
-## Configuration
+## 📋 Dependencies
 
-Create a configuration file `config/april_tags.yaml`:
+- ROS2 Humble
+- RealSense2 Camera
+- April Tags ROS
+- Image Processing
+- OpenCV
+- NumPy
+- SciPy
 
-```yaml
-april_tags_detector:
-  ros__parameters:
-    tag_size_mm: 50.0
-    confidence_threshold: 0.8
-    camera_frame_id: "camera_link"
-    robot_frame_id: "base_link"
-    publish_rate: 10.0
-    enable_3d_pose: true
-    enable_robot_coords: true
-    show_debug_image: false
-    robot_ip: "192.168.1.241"
-```
+## 🎯 Integration with Robot Control
 
-## Troubleshooting
-
-### Common Issues
-
-1. **No detections**: Check camera connection and April Tag visibility
-2. **Poor detection**: Adjust `confidence_threshold` parameter
-3. **Wrong coordinates**: Verify camera calibration and robot transformation
-4. **High CPU usage**: Reduce `publish_rate` parameter
-
-### Debug Mode
-
-Enable debug image to visualize detections:
-
-```bash
-ros2 launch april_tags_vision april_tags_detector.launch.py show_debug_image:=true
-```
-
-### Logging
-
-Enable verbose logging:
-
-```bash
-ros2 run april_tags_vision april_tags_detector_node.py --ros-args --log-level debug
-```
-
-## Examples
-
-### Python Example
+The package integrates with the robot control system:
 
 ```python
-import rclpy
-from rclpy.node import Node
-from april_tags_vision.msg import AprilTagDetectionArray
+# In robot_control/vision_system/pose_recorder.py
+from april_tags_vision import AprilTagDetector
 
-class AprilTagsSubscriber(Node):
-    def __init__(self):
-        super().__init__('april_tags_subscriber')
-        self.subscription = self.create_subscription(
-            AprilTagDetectionArray,
-            '/april_tags/detections',
-            self.detection_callback,
-            10
-        )
-    
-    def detection_callback(self, msg):
-        for detection in msg.detections:
-            print(f"Tag ID: {detection.tag_id}")
-            print(f"Confidence: {detection.confidence}")
-            if detection.pose_valid:
-                print(f"3D Position: {detection.pose_3d.position}")
-
-def main():
-    rclpy.init()
-    node = AprilTagsSubscriber()
-    rclpy.spin(node)
-    rclpy.shutdown()
-
-if __name__ == '__main__':
-    main()
+detector = AprilTagDetector()
+detections = detector.detect_tags(color_image)
 ```
 
-## Contributing
+## 🚀 ROS2 Commands
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+```bash
+# List topics
+ros2 topic list
 
-## License
+# View detections
+ros2 topic echo /april_tags/detections
 
-MIT License - see LICENSE file for details.
+# View debug image
+ros2 run rqt_image_view rqt_image_view /april_tags/debug_image
+
+# Check node status
+ros2 node list
+ros2 node info /april_tags_detector
+```
+
+## 🔧 Troubleshooting
+
+### Build Issues
+```bash
+# Install missing dependencies
+sudo apt install ros-humble-ament-cmake ros-humble-ament-cmake-auto
+
+# Clean and rebuild
+cd ros_workspace
+rm -rf build install
+colcon build --packages-select april_tags_vision
+```
+
+### Camera Issues
+```bash
+# Check camera connection
+ros2 run realsense2_camera rs-enumerate-devices
+
+# Test camera
+ros2 launch realsense2_camera rs_launch.py
+```
+
+### Detection Issues
+```bash
+# Check topics
+ros2 topic list | grep april_tags
+
+# View detection data
+ros2 topic echo /april_tags/detections
+```

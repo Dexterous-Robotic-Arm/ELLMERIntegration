@@ -85,39 +85,29 @@ python3 robot_control/main.py --task "organize the desk objects by type"
 python3 robot_control/main.py --interactive
 ```
 
-## 🔧 ROS Launch Commands (Matches Your Friend's Setup)
+## 🤖 ROS2 Package (Full ROS2 Integration!)
 
-### 1. RealSense Camera
+### April Tags Vision ROS2 Package
 ```bash
-source /opt/ros/humble/setup.bash
-ros2 launch april_tags_vision realsense_camera.launch.py \
-  camera_name:=cam_hand \
-  serial_no:="153122078759" \
-  camera_info_url:=file:///home/apriltag_ws/calibration/cam_hand.yaml
+# Build the package
+cd ros_workspace
+colcon build --packages-select april_tags_vision
+source install/setup.bash
+
+# Launch detector
+ros2 launch april_tags_vision april_tags_detector.launch.py
+
+# Test detections
+ros2 run april_tags_vision test_april_tags.py
 ```
 
-### 2. Image Processing
-```bash
-source /opt/ros/humble/setup.bash
-source ~/apriltag_ws/install/setup.bash
-ros2 launch april_tags_vision image_proc.launch.py
-```
-
-### 3. April Tags Detection
-```bash
-source /opt/ros/humble/setup.bash
-source ~/apriltag_ws/install/setup.bash
-ros2 launch april_tags_vision april_tags_detection.launch.py \
-  tag_size:=0.1 \
-  tag_ids:="[0,1,2,3,4,5,6,7,8,9,10]"
-```
-
-### 4. Complete System
-```bash
-source /opt/ros/humble/setup.bash
-source ~/apriltag_ws/install/setup.bash
-ros2 launch april_tags_vision complete_system.launch.py
-```
+### Package Features
+- **Full ROS2**: Complete ROS2 package integration
+- **RealSense Support**: Direct camera integration
+- **3D Pose Estimation**: Accurate positioning
+- **Object Mapping**: Tag ID to object name
+- **Custom Messages**: Structured detection data
+- **Launch Files**: Easy system startup
 
 ## 🧠 System Capabilities
 

@@ -34,11 +34,11 @@ except ImportError:
 # for object detection. Do not re-enable YOLO without explicit approval.
 
 try:
-    from .april_tag_detector import AprilTagDetector
+    from april_tags_vision.april_tag_detector import AprilTagDetector
     APRILTAG_AVAILABLE = True
 except ImportError:
     APRILTAG_AVAILABLE = False
-    print("Warning: April Tags not available")
+    print("Warning: April Tags not available - build ROS2 package with: colcon build --packages-select april_tags_vision")
 
 try:
     from xarm.wrapper import XArmAPI

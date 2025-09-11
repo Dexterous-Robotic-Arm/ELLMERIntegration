@@ -1,29 +1,24 @@
 #!/usr/bin/env python3
 """
-April Tags detector for ROS package.
-Adapted from the main project's April Tags detector.
+April Tags Detector - ROS2 Implementation
+========================================
+
+April Tags detection using TagStandard41h12 family with 100mm size.
+ROS2 package implementation.
 """
 
 import numpy as np
 import cv2
 import time
-import logging
 from typing import List, Dict, Any, Optional, Tuple
+from dataclasses import dataclass
 
-# Optional imports - only import if available
 try:
     import apriltag
     APRILTAG_AVAILABLE = True
 except ImportError:
     APRILTAG_AVAILABLE = False
     print("Warning: apriltag not available - install with: pip install apriltag")
-
-try:
-    import pyrealsense2 as rs
-    REALSENSE_AVAILABLE = True
-except ImportError:
-    REALSENSE_AVAILABLE = False
-    print("Warning: RealSense SDK not available")
 
 try:
     from scipy.spatial.transform import Rotation as R
@@ -34,234 +29,50 @@ except ImportError:
 
 # April Tags configuration
 TAG_FAMILY = "tagStandard41h12"
-TAG_SIZE_MM = 50.0  # Size of April Tag in millimeters (adjust based on your tags)
+TAG_SIZE_MM = 100.0  # Size of April Tag in millimeters (100mm for desk objects)
 CONFIDENCE_THRESHOLD = 0.8  # Minimum confidence for tag detection
+
+@dataclass
+class TagDetection:
+    """April Tag detection result."""
+    tag_id: int
+    center: Tuple[float, float]  # (x, y) in pixels
+    confidence: float
+    corners: List[Tuple[float, float]]  # 4 corners in pixels
+    pose_3d: Optional[np.ndarray] = None  # 3D pose matrix
+    position_3d: Optional[Tuple[float, float, float]] = None  # (x, y, z) in mm
 
 class AprilTagDetector:
     """April Tags detector for robot vision system."""
     
     def __init__(self, tag_size_mm: float = TAG_SIZE_MM, confidence_threshold: float = CONFIDENCE_THRESHOLD):
-        """
-        Initialize April Tags detector.
-        
-        Args:
-            tag_size_mm: Physical size of April Tags in millimeters
-            confidence_threshold: Minimum confidence for tag detection (0.0-1.0)
-        """
+        """Initialize April Tags detector."""
         self.tag_size_mm = tag_size_mm
         self.confidence_threshold = confidence_threshold
-        self.detector = None
         self.camera_matrix = None
         self.dist_coeffs = None
         
         # Initialize April Tags detector
         if APRILTAG_AVAILABLE:
-            try:
-                # Create detector for TagStandard41h12 family
-                self.detector = apriltag.Detector(families=TAG_FAMILY)
-                print(f"✅ April Tags detector initialized for {TAG_FAMILY}")
-            except Exception as e:
-                print(f"❌ Failed to initialize April Tags detector: {e}")
-                self.detector = None
+            self.detector = apriltag.Detector(families=TAG_FAMILY)
+            print(f"🏷️ April Tags detector initialized (TagStandard41h12, {tag_size_mm}mm)")
         else:
-            print("❌ April Tags not available - install with: pip install apriltag")
+            self.detector = None
+            print("⚠️ April Tags detector not available")
     
     def set_camera_calibration(self, camera_matrix: np.ndarray, dist_coeffs: np.ndarray):
-        """
-        Set camera calibration parameters for 3D pose estimation.
-        
-        Args:
-            camera_matrix: 3x3 camera intrinsic matrix
-            dist_coeffs: Distortion coefficients
-        """
+        """Set camera calibration parameters."""
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
-        print("✅ Camera calibration parameters set")
+        print("📷 Camera calibration set")
     
-    def detect_tags(self, image: np.ndarray) -> List[Dict[str, Any]]:
-        """
-        Detect April Tags in the given image.
-        
-        Args:
-            image: Input image (BGR format)
-            
-        Returns:
-            List of detected tags with their properties
-        """
-        if not self.detector:
-            print("❌ April Tags detector not available")
-            return []
-        
-        # Convert BGR to grayscale
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        
-        # Detect tags
+    def get_camera_matrix_from_realsense(self, depth_sensor) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
+        """Get camera matrix from RealSense depth sensor."""
         try:
-            detections = self.detector.detect(gray)
-        except Exception as e:
-            print(f"❌ April Tags detection failed: {e}")
-            return []
-        
-        detected_tags = []
-        
-        for detection in detections:
-            # Filter by confidence
-            if detection.decision_margin < self.confidence_threshold * 100:  # decision_margin is typically 0-100
-                continue
+            import pyrealsense2 as rs
             
-            # Calculate tag center
-            center = detection.center
-            center_x, center_y = int(center[0]), int(center[1])
-            
-            # Get tag corners
-            corners = detection.corners.astype(int)
-            
-            # Calculate tag properties
-            tag_info = {
-                "tag_id": detection.tag_id,
-                "center": [center_x, center_y],
-                "corners": corners.tolist(),
-                "decision_margin": detection.decision_margin,
-                "confidence": min(detection.decision_margin / 100.0, 1.0),  # Normalize to 0-1
-                "hamming": detection.hamming,
-                "goodness": detection.goodness,
-                "tag_family": TAG_FAMILY,
-                "tag_size_mm": self.tag_size_mm
-            }
-            
-            # Estimate 3D pose if camera calibration is available
-            if self.camera_matrix is not None and self.dist_coeffs is not None:
-                pose = self._estimate_pose(detection)
-                if pose is not None:
-                    tag_info["pose_3d"] = pose
-            
-            detected_tags.append(tag_info)
-        
-        return detected_tags
-    
-    def _estimate_pose(self, detection) -> Optional[Dict[str, Any]]:
-        """
-        Estimate 3D pose of the April Tag.
-        
-        Args:
-            detection: April Tag detection object
-            
-        Returns:
-            Dictionary with 3D pose information or None if estimation fails
-        """
-        if self.camera_matrix is None or self.dist_coeffs is None:
-            return None
-        
-        try:
-            # Define object points for the tag (in tag coordinate system)
-            # Tag is centered at origin, lying in XY plane
-            tag_half_size = self.tag_size_mm / 2000.0  # Convert mm to meters, half size
-            object_points = np.array([
-                [-tag_half_size, -tag_half_size, 0],
-                [ tag_half_size, -tag_half_size, 0],
-                [ tag_half_size,  tag_half_size, 0],
-                [-tag_half_size,  tag_half_size, 0]
-            ], dtype=np.float32)
-            
-            # Image points (corners of the tag in image)
-            image_points = detection.corners.astype(np.float32)
-            
-            # Solve PnP to get pose
-            success, rvec, tvec = cv2.solvePnP(
-                object_points, 
-                image_points, 
-                self.camera_matrix, 
-                self.dist_coeffs
-            )
-            
-            if not success:
-                return None
-            
-            # Convert rotation vector to rotation matrix
-            if SCIPY_AVAILABLE:
-                rotation_matrix, _ = cv2.Rodrigues(rvec)
-                
-                # Convert to Euler angles for easier interpretation
-                r = R.from_matrix(rotation_matrix)
-                euler_angles = r.as_euler('xyz', degrees=True)
-                
-                pose = {
-                    "translation": tvec.flatten().tolist(),  # [x, y, z] in meters
-                    "rotation_matrix": rotation_matrix.tolist(),
-                    "euler_angles": euler_angles.tolist(),  # [roll, pitch, yaw] in degrees
-                    "distance": np.linalg.norm(tvec),  # Distance from camera
-                    "success": True
-                }
-            else:
-                pose = {
-                    "translation": tvec.flatten().tolist(),
-                    "rotation_vector": rvec.flatten().tolist(),
-                    "distance": np.linalg.norm(tvec),
-                    "success": True
-                }
-            
-            return pose
-            
-        except Exception as e:
-            print(f"❌ Pose estimation failed: {e}")
-            return None
-    
-    def draw_detections(self, image: np.ndarray, detections: List[Dict[str, Any]]) -> np.ndarray:
-        """
-        Draw April Tag detections on the image.
-        
-        Args:
-            image: Input image
-            detections: List of detected tags
-            
-        Returns:
-            Image with drawn detections
-        """
-        result_image = image.copy()
-        
-        for tag in detections:
-            # Draw tag outline
-            corners = np.array(tag["corners"], dtype=np.int32)
-            cv2.polylines(result_image, [corners], True, (0, 255, 0), 2)
-            
-            # Draw center point
-            center = tag["center"]
-            cv2.circle(result_image, tuple(center), 5, (0, 0, 255), -1)
-            
-            # Draw tag ID and confidence
-            tag_id = tag["tag_id"]
-            confidence = tag["confidence"]
-            text = f"ID:{tag_id} ({confidence:.2f})"
-            
-            # Position text above the tag
-            text_pos = (center[0] - 30, center[1] - 10)
-            cv2.putText(result_image, text, text_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-            
-            # Draw distance if available
-            if "pose_3d" in tag and tag["pose_3d"]["success"]:
-                distance = tag["pose_3d"]["distance"]
-                dist_text = f"Dist: {distance:.2f}m"
-                dist_pos = (center[0] - 30, center[1] + 20)
-                cv2.putText(result_image, dist_text, dist_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 0), 1)
-        
-        return result_image
-    
-    def get_camera_matrix_from_realsense(self, depth_frame) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
-        """
-        Extract camera matrix and distortion coefficients from RealSense depth frame.
-        
-        Args:
-            depth_frame: RealSense depth frame
-            
-        Returns:
-            Tuple of (camera_matrix, dist_coeffs) or (None, None) if extraction fails
-        """
-        if not REALSENSE_AVAILABLE:
-            return None, None
-        
-        try:
-            # Get intrinsics from depth frame
-            intrinsics = depth_frame.profile.as_video_stream_profile().intrinsics
+            # Get intrinsics from depth sensor
+            intrinsics = depth_sensor.get_intrinsics()
             
             # Create camera matrix
             camera_matrix = np.array([
@@ -276,5 +87,111 @@ class AprilTagDetector:
             return camera_matrix, dist_coeffs
             
         except Exception as e:
-            print(f"❌ Failed to extract camera calibration from RealSense: {e}")
+            print(f"⚠️ Failed to get camera matrix from RealSense: {e}")
             return None, None
+    
+    def detect_tags(self, image: np.ndarray) -> List[TagDetection]:
+        """Detect April Tags in image."""
+        if not self.detector:
+            return []
+        
+        # Convert to grayscale if needed
+        if len(image.shape) == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image
+        
+        # Detect tags
+        detections = self.detector.detect(gray)
+        
+        results = []
+        for detection in detections:
+            # Check confidence
+            if detection.decision_margin < self.confidence_threshold:
+                continue
+            
+            # Get tag ID
+            tag_id = detection.tag_id
+            
+            # Get center point
+            center = detection.center
+            
+            # Get corners
+            corners = detection.corners.tolist()
+            
+            # Calculate 3D pose if camera calibration is available
+            pose_3d = None
+            position_3d = None
+            
+            if self.camera_matrix is not None and SCIPY_AVAILABLE:
+                try:
+                    # Convert corners to numpy array
+                    corners_3d = np.array(corners, dtype=np.float32)
+                    
+                    # Define 3D points for tag corners (in mm)
+                    tag_size = self.tag_size_mm / 1000.0  # Convert to meters
+                    object_points = np.array([
+                        [-tag_size/2, -tag_size/2, 0],
+                        [tag_size/2, -tag_size/2, 0],
+                        [tag_size/2, tag_size/2, 0],
+                        [-tag_size/2, tag_size/2, 0]
+                    ], dtype=np.float32)
+                    
+                    # Solve PnP
+                    success, rvec, tvec = cv2.solvePnP(
+                        object_points, corners_3d, 
+                        self.camera_matrix, self.dist_coeffs
+                    )
+                    
+                    if success:
+                        # Convert rotation vector to rotation matrix
+                        rotation_matrix, _ = cv2.Rodrigues(rvec)
+                        
+                        # Create 4x4 transformation matrix
+                        pose_3d = np.eye(4)
+                        pose_3d[:3, :3] = rotation_matrix
+                        pose_3d[:3, 3] = tvec.flatten()
+                        
+                        # Get position in mm
+                        position_3d = (tvec[0][0] * 1000, tvec[1][0] * 1000, tvec[2][0] * 1000)
+                        
+                except Exception as e:
+                    print(f"⚠️ Failed to calculate 3D pose for tag {tag_id}: {e}")
+            
+            # Create detection result
+            detection_result = TagDetection(
+                tag_id=tag_id,
+                center=center,
+                confidence=detection.decision_margin,
+                corners=corners,
+                pose_3d=pose_3d,
+                position_3d=position_3d
+            )
+            
+            results.append(detection_result)
+        
+        return results
+    
+    def draw_detections(self, image: np.ndarray, detections: List[TagDetection]) -> np.ndarray:
+        """Draw detections on image."""
+        result_image = image.copy()
+        
+        for detection in detections:
+            # Draw tag ID
+            cv2.putText(result_image, f"ID: {detection.tag_id}", 
+                        (int(detection.center[0]), int(detection.center[1]) - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            
+            # Draw confidence
+            cv2.putText(result_image, f"Conf: {detection.confidence:.2f}", 
+                        (int(detection.center[0]), int(detection.center[1]) + 20),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            
+            # Draw corners
+            corners = np.array(detection.corners, dtype=np.int32)
+            cv2.polylines(result_image, [corners], True, (0, 255, 0), 2)
+            
+            # Draw center
+            cv2.circle(result_image, (int(detection.center[0]), int(detection.center[1])), 5, (0, 0, 255), -1)
+        
+        return result_image
