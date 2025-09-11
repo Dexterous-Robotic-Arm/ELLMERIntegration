@@ -140,12 +140,10 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
     
     def _get_tag_position_3d(self, tag_id: int) -> Optional[List[float]]:
         """Get 3D position of AprilTag from TF tree in robot base frame."""
-        # Try different frame name combinations
+        # Try different frame name combinations (excluding problematic ones)
         frame_combinations = [
             (self.robot_base_frame, f"tag36h11:{tag_id}_hand"),
-            (self.robot_base_frame, f"tag36h11:{tag_id}"),
-            ("cam_hand_color_optical_frame", f"tag36h11:{tag_id}_hand"),
-            ("cam_hand_color_optical_frame", f"tag36h11:{tag_id}")
+            ("cam_hand_color_optical_frame", f"tag36h11:{tag_id}_hand")
         ]
         
         for source_frame, target_frame in frame_combinations:
@@ -175,6 +173,14 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
                     pos.y * 1000.0,  # Camera Y (left/right) -> Robot Y (left/right)
                     pos.x * 1000.0   # Camera X (up/down) -> Robot Z (up/down)
                 ]
+                
+                # Validate coordinates to reject swapped values
+                x, y, z = position_mm[0], position_mm[1], position_mm[2]
+                
+                # Check for suspicious coordinate patterns (swapped X/Z)
+                if abs(x - z) > 200:  # If X and Z are very different, likely swapped
+                    self.get_logger().warning(f"[AprilTag Bridge] REJECTING swapped coordinates: X={x:.1f}, Y={y:.1f}, Z={z:.1f}mm")
+                    continue
                 
                 # Debug: Print the coordinate transformation
                 self.get_logger().info(f"[AprilTag Bridge] Tag {tag_id} transform SUCCESS: {source_frame}->{target_frame}")
