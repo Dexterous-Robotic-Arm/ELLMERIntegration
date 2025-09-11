@@ -24,6 +24,9 @@ from .actions_xarm import XArmRunner
 
 DEFAULT_HOVER_MM = 80
 DEFAULT_PICK_RPY = [0, 90, 0]  # Tilt camera up more to see objects
+# Camera is mounted on the end effector; distance from TCP to camera optical center (mm)
+# If you recalibrate the mount, update this value accordingly.
+CAMERA_TO_TCP_OFFSET_MM = 22.5
 
 # Safety limits for real-life testing
 MAX_EXECUTION_TIME = 300  # seconds - maximum time for any plan
@@ -514,40 +517,29 @@ class TaskExecutor:
                                 print(f"[DEBUG] Object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}, Z={obj[2]:.1f}")
                                 print(f"[DEBUG] Robot coordinates: X={current_pos[0]:.1f}, Y={current_pos[1]:.1f}, Z={current_pos[2]:.1f}")
                             
-                            # DIRECT OBJECT COORDINATE ALIGNMENT
-                            # Simply move robot to the detected object's X and Y coordinates
-                            
-                            print(f"[DIRECT] Moving robot to object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}")
-                            
-                            # Move robot directly to object's X, Y, and Z coordinates
-                            target = [
-                                obj[0],           # Move to object's X coordinate
-                                obj[1],           # Move to object's Y coordinate  
-                                obj[2]            # Move to object's Z coordinate (FIXED!)
-                            ]
-                            
-                            # Safety checks disabled - move directly to object coordinates
-                            
-                            print(f"[DIRECT] Moving to object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}, Z={obj[2]:.1f}")
-                            
-                            print(f"[ALIGN] Robot moving to: X={target[0]:.1f}, Y={target[1]:.1f}, Z={target[2]:.1f}")
-                            
-                            # Use constant J5 position (90° - camera pointing up)
-                            rpy = self.constant_j5_rpy
+                            # TWO-STAGE APPROACH FOR CAMERA-ON-EEF
+                            # Stage 1: Move XY to tag while holding current Z
+                            rpy = self.constant_j5_rpy  # keep camera up
                             print(f"[ALIGN] Using constant J5 position: {rpy}")
-                            
+                            xy_target = [obj[0], obj[1], current_pos[2]]
+                            print(f"[STAGE 1] XY align at current Z: {xy_target}")
+                            ObjectIndex.set_movement_in_progress(True)
+                            try:
+                                self.runner.move_pose(xy_target, rpy)
+                            finally:
+                                ObjectIndex.set_movement_in_progress(False)
+
+                            # Stage 2: Adjust Z to tag Z minus camera-to-TCP offset (+hover for APPROACH)
+                            z_target = obj[2] - CAMERA_TO_TCP_OFFSET_MM
                             if act == "APPROACH_OBJECT":
-                                target[2] += hover
-                                print(f"[ALIGN] Adding hover offset: Z={target[2]:.1f}mm")
-                            
-                            print(f"[ALIGN] Moving to aligned position: {[f'{x:.1f}' for x in target]} with J5={rpy}")
-                            
-                            # Freeze coordinate updates during movement
+                                z_target += hover
+                                print(f"[STAGE 2] Adding hover: +{hover:.1f}mm")
+                            target = [obj[0], obj[1], z_target]
+                            print(f"[STAGE 2] Descend to Z with offset: target={target}")
                             ObjectIndex.set_movement_in_progress(True)
                             try:
                                 self.runner.move_pose(target, rpy)
                             finally:
-                                # Resume coordinate updates after movement
                                 ObjectIndex.set_movement_in_progress(False)
                         except Exception as e:
                             print(f"[ERROR] Failed to approach object '{target_label}': {e}")
