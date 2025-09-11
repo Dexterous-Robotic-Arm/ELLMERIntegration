@@ -45,6 +45,7 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
     # Class-level storage to persist across instances
     _global_latest_mm = {}
     _global_lock = threading.Lock()
+    _movement_in_progress = False  # Flag to freeze updates during movement
     
     def __init__(self):
         self._lock = threading.Lock()
@@ -62,32 +63,35 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
 
     def _normalize_object_name(self, class_name: str) -> str:
         """Normalize object names to match robot expectations."""
-        print(f"[ObjectIndex] Normalizing '{class_name}'")
-        
-        # Map AprilTag names to simple object names
-        if class_name.startswith("april_tag_"):
-            # Extract object name from april_tag_X_objectname format
-            parts = class_name.split("_")
-            print(f"[ObjectIndex] Split parts: {parts}")
-            if len(parts) >= 3:
-                result = parts[2]  # Return the object name part
-                print(f"[ObjectIndex] Extracted object name: '{result}'")
-                return result
-        
-        # Handle other naming patterns - simple fallback
+        # Simple approach: just look for object names in the string
         if "bottle" in class_name.lower():
-            print(f"[ObjectIndex] Found bottle in '{class_name}', returning 'bottle'")
             return "bottle"
         if "cup" in class_name.lower():
             return "cup"
         if "book" in class_name.lower():
             return "book"
+        if "pen" in class_name.lower():
+            return "pen"
+        if "phone" in class_name.lower():
+            return "phone"
             
-        print(f"[ObjectIndex] No normalization applied, returning '{class_name}'")
         return class_name
+    
+    @classmethod
+    def set_movement_in_progress(cls, in_progress: bool):
+        """Set flag to freeze coordinate updates during movement."""
+        cls._movement_in_progress = in_progress
+        if in_progress:
+            print("[ObjectIndex] Freezing coordinate updates during movement")
+        else:
+            print("[ObjectIndex] Resuming coordinate updates")
     
     def _on_msg(self, msg):
         try:
+            # Skip updates if movement is in progress (prevents chasing moving targets)
+            if self._movement_in_progress:
+                return
+                
             if hasattr(msg, 'data'):
                 data = json.loads(msg.data)
             else:
@@ -203,8 +207,42 @@ class TaskExecutor:
             if hasattr(self, 'vision_recorder') and self.vision_recorder:
                 print("[Vision] Vision system ready - camera handled by ROS2 publisher")
         else:
-            self.obj_index = ObjectIndex()
-            self._spin_thread = None
+        self.obj_index = ObjectIndex()
+        self._spin_thread = None
+    
+    def _is_coordinate_safe(self, coordinates: list) -> bool:
+        """Validate if coordinates are within safe robot workspace."""
+        if len(coordinates) < 3:
+            return False
+        
+        x, y, z = coordinates[0], coordinates[1], coordinates[2]
+        
+        # Define safe workspace limits (in mm)
+        # These are typical xArm workspace limits - adjust for your robot
+        safe_limits = {
+            'x_min': 200,   # Minimum reach in X
+            'x_max': 700,   # Maximum reach in X  
+            'y_min': -500,  # Minimum reach in Y
+            'y_max': 500,   # Maximum reach in Y
+            'z_min': 50,    # Minimum height
+            'z_max': 600    # Maximum height
+        }
+        
+        # Check if coordinates are within safe workspace
+        if not (safe_limits['x_min'] <= x <= safe_limits['x_max']):
+            print(f"[SAFETY] X coordinate {x:.1f}mm outside safe range [{safe_limits['x_min']}, {safe_limits['x_max']}]")
+            return False
+            
+        if not (safe_limits['y_min'] <= y <= safe_limits['y_max']):
+            print(f"[SAFETY] Y coordinate {y:.1f}mm outside safe range [{safe_limits['y_min']}, {safe_limits['y_max']}]")
+            return False
+            
+        if not (safe_limits['z_min'] <= z <= safe_limits['z_max']):
+            print(f"[SAFETY] Z coordinate {z:.1f}mm outside safe range [{safe_limits['z_min']}, {safe_limits['z_max']}]")
+            return False
+        
+        print(f"[SAFETY] Coordinates [{x:.1f}, {y:.1f}, {z:.1f}]mm are within safe workspace")
+        return True
 
     def _start_vision_system(self):
         """Start the vision system for object detection."""
@@ -481,14 +519,19 @@ class TaskExecutor:
                             
                             print(f"[DIRECT] Moving robot to object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}")
                             
-                            # Move robot directly to object's X and Y coordinates
+                            # Move robot directly to object's X, Y, and Z coordinates
                             target = [
                                 obj[0],           # Move to object's X coordinate
                                 obj[1],           # Move to object's Y coordinate  
-                                current_pos[2]    # Keep current Z height
+                                obj[2]            # Move to object's Z coordinate (FIXED!)
                             ]
                             
-                            print(f"[DIRECT] Moving to object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}")
+                            # Validate coordinates before movement
+                            if not self._is_coordinate_safe(target):
+                                print(f"[SAFETY] Unsafe coordinates detected! Skipping movement to {target}")
+                                continue
+                            
+                            print(f"[DIRECT] Moving to object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}, Z={obj[2]:.1f}")
                             
                             print(f"[ALIGN] Robot moving to: X={target[0]:.1f}, Y={target[1]:.1f}, Z={target[2]:.1f}")
                             
@@ -501,7 +544,14 @@ class TaskExecutor:
                                 print(f"[ALIGN] Adding hover offset: Z={target[2]:.1f}mm")
                             
                             print(f"[ALIGN] Moving to aligned position: {[f'{x:.1f}' for x in target]} with J5={rpy}")
-                            self.runner.move_pose(target, rpy)
+                            
+                            # Freeze coordinate updates during movement
+                            ObjectIndex.set_movement_in_progress(True)
+                            try:
+                                self.runner.move_pose(target, rpy)
+                            finally:
+                                # Resume coordinate updates after movement
+                                ObjectIndex.set_movement_in_progress(False)
                         except Exception as e:
                             print(f"[ERROR] Failed to approach object '{target_label}': {e}")
                             continue
