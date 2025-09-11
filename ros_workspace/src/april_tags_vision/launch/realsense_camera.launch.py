@@ -27,14 +27,14 @@ def generate_launch_description():
     
     camera_info_url_arg = DeclareLaunchArgument(
         'camera_info_url',
-        default_value='file://' + os.path.expanduser('~/ELLMERIntegration/ros_workspace/src/april_tags_vision/config/cam_hand.yaml'),
+git         default_value='file://' + os.path.expanduser('~/ELLMERIntegration/ros_workspace/src/april_tags_vision/config/cam_hand.yaml'),
         description='Camera calibration file URL'
     )
     
     # RealSense Camera Node
     realsense_node = Node(
         package='realsense2_camera',
-        executable='rs_launch.py',
+        executable='realsense2_camera_node',
         name='realsense_camera',
         output='screen',
         parameters=[{
