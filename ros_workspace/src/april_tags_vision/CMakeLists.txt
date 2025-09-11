@@ -53,8 +53,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES std_msgs geometry_msgs
 )
 
-# Install Python dependencies
-ament_python_install_package(${PROJECT_NAME})
+# Python dependencies already installed above
 
 # Test dependencies
 if(BUILD_TESTING)
