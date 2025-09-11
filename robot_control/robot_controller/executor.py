@@ -567,8 +567,10 @@ class TaskExecutor:
                     sweep_mm = float(step.get("sweep_mm", 300))
                     steps = int(step.get("steps", 5))
                     pause_sec = float(step.get("pause_sec", 1.0))
+                    interrupt_on_detection = step.get("interrupt_on_detection", True)  # Default: interrupt when objects found
+                    target_objects = step.get("target_objects", [])  # Specific objects to look for (empty = any object)
                     
-                    print(f"[SCAN] Starting scan: pattern={pattern}, sweep={sweep_mm}mm, steps={steps}, pause={pause_sec}s")
+                    print(f"[SCAN] Starting scan: pattern={pattern}, sweep={sweep_mm}mm, steps={steps}, pause={pause_sec}s, interrupt_on_detection={interrupt_on_detection}")
                     
                     if not self.dry_run:
                         # Get current position for Z coordinate
@@ -605,7 +607,8 @@ class TaskExecutor:
                         if steps < 2:
                             steps = 2
                         
-                        # Perform scan sweep
+                        # Perform scan sweep with early termination on object detection
+                        scan_interrupted = False
                         for j in range(steps):
                             # Calculate target position
                             if steps == 1:
@@ -619,10 +622,48 @@ class TaskExecutor:
                             try:
                                 self.runner.move_pose(target, self.constant_j5_rpy)
                                 print(f"[SCAN] Pausing {pause_sec}s for detection...")
-                                time.sleep(pause_sec)
+                                
+                                # Check for objects during pause with shorter intervals
+                                detection_interval = 0.2  # Check every 200ms
+                                elapsed = 0.0
+                                while elapsed < pause_sec:
+                                    time.sleep(detection_interval)
+                                    elapsed += detection_interval
+                                    
+                                    # Check if target objects are detected (only if interrupt_on_detection is enabled)
+                                    if interrupt_on_detection:
+                                        with self.obj_index._global_lock:
+                                            detected_objects = list(self.obj_index.latest_mm.keys())
+                                        
+                                        # Check if we found any target objects (or any objects if no specific targets)
+                                        found_targets = []
+                                        if target_objects:
+                                            # Look for specific target objects
+                                            found_targets = [obj for obj in target_objects if obj in detected_objects]
+                                        else:
+                                            # Any detected object is a target
+                                            found_targets = detected_objects
+                                        
+                                        if found_targets:
+                                            if target_objects:
+                                                print(f"[SCAN] 🎯 TARGET OBJECTS DETECTED: {found_targets}")
+                                            else:
+                                                print(f"[SCAN] 🎯 OBJECTS DETECTED: {found_targets}")
+                                            print(f"[SCAN] Interrupting scan at position {j+1}/{steps} - moving to next step!")
+                                            scan_interrupted = True
+                                            break
+                                
+                                if scan_interrupted:
+                                    break
+                                    
                             except Exception as e:
                                 print(f"[SCAN] Error at position {j+1}: {e}")
                                 continue
+                        
+                        if scan_interrupted:
+                            print(f"[SCAN] ✅ Scan interrupted due to object detection - proceeding to next step")
+                        else:
+                            print(f"[SCAN] ✅ Scan completed - no objects detected in {steps} positions")
                     else:
                         # Dry run
                         print(f"[SCAN] DRY RUN: Would scan {steps} positions over {sweep_mm}mm sweep")
