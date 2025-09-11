@@ -47,8 +47,8 @@ class SafetyLimits:
     # Workspace limits (mm)
     workspace_x_min: float = 150.0
     workspace_x_max: float = 650.0
-    workspace_y_min: float = -300.0
-    workspace_y_max: float = 300.0
+    workspace_y_min: float = -1000.0  # Expanded Y limits for free left-right movement
+    workspace_y_max: float = 1000.0   # Expanded Y limits for free left-right movement
     workspace_z_min: float = 50.0
     workspace_z_max: float = 500.0
     
@@ -752,8 +752,8 @@ class XArmRunner:
             if not self.safety_monitor.validate_workspace_limits(xyz_mm):
                 return False
             
-            # Additional safety checks
-            if abs(x) > 1000 or abs(y) > 1000 or z < 0 or z > 1000:
+            # Additional safety checks (relaxed Y limits)
+            if abs(x) > 1000 or abs(y) > 1500 or z < 0 or z > 1000:  # Increased Y limit to 1500mm
                 print(f"[Robot] Position outside reasonable bounds: {xyz_mm}")
                 return False
             
@@ -872,9 +872,13 @@ class XArmRunner:
                 print("[Robot] No robot connection - cannot move")
                 return
             
+            # Debug: Print target coordinates
+            print(f"[Robot] Target coordinates: X={xyz_mm[0]:.1f}, Y={xyz_mm[1]:.1f}, Z={xyz_mm[2]:.1f}mm")
+            
             # Validate coordinates before movement
             if not self._validate_target_position(xyz_mm):
                 print(f"[Robot] Invalid target position {xyz_mm} - movement cancelled")
+                print(f"[Robot] Workspace limits: X=[{self.safety_limits.workspace_x_min}, {self.safety_limits.workspace_x_max}], Y=[{self.safety_limits.workspace_y_min}, {self.safety_limits.workspace_y_max}], Z=[{self.safety_limits.workspace_z_min}, {self.safety_limits.workspace_z_max}]")
                 return
             
             # Ensure robot is ready for movement
