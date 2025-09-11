@@ -136,7 +136,7 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
         try:
             # Since camera is on end effector, we need to get the transform from robot base to tag
             # This gives us the tag's position in the robot's base frame
-            source_frame = "base_link"  # Robot base frame
+            source_frame = "cam_hand_color_optical_frame"
             target_frame = f"tag36h11:{tag_id}_hand"
             
             # Debug: Print available frames
