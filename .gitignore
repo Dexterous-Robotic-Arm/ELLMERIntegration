@@ -1,4 +1,4 @@
-# ---- Python basics ----
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -21,38 +21,21 @@ wheels/
 *.egg
 MANIFEST
 
-# ---- Virtual environments ----
-venv_py310/
+# Virtual environments
 venv/
 env/
 ENV/
 env.bak/
 venv.bak/
 
-# ---- ROS2 workspace ----
-ros_workspace/build/
-ros_workspace/install/
-ros_workspace/log/
-
-# ---- Robot control system ----
-logs/
-*.log
-*.csv
-
-# ---- Configuration and secrets ----
-.env
-.env.local
-*.key
-secrets/
-
-# ---- IDE and editor files ----
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# ---- OS generated files ----
+# OS
 .DS_Store
 .DS_Store?
 ._*
@@ -61,40 +44,31 @@ secrets/
 ehthumbs.db
 Thumbs.db
 
-# ---- Temporary files ----
+# Logs
+*.log
+logs/
+
+# ROS
+ros_workspace/build/
+ros_workspace/install/
+ros_workspace/log/
+
+# Data
+data/vector_db/
+*.db
+*.sqlite
+
+# Temporary files
 *.tmp
 *.temp
-*.bak
-*.backup
+temp/
+tmp/
 
-# ---- YOLO model (large file) ----
-yolov8n.pt
+# Environment files
+.env
+.env.local
+.env.*.local
 
-# ---- Test coverage ----
-.coverage
-htmlcov/
-.pytest_cache/
-
-# ---- Documentation builds ----
-docs/_build/
-docs/build/
-
-# ---- Jupyter notebooks ----
-.ipynb_checkpoints/
-*.ipynb
-
-# ---- Data files ----
-data/
-datasets/
-*.pkl
-*.pickle
-
-# ---- Model files ----
-models/
-*.h5
-*.pth
-*.onnx
-*.tflite
-
-# ---- API keys and tokens ----
-api_key.txt
+# Camera calibration
+*.calib
+*.yaml.bak

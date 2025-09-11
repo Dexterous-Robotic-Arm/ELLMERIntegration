@@ -1,0 +1,36 @@
+# April Tags Detection Configuration
+
+april_tags_detector:
+  ros__parameters:
+    # Tag detection parameters
+    tag_size_mm: 100.0                   # Physical size of April Tags in millimeters (100mm for desk objects)
+    confidence_threshold: 0.8            # Minimum confidence for detection (0.0-1.0)
+    
+    # Frame IDs
+    camera_frame_id: "camera_link"       # Camera frame ID
+    robot_frame_id: "base_link"          # Robot base frame ID
+    
+    # Detection settings
+    publish_rate: 10.0                   # Detection publish rate in Hz
+    enable_3d_pose: true                 # Enable 3D pose estimation
+    enable_robot_coords: true            # Enable robot coordinate transformation
+    show_debug_image: false              # Show debug image with detections
+    
+    # Robot settings
+    robot_ip: "192.168.1.241"           # Robot IP address
+    robot_type: "xarm"                   # Robot type
+    
+    # April Tags specific settings
+    tag_family: "tagStandard41h12"       # April Tag family
+    max_detections: 10                   # Maximum number of detections per frame
+    
+    # Coordinate transformation settings
+    camera_offset_x: 0.0                 # Camera offset from robot flange (mm)
+    camera_offset_y: 0.0
+    camera_offset_z: 22.5
+    
+    # Filtering settings
+    min_tag_size_pixels: 20              # Minimum tag size in pixels
+    max_tag_size_pixels: 500             # Maximum tag size in pixels
+    coordinate_stability_threshold: 80.0  # Coordinate stability threshold (mm)
+    coordinate_averaging_samples: 2       # Number of samples for coordinate averaging

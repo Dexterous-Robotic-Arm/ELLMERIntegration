@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 pose_recorder.py
-Publishes YOLO+RealSense detections (meters, base frame) to /detected_objects.
+Publishes April Tags+RealSense detections (meters, base frame) to /detected_objects.
 Also logs joints/EEF to CSV. No planning/motion here.
 """
 
@@ -29,12 +29,16 @@ except ImportError:
     REALSENSE_AVAILABLE = False
     print("Warning: RealSense SDK not available")
 
+# YOLO DISABLED - Using April Tags instead
+# Note: YOLO code has been removed. This system now uses April Tags (TagStandard41h12)
+# for object detection. Do not re-enable YOLO without explicit approval.
+
 try:
-    from ultralytics import YOLO
-    YOLO_AVAILABLE = True
+    from .april_tag_detector import AprilTagDetector
+    APRILTAG_AVAILABLE = True
 except ImportError:
-    YOLO_AVAILABLE = False
-    print("Warning: YOLO not available")
+    APRILTAG_AVAILABLE = False
+    print("Warning: April Tags not available")
 
 try:
     from xarm.wrapper import XArmAPI
@@ -53,6 +57,10 @@ except ImportError:
 CAMERA_OFFSET_MM = [0.0, 0.0, 22.5]            # camera vs flange along tool Z
 CAMERA_OFFSET_M  = [x/1000.0 for x in CAMERA_OFFSET_MM]
 CONF_MIN = 0.35
+
+# Coordinate stabilization parameters (optimized for speed)
+COORDINATE_AVERAGING_SAMPLES = 2  # Reduced from 3 to 2 for speed
+COORDINATE_STABILITY_THRESHOLD = 80.0  # Increased from 50 to 80 for faster convergence
 
 def get_transform_matrix(tx, ty, tz, rpy_xyz_rad):
     if not SCIPY_AVAILABLE:
@@ -131,13 +139,13 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
             else:
                 print("Running in simulation mode - no RealSense camera")
 
-        # YOLO - only if available
-        if YOLO_AVAILABLE:
-            self.model = YOLO("yolov8x.pt")
-            print("🖥️ YOLO model loaded - using CPU for inference")
+        # April Tags detector - only if available
+        if APRILTAG_AVAILABLE:
+            self.april_detector = AprilTagDetector()
+            print("🏷️ April Tags detector initialized")
         else:
-            self.model = None
-            print("Running in simulation mode - no YOLO model")
+            self.april_detector = None
+            print("Running in simulation mode - no April Tags detector")
 
         # CSV logging
         self.csv_path = os.path.expanduser("~/arm_pose_log.csv")
@@ -154,6 +162,53 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
             self.get_logger().info(f"PoseRecorder running → logging to {self.csv_path}")
         else:
             print(f"PoseRecorder initialized in integrated mode → logging to {self.csv_path}")
+        
+        # Coordinate stabilization
+        self.coordinate_history = {}  # Store recent detections per object class
+
+    def _add_to_coordinate_history(self, class_name, position, confidence):
+        """Add detection to coordinate history and return averaged position if stable."""
+        if class_name not in self.coordinate_history:
+            self.coordinate_history[class_name] = []
+        
+        # Add new detection
+        self.coordinate_history[class_name].append({
+            'pos': position,
+            'conf': confidence,
+            'timestamp': time.time()
+        })
+        
+        # Keep only recent detections (reduced time window for speed)
+        current_time = time.time()
+        self.coordinate_history[class_name] = [
+            det for det in self.coordinate_history[class_name]
+            if current_time - det['timestamp'] < 2.0  # Keep last 2 seconds (reduced from 5)
+        ]
+        
+        # Need at least 2 detections to average
+        if len(self.coordinate_history[class_name]) < 2:
+            return position
+        
+        # Calculate average position
+        positions = [det['pos'] for det in self.coordinate_history[class_name]]
+        avg_pos = [
+            sum(pos[i] for pos in positions) / len(positions)
+            for i in range(3)
+        ]
+        
+        # Check if positions are stable (low variation)
+        max_variation = 0
+        for i in range(3):
+            values = [pos[i] for pos in positions]
+            variation = max(values) - min(values)
+            max_variation = max(max_variation, variation)
+        
+        if max_variation <= COORDINATE_STABILITY_THRESHOLD:
+            print(f"[Vision] Stable coordinates for {class_name}: avg={avg_pos}, variation={max_variation:.1f}mm")
+            return avg_pos
+        else:
+            print(f"[Vision] Unstable coordinates for {class_name}: variation={max_variation:.1f}mm > {COORDINATE_STABILITY_THRESHOLD}mm, using latest")
+            return position
 
     def scan_and_publish(self):
         if not self.pipeline:
@@ -175,36 +230,85 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
         color = np.asanyarray(c.get_data())
         intrin = d.profile.as_video_stream_profile().intrinsics
 
-        # Try GPU first, fallback to CPU if CUDA issues
-        try:
-            results = self.model(color, device='cuda')[0]
-        except Exception:
-            # Fallback to CPU if GPU fails
-            results = self.model(color, device='cpu')[0]
+        # Set camera calibration for April Tags detector
+        if self.april_detector and self.april_detector.camera_matrix is None:
+            camera_matrix, dist_coeffs = self.april_detector.get_camera_matrix_from_realsense(d)
+            if camera_matrix is not None:
+                self.april_detector.set_camera_calibration(camera_matrix, dist_coeffs)
+
+        # Detect April Tags
         detected = []
-        for box in results.boxes:
-            cls_id = int(box.cls[0]); conf = float(box.conf[0])
-            if conf < CONF_MIN: 
-                continue
-            x1,y1,x2,y2 = [int(v) for v in box.xyxy[0]]
-            cx,cy = (x1+x2)//2, (y1+y2)//2
-            depth_m = d.get_distance(cx,cy)
-            if depth_m <= 0.0: 
-                continue
+        if self.april_detector:
+            tag_detections = self.april_detector.detect_tags(color)
+            
+            for tag in tag_detections:
+                tag_id = tag["tag_id"]
+                conf = tag["confidence"]
+                if conf < CONF_MIN:
+                    continue
+                
+                # Get tag center
+                cx, cy = tag["center"]
+                
+                # Get depth at the center of the tag
+                depth_m = d.get_distance(cx, cy)
+                if depth_m <= 0.0:
+                    continue
 
-            code, tcp_pose = self.arm.get_position()
-            if code != 0: 
-                continue
-            T_f2c = get_transform_matrix(*CAMERA_OFFSET_M, [0,0,0])
-            T_b2f = pose_to_transform((code, tcp_pose))
-            T_b2c = T_b2f @ T_f2c
+                code, tcp_pose = self.arm.get_position()
+                if code != 0:
+                    continue
+                
+                # T_f2c = get_transform_matrix(*CAMERA_OFFSET_M, [0,0,0])  # REMOVED - NO CAMERA OFFSETS
+                T_f2c = get_transform_matrix(0.0, 0.0, 0.0, [0,0,0])  # NO OFFSETS - DIRECT POSITIONING
+                T_b2f = pose_to_transform((code, tcp_pose))
+                T_b2c = T_b2f @ T_f2c
 
-            pt_cam = rs.rs2_deproject_pixel_to_point(intrin, [cx,cy], depth_m)  # meters
-            pt_base_h = T_b2c @ np.array([*pt_cam,1.0]).reshape(4,1)
-            px,py,pz = pt_base_h[:3,0].tolist()
-            detected.append({"class": self.model.names[cls_id], "pos":[px,py,pz], "conf":conf})
+                pt_cam = rs.rs2_deproject_pixel_to_point(intrin, [cx,cy], depth_m)  # meters
+                pt_base_h = T_b2c @ np.array([*pt_cam,1.0]).reshape(4,1)
+                px,py,pz = pt_base_h[:3,0].tolist()
+                # Convert from meters to millimeters for robot coordinates
+                px_mm, py_mm, pz_mm = px * 1000.0, py * 1000.0, pz * 1000.0
+                
+                # Debug: Check for obviously wrong coordinates
+                if abs(px_mm) > 5000 or abs(py_mm) > 5000 or abs(pz_mm) > 5000:
+                    print(f"[Vision] WARNING: Suspicious coordinates detected!")
+                    print(f"[Vision]   Camera point: {pt_cam}")
+                    print(f"[Vision]   Robot pose: {tcp_pose}")
+                    print(f"[Vision]   Depth: {depth_m:.3f}m")
+                    print(f"[Vision]   Final coordinates: [{px_mm:.1f}, {py_mm:.1f}, {pz_mm:.1f}]mm")
+                    print(f"[Vision]   Skipping this detection due to invalid coordinates")
+                    continue
+                
+                # Apply coordinate stabilization
+                raw_position = [px_mm, py_mm, pz_mm]
+                
+                # Map tag ID to object name
+                object_mapping = {
+                    0: "bottle", 1: "book", 2: "cup", 3: "pen", 4: "phone",
+                    5: "laptop", 6: "notebook", 7: "stapler", 8: "keyboard",
+                    9: "mouse", 10: "calculator"
+                }
+                object_name = object_mapping.get(tag_id, f"unknown_object_{tag_id}")
+                class_name = f"april_tag_{tag_id}_{object_name}"
+                
+                stabilized_position = self._add_to_coordinate_history(class_name, raw_position, conf)
+                
+                print(f"[Vision] April Tag {tag_id} raw: [{px_mm:.1f}, {py_mm:.1f}, {pz_mm:.1f}]mm, stabilized: [{stabilized_position[0]:.1f}, {stabilized_position[1]:.1f}, {stabilized_position[2]:.1f}]mm (conf: {conf:.3f})")
+                
+                # Add pixel coordinates for visual servoing
+                detected.append({
+                    "class": class_name,
+                    "tag_id": tag_id,
+                    "pos": stabilized_position, 
+                    "conf": conf,
+                    "pixel_center": [cx, cy],  # Center of April Tag in pixels
+                    "image_size": [color.shape[1], color.shape[0]],  # [width, height]
+                    "tag_family": tag["tag_family"],
+                    "pose_3d": tag.get("pose_3d", None)  # Include 3D pose if available
+                })
 
-        payload = {"t": time.time(), "units": "m", "items": detected}
+        payload = {"t": time.time(), "units": "mm", "items": detected}
         if self.det_pub:
             self.det_pub.publish(String(data=json.dumps(payload)))
         else:

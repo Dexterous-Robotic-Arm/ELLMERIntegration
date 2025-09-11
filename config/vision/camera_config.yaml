@@ -21,9 +21,25 @@ camera:
 
 # Object Detection Settings
 detection:
-  model: "yolov8x.pt"
-  confidence_threshold: 0.35
+  method: "april_tags"
+  tag_family: "tagStandard41h12"
+  tag_size_mm: 100.0
+  confidence_threshold: 0.8
   max_objects: 10
+  
+# Object ID Mapping
+object_mapping:
+  0: "bottle"
+  1: "book"
+  2: "cup"
+  3: "pen"
+  4: "phone"
+  5: "laptop"
+  6: "notebook"
+  7: "stapler"
+  8: "keyboard"
+  9: "mouse"
+  10: "calculator"
   
 # Vision Processing
 processing:

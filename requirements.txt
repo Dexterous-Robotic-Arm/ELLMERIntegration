@@ -28,8 +28,9 @@ tiktoken>=0.5.1             # Token counting for embeddings
 
 # Computer Vision
 opencv-python>=4.8.0
-ultralytics>=8.0.0
+apriltag>=0.4.0
 pyrealsense2>=2.54.0
+# Note: ultralytics (YOLO) has been removed - using April Tags instead
 
 # ROS2 Python client (optional - installed via apt on Ubuntu)
 # rclpy>=0.10.0
