@@ -162,9 +162,9 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
             # Camera frame: X=up/down, Y=left/right, Z=forward/backward
             # Robot frame: X=forward/backward, Y=left/right, Z=up/down
             position_mm = [
-                pos.z * 1000.0,  # Camera Z (forward/backward) -> Robot X (forward/backward)
-                pos.y * 1000.0,  # Camera Y (left/right) -> Robot Y (left/right)
-                pos.x * 1000.0   # Camera X (up/down) -> Robot Z (up/down)
+                -pos.z * 1000.0,  # Camera Z (forward/backward) -> Robot X (forward/backward)
+                -pos.y * 1000.0,  # Camera Y (left/right) -> Robot Y (left/right)
+                -pos.x * 1000.0   # Camera X (up/down) -> Robot Z (up/down)
             ]
             
             # Debug: Print the coordinate transformation
