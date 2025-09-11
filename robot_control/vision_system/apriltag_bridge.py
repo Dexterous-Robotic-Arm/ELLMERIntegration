@@ -158,10 +158,13 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
             
             # Extract position (convert from meters to mm)
             pos = transform.transform.translation
+            # Transform from camera frame to robot frame
+            # Camera frame: X=right, Y=down, Z=depth (away from camera)
+            # Robot frame: X=depth (forward), Y=left, Z=up
             position_mm = [
-                pos.x * 1000.0,
-                pos.y * 1000.0, 
-                pos.z * 1000.0
+                pos.z * 1000.0,  # Camera Z (depth) -> Robot X (forward)
+                -pos.x * 1000.0, # Camera X (right) -> Robot Y (left, negated)
+                -pos.y * 1000.0  # Camera Y (down) -> Robot Z (up, negated)
             ]
             
             # Debug: Print the coordinate transformation
@@ -181,10 +184,13 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
                 )
                 
                 pos = transform.transform.translation
+                # Transform from camera frame to robot frame
+                # Camera frame: X=right, Y=down, Z=depth (away from camera)
+                # Robot frame: X=depth (forward), Y=left, Z=up
                 position_mm = [
-                    pos.x * 1000.0,
-                    pos.y * 1000.0,
-                    pos.z * 1000.0
+                    pos.z * 1000.0,  # Camera Z (depth) -> Robot X (forward)
+                    -pos.x * 1000.0, # Camera X (right) -> Robot Y (left, negated)
+                    -pos.y * 1000.0  # Camera Y (down) -> Robot Z (up, negated)
                 ]
                 
                 return position_mm

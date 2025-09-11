@@ -268,7 +268,12 @@ class PoseRecorder(Node if ROS2_AVAILABLE else object):
                 pt_base_h = T_b2c @ np.array([*pt_cam,1.0]).reshape(4,1)
                 px,py,pz = pt_base_h[:3,0].tolist()
                 # Convert from meters to millimeters for robot coordinates
-                px_mm, py_mm, pz_mm = px * 1000.0, py * 1000.0, pz * 1000.0
+                # Transform from camera frame to robot frame
+                # Camera frame: X=right, Y=down, Z=depth (away from camera)
+                # Robot frame: X=depth (forward), Y=left, Z=up
+                px_mm = pz * 1000.0   # Camera Z (depth) -> Robot X (forward)
+                py_mm = -px * 1000.0  # Camera X (right) -> Robot Y (left, negated)
+                pz_mm = -py * 1000.0  # Camera Y (down) -> Robot Z (up, negated)
                 
                 # Debug: Check for obviously wrong coordinates
                 if abs(px_mm) > 5000 or abs(py_mm) > 5000 or abs(pz_mm) > 5000:
