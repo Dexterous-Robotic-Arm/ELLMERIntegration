@@ -633,13 +633,15 @@ class XArmRunner:
         self.safety_monitor = SafetyMonitor(self.safety_limits)
         self.gripper_config = GripperConfig()
         
-        # Initialize gripper
-        self.gripper = GripperController(self.arm, self.safety_limits, self.gripper_config)
+        # Initialize gripper (will be reinitialized after connection)
+        self.gripper = None
         
         if not sim:
             self._connect_and_configure()
         else:
             print("[Robot] Running in simulation mode - no robot connection")
+            # Initialize gripper for simulation mode
+            self.gripper = GripperController(None, self.safety_limits, self.gripper_config)
     
     def _connect_and_configure(self) -> None:
         """Connect to robot and configure settings."""
@@ -732,6 +734,66 @@ class XArmRunner:
             print(f"[Robot] Warning: Could not apply all speed limits: {e}")
             # Continue without speed limits if they fail
     
+    def _validate_target_position(self, xyz_mm: List[float]) -> bool:
+        """Validate target position is within safe workspace and reachable."""
+        try:
+            if len(xyz_mm) < 3:
+                print(f"[Robot] Invalid position format: {xyz_mm}")
+                return False
+            
+            x, y, z = xyz_mm[0], xyz_mm[1], xyz_mm[2]
+            
+            # Check for NaN or infinite values
+            if not all(isinstance(coord, (int, float)) and not (coord != coord or coord == float('inf') or coord == float('-inf')) for coord in xyz_mm):
+                print(f"[Robot] Invalid coordinate values (NaN/Inf): {xyz_mm}")
+                return False
+            
+            # Check workspace limits
+            if not self.safety_monitor.validate_workspace_limits(xyz_mm):
+                return False
+            
+            # Additional safety checks
+            if abs(x) > 1000 or abs(y) > 1000 or z < 0 or z > 1000:
+                print(f"[Robot] Position outside reasonable bounds: {xyz_mm}")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            print(f"[Robot] Error validating position: {e}")
+            return False
+    
+    def _recover_robot_state(self) -> None:
+        """Attempt to recover robot from error state."""
+        try:
+            if self.arm is None:
+                return
+            
+            print("[Robot] Attempting to recover robot state...")
+            
+            # Clear any errors
+            self.arm.clean_error()
+            time.sleep(0.5)
+            
+            # Re-enable motion
+            self.arm.motion_enable(enable=True)
+            time.sleep(0.5)
+            
+            # Set proper mode and state
+            self.arm.set_mode(0)  # Position control
+            self.arm.set_state(0)  # Ready state
+            time.sleep(1)
+            
+            # Check final state
+            state = self.arm.get_state()
+            if state[1] in [0, 1, 2]:
+                print(f"[Robot] Robot recovered successfully (state: {state[1]})")
+            else:
+                print(f"[Robot] Robot recovery failed (state: {state[1]})")
+                
+        except Exception as e:
+            print(f"[Robot] Error during robot recovery: {e}")
+
     def _ensure_robot_ready(self) -> bool:
         """Ensure robot is in ready state for movement."""
         try:
@@ -810,6 +872,11 @@ class XArmRunner:
                 print("[Robot] No robot connection - cannot move")
                 return
             
+            # Validate coordinates before movement
+            if not self._validate_target_position(xyz_mm):
+                print(f"[Robot] Invalid target position {xyz_mm} - movement cancelled")
+                return
+            
             # Ensure robot is ready for movement
             if not self._ensure_robot_ready():
                 print("[Robot] Robot not ready for movement")
@@ -818,15 +885,22 @@ class XArmRunner:
             # Use safe speed - reduced for safety
             safe_speed = min(speed if speed is not None else 50, 80)
             
-            # Execute movement directly without safety checks
-            self.arm.set_position(x=xyz_mm[0], y=xyz_mm[1], z=xyz_mm[2],
+            # Execute movement with error handling
+            result = self.arm.set_position(x=xyz_mm[0], y=xyz_mm[1], z=xyz_mm[2],
                                 roll=rpy_deg[0], pitch=rpy_deg[1], yaw=rpy_deg[2],
                                 speed=safe_speed, wait=True)
             
-            print(f"[Robot] Moved to position {xyz_mm} with orientation {rpy_deg}")
+            if result == 0:
+                print(f"[Robot] Moved to position {xyz_mm} with orientation {rpy_deg}")
+            else:
+                print(f"[Robot] Movement failed with error code {result}")
+                # Try to recover robot state
+                self._recover_robot_state()
             
         except Exception as e:
             print(f"[Robot] Error in move_pose: {e}")
+            # Try to recover robot state
+            self._recover_robot_state()
     
     def move_rel_z(self, dz_mm: float) -> None:
         """Move robot relative in Z direction."""
@@ -860,29 +934,45 @@ class XArmRunner:
     def open_gripper(self, position: Optional[float] = None, 
                     speed: float = None, force: float = None) -> bool:
         """Open the gripper."""
+        if self.gripper is None:
+            print("[Robot] Gripper not initialized")
+            return False
         return self.gripper.open_gripper(position, speed, force)
     
     def close_gripper(self, position: Optional[float] = None,
                      speed: float = None, force: float = None) -> bool:
         """Close the gripper."""
+        if self.gripper is None:
+            print("[Robot] Gripper not initialized")
+            return False
         return self.gripper.close_gripper(position, speed, force)
     
     def set_gripper_position(self, position: float, speed: float = None, 
                            force: float = None) -> bool:
         """Set gripper to a specific position."""
+        if self.gripper is None:
+            print("[Robot] Gripper not initialized")
+            return False
         return self.gripper.set_gripper_position(position, speed, force)
     
     def get_gripper_position(self) -> Optional[float]:
         """Get current gripper position."""
+        if self.gripper is None:
+            return None
         return self.gripper.get_gripper_position()
     
     def get_gripper_status(self) -> Dict[str, Any]:
         """Get comprehensive gripper status."""
+        if self.gripper is None:
+            return {"enabled": False, "error": "Gripper not initialized"}
         return self.gripper.get_gripper_status()
     
     def gripper_grasp(self, target_position: float = None, speed: float = None,
                      force: float = None, timeout: float = 5.0) -> bool:
         """Perform a grasp operation with force feedback."""
+        if self.gripper is None:
+            print("[Robot] Gripper not initialized")
+            return False
         return self.gripper.gripper_grasp(target_position, speed, force, timeout)
     
     def gripper_release(self, target_position: float = None, speed: float = None,
@@ -970,15 +1060,32 @@ class XArmRunner:
     def disconnect(self) -> None:
         """Disconnect from robot and clean up resources."""
         try:
+            print("[Robot] Starting graceful shutdown...")
+            
             # Disconnect Dynamixel gripper if available
-            if hasattr(self.gripper, 'dynamixel_gripper') and self.gripper.dynamixel_gripper.enabled:
-                self.gripper.dynamixel_gripper.disconnect()
+            if self.gripper is not None and hasattr(self.gripper, 'dynamixel_gripper') and self.gripper.dynamixel_gripper.enabled:
+                try:
+                    self.gripper.dynamixel_gripper.disconnect()
+                except Exception as e:
+                    print(f"[Robot] Error disconnecting gripper: {e}")
             
             # Disconnect xArm
             if self.arm is not None:
-                self.arm.disconnect()
-                self.arm = None
+                try:
+                    # Stop any ongoing motion
+                    self.arm.stop()
+                    time.sleep(0.5)
+                    
+                    # Disconnect cleanly
+                    self.arm.disconnect()
+                    self.arm = None
+                except Exception as e:
+                    print(f"[Robot] Error disconnecting arm: {e}")
             
             print("[Robot] Disconnected from robot")
         except Exception as e:
             print(f"[Robot] Error during disconnect: {e}")
+        finally:
+            # Ensure cleanup even if errors occur
+            self.arm = None
+            self.gripper = None

@@ -140,8 +140,15 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
         raise TimeoutError(f"Object '{label}' not seen on /detected_objects within {timeout}s")
 
 class TaskExecutor:
-    def __init__(self, arm_ip: str, world_yaml: str = None, sim: bool = False, dry_run: bool = False):
-        self.runner = XArmRunner(arm_ip, sim=sim)
+    def __init__(self, arm_ip: str, world_yaml: str = None, sim: bool = False, dry_run: bool = False, runner: XArmRunner = None):
+        # Use provided runner or create new one
+        if runner is not None:
+            self.runner = runner
+            print("[TaskExecutor] Using provided XArmRunner instance")
+        else:
+            self.runner = XArmRunner(arm_ip, sim=sim)
+            print("[TaskExecutor] Created new XArmRunner instance")
+        
         self.world = WORLD_POSES
         self.hover_mm = DEFAULT_HOVER_MM
         self.pick_rpy = DEFAULT_PICK_RPY
@@ -206,9 +213,8 @@ class TaskExecutor:
                 print("[Vision] Waiting for vision system to initialize...")
                 time.sleep(3)
             
-            # Note: Vision system test skipped in integrated mode (camera handled by ROS2 publisher)
-            if hasattr(self, 'vision_recorder') and self.vision_recorder:
-                print("[Vision] Vision system ready - camera handled by ROS2 publisher")
+            # Note: Vision system handled by main.py launching apriltag_bridge.py
+            print("[Vision] Vision system ready - camera handled by apriltag_bridge.py")
         else:
             self.obj_index = ObjectIndex()
             self._spin_thread = None
@@ -271,6 +277,125 @@ class TaskExecutor:
             raise KeyError(f"Named pose '{name}' not in WORLD_POSES.")
         p = self.world[name]
         return p["xyz_mm"], p["rpy_deg"]
+    
+    def _verify_target_coordinates(self, target: List[float]) -> bool:
+        """Verify target coordinates are valid and safe."""
+        try:
+            if len(target) < 3:
+                print(f"[VERIFY] Invalid coordinate format: {target}")
+                return False
+            
+            x, y, z = target[0], target[1], target[2]
+            
+            # Check for NaN or infinite values
+            if not all(isinstance(coord, (int, float)) and not (coord != coord or coord == float('inf') or coord == float('-inf')) for coord in target):
+                print(f"[VERIFY] Invalid coordinate values (NaN/Inf): {target}")
+                return False
+            
+            # Check workspace limits
+            if not self._is_coordinate_safe(target):
+                return False
+            
+            # Additional validation
+            if abs(x) > 1000 or abs(y) > 1000 or z < 0 or z > 1000:
+                print(f"[VERIFY] Coordinates outside reasonable bounds: {target}")
+                return False
+            
+            print(f"[VERIFY] Coordinates validated: {target}")
+            return True
+            
+        except Exception as e:
+            print(f"[VERIFY] Error validating coordinates: {e}")
+            return False
+    
+    def _execute_movement_with_verification(self, target: List[float], rpy: List[float], speed: float) -> bool:
+        """Execute movement with proper state synchronization and verification."""
+        try:
+            # Freeze coordinate updates during movement
+            ObjectIndex.set_movement_in_progress(True)
+            
+            # Execute movement
+            self.runner.move_pose(target, rpy, speed)
+            
+            # Wait for movement to complete
+            time.sleep(0.5)
+            
+            # Verify movement completed successfully
+            current_pos = self.runner.get_current_position()
+            if current_pos is None:
+                print(f"[VERIFY] Cannot verify movement - no position data")
+                return False
+            
+            # Check if robot is close to target (within 10mm tolerance)
+            distance = ((current_pos[0] - target[0])**2 + 
+                       (current_pos[1] - target[1])**2 + 
+                       (current_pos[2] - target[2])**2)**0.5
+            
+            if distance > 10.0:  # 10mm tolerance
+                print(f"[VERIFY] Movement verification failed - distance: {distance:.1f}mm")
+                print(f"[VERIFY] Target: {target}, Current: {current_pos}")
+                return False
+            
+            print(f"[VERIFY] Movement verified - distance: {distance:.1f}mm")
+            return True
+            
+        except Exception as e:
+            print(f"[VERIFY] Movement execution error: {e}")
+            return False
+        finally:
+            # Always resume coordinate updates
+            ObjectIndex.set_movement_in_progress(False)
+    
+    def _verify_step_completion(self, action: str, step: dict, step_num: int) -> bool:
+        """Verify that a step completed successfully before proceeding."""
+        try:
+            if action in ("MOVE_TO_NAMED", "MOVE_TO_POSE"):
+                # For named poses, verify we're at the expected location
+                if action == "MOVE_TO_NAMED":
+                    name = step.get("name")
+                    if name in self.world:
+                        expected_xyz, expected_rpy = self._named(name)
+                        current_pos = self.runner.get_current_position()
+                        if current_pos is None:
+                            return False
+                        
+                        # Check if we're close to expected position
+                        distance = ((current_pos[0] - expected_xyz[0])**2 + 
+                                   (current_pos[1] - expected_xyz[1])**2 + 
+                                   (current_pos[2] - expected_xyz[2])**2)**0.5
+                        
+                        if distance > 20.0:  # 20mm tolerance for named poses
+                            print(f"[VERIFY] Step {step_num} verification failed - distance to {name}: {distance:.1f}mm")
+                            return False
+                        
+                        print(f"[VERIFY] Step {step_num} verified - at {name} (distance: {distance:.1f}mm)")
+                        return True
+                
+            elif action == "RETREAT_Z":
+                # For Z retreat, verify we moved in Z direction
+                dz_mm = float(step.get("dz_mm", 0))
+                if abs(dz_mm) > 5:  # Only verify for significant Z movements
+                    current_pos = self.runner.get_current_position()
+                    if current_pos is None:
+                        return False
+                    
+                    # Simple verification - robot should be at reasonable height
+                    if current_pos[2] < 50 or current_pos[2] > 800:
+                        print(f"[VERIFY] Step {step_num} verification failed - Z position {current_pos[2]:.1f}mm outside reasonable range")
+                        return False
+                    
+                    print(f"[VERIFY] Step {step_num} verified - Z position: {current_pos[2]:.1f}mm")
+                    return True
+            
+            # For APPROACH_OBJECT and MOVE_TO_OBJECT, verification is handled in _execute_movement_with_verification
+            elif action in ("APPROACH_OBJECT", "MOVE_TO_OBJECT"):
+                return True  # Already verified in movement method
+            
+            return True  # Default to success for other actions
+            
+        except Exception as e:
+            print(f"[VERIFY] Step {step_num} verification error: {e}")
+            return False
 
     def _validate_plan_safety(self, plan: dict):
         """Validate plan for safety concerns"""
@@ -513,53 +638,49 @@ class TaskExecutor:
                     # Use first label for now (could be enhanced for multi-object selection)
                     target_label = labels[0]
                     
-                    hover = float(step.get("hover_mm", self.hover_mm))
-                    offset = step.get("offset_mm", [0.0, 0.0, 0.0])
-                    
-                    # Limit hover and offset for safety
-                    hover = min(hover, 200)  # Max 200mm hover
-                    offset = [min(max(x, -100), 100) for x in offset]  # Limit offset to ±100mm
-                    
                     if not self.dry_run:
                         try:
+                            # Get object coordinates directly from vision system
                             obj = self.obj_index.wait_for(target_label, timeout=step.get("timeout_sec", 5.0))
                             if obj is None:
                                 print(f"[WARN] Object '{target_label}' not detected within timeout")
                                 continue
                             
-                            # Get current position to maintain X and Z while aligning Y to object
-                            current_pos = self.runner.get_current_position()
-                            if current_pos is None or len(current_pos) < 3:
-                                print(f"[WARN] Cannot get current position, using object position directly")
-                                target = [
-                                    obj[0] + float(offset[0]),
-                                    obj[1] + float(offset[1]),
-                                    obj[2] + float(offset[2]),
-                                ]
-                            else:
-                                # Debug: Print coordinate systems
-                                print(f"[DEBUG] Object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}, Z={obj[2]:.1f}")
-                                print(f"[DEBUG] Robot coordinates: X={current_pos[0]:.1f}, Y={current_pos[1]:.1f}, Z={current_pos[2]:.1f}")
-                            
-                            # SIMPLE SCAN-LIKE LOGIC
-                            # APPROACH_OBJECT: move XY at current Z (no Z change)
-                            # MOVE_TO_OBJECT: move to object's full XYZ
-                            rpy = self.constant_j5_rpy  # keep J5 forward (90° pitch)
+                            # SIMPLIFIED COORDINATE HANDLING - NO TRANSFORMATIONS
+                            # Vision system already provides coordinates in robot frame
+                            # Just use them directly as target coordinates
                             if act == "APPROACH_OBJECT":
-                                target = [obj[0], obj[1], current_pos[2]]
+                                # APPROACH_OBJECT: Move to object XY but keep current Z
+                                current_pos = self.runner.get_current_position()
+                                if current_pos is None or len(current_pos) < 3:
+                                    print(f"[ERROR] Cannot get current position for APPROACH_OBJECT")
+                                    continue
+                                target = [obj[0], obj[1], current_pos[2]]  # Use current Z
+                                print(f"[APPROACH] Moving to object XY at current Z: {target}")
                             else:  # MOVE_TO_OBJECT
-                                target = [obj[0], obj[1], obj[2]]
-                            print(f"[DIRECT] Commanding XArm to: {target} rpy={rpy}")
-                            ObjectIndex.set_movement_in_progress(True)
-                            try:
-                                self.runner.move_pose(target, rpy)
-                            finally:
-                                ObjectIndex.set_movement_in_progress(False)
+                                # MOVE_TO_OBJECT: Move to object's exact position
+                                target = [obj[0], obj[1], obj[2]]  # Use object's Z
+                                print(f"[MOVE_TO] Moving to object position: {target}")
+                            
+                            # Use standard orientation for all movements
+                            rpy = self.constant_j5_rpy
+                            
+                            # Verify coordinates before movement
+                            if not self._verify_target_coordinates(target):
+                                print(f"[ERROR] Invalid target coordinates: {target}")
+                                continue
+                            
+                            # Execute movement with state synchronization
+                            success = self._execute_movement_with_verification(target, rpy, step.get("speed", 50))
+                            if not success:
+                                print(f"[ERROR] Movement failed for step {i}")
+                                continue
+                                
                         except Exception as e:
-                            print(f"[ERROR] Failed to approach object '{target_label}': {e}")
+                            print(f"[ERROR] Failed to execute {act} for '{target_label}': {e}")
                             continue
                     else:
-                        print(f"[DRY RUN] Would approach object '{target_label}' with hover={hover}mm, offset={offset}")
+                        print(f"[DRY RUN] Would {act.lower()} object '{target_label}'")
 
                 elif act == "SCAN_FOR_OBJECTS" or act == "SCAN_AREA":
                     # Horizontal sweep in front of the robot
@@ -687,6 +808,16 @@ class TaskExecutor:
                 else:
                     raise ValueError(f"Unsupported action: {act}")
 
+                # Verify step completion before proceeding
+                if not self.dry_run and act in ("MOVE_TO_NAMED", "MOVE_TO_POSE", "APPROACH_OBJECT", "MOVE_TO_OBJECT", "RETREAT_Z"):
+                    if not self._verify_step_completion(act, step, i):
+                        print(f"[ERROR] Step {i} verification failed")
+                        self.error_count += 1
+                        if self.error_count >= self.max_errors:
+                            print(f"[ERROR] Stopping execution after {self.max_errors} consecutive errors")
+                            break
+                        continue
+                
                 # Reset error count on successful step
                 self.error_count = 0
 

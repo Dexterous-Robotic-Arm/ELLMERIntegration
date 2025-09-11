@@ -5,6 +5,7 @@ Provides computer vision capabilities including object detection
 and pose estimation using April Tags and RealSense D435.
 """
 
-from .pose_recorder import PoseRecorder
+# Vision system components
+# PoseRecorder is deprecated - use apriltag_bridge.py instead
 
-__all__ = ['PoseRecorder'] 
+__all__ = [] 

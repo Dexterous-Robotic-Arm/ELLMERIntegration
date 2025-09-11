@@ -21,12 +21,10 @@ Usage:
 """
 
 from .robot_controller import XArmRunner
-from .vision_system import PoseRecorder
 from .utils import ConfigManager, setup_logging
 
 __all__ = [
     'XArmRunner',
-    'PoseRecorder', 
     'ConfigManager',
     'setup_logging'
 ] 

@@ -23,7 +23,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from robot_control.robot_controller import XArmRunner
 from robot_control.robot_controller.executor import TaskExecutor
-from robot_control.vision_system import PoseRecorder
 # TaskPlanner is defined in this file, no import needed
 from robot_control.utils import ConfigManager, setup_logging
 
@@ -365,7 +364,7 @@ class RobotControlSystem:
                 elif command:
                     # Execute task with intelligent AI
                     print(f"\n🤖 AI Processing: '{command}'")
-                    executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run)
+                    executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run, runner=runner)
                     plan = self.task_planner.plan_task(command, world_config, executor)
                     
                     # Show RAG and AI reasoning to user
@@ -413,7 +412,7 @@ class RobotControlSystem:
         while True:
             try:
                 if self.config.task:
-                    executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run)
+                    executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run, runner=runner)
                     plan = self.task_planner.plan_task(self.config.task, world_config, executor)
                     executor.execute(plan)
                     
@@ -429,7 +428,8 @@ class RobotControlSystem:
             return
             
         self.logger.info(f"Executing task: {self.config.task}")
-        executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run)
+        # Pass the existing runner instance to ensure single robot connection
+        executor = TaskExecutor(self.config.robot_ip, world_yaml=self.config.world_yaml, sim=self.config.sim, dry_run=self.config.dry_run, runner=runner)
         plan = self.task_planner.plan_task(self.config.task, world_config, executor)
         executor.execute(plan)
         
