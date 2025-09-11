@@ -139,6 +139,9 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
             source_frame = "base_link"  # Robot base frame
             target_frame = f"tag36h11:{tag_id}_hand"
             
+            # Debug: Print available frames
+            self.get_logger().info(f"Looking for transform from {source_frame} to {target_frame}")
+            
             # Try to get the transform
             transform = self.tf_buffer.lookup_transform(
                 source_frame,

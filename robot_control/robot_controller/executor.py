@@ -60,6 +60,25 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
             self.sub = None
             print("[ObjectIndex] Running without ROS2 - no subscription")
 
+    def _normalize_object_name(self, class_name: str) -> str:
+        """Normalize object names to match robot expectations."""
+        # Map AprilTag names to simple object names
+        if class_name.startswith("april_tag_"):
+            # Extract object name from april_tag_X_objectname format
+            parts = class_name.split("_")
+            if len(parts) >= 3:
+                return parts[2]  # Return the object name part
+        
+        # Handle other naming patterns
+        if "_" in class_name and "bottle" in class_name.lower():
+            return "bottle"
+        if "_" in class_name and "cup" in class_name.lower():
+            return "cup"
+        if "_" in class_name and "book" in class_name.lower():
+            return "book"
+            
+        return class_name
+    
     def _on_msg(self, msg):
         try:
             if hasattr(msg, 'data'):
@@ -75,8 +94,10 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
                     lab = it.get("class")
                     pos = it.get("pos", [0,0,0])
                     if lab and isinstance(pos, list) and len(pos) == 3:
-                        self.latest_mm[lab] = [float(pos[0])*k, float(pos[1])*k, float(pos[2])*k]
-                        print(f"[ObjectIndex] Updated {lab} position: {self.latest_mm[lab]}")
+                        # Normalize object name
+                        normalized_lab = self._normalize_object_name(lab)
+                        self.latest_mm[normalized_lab] = [float(pos[0])*k, float(pos[1])*k, float(pos[2])*k]
+                        print(f"[ObjectIndex] Updated {normalized_lab} (from {lab}) position: {self.latest_mm[normalized_lab]}")
         except Exception as e:
             print(f"[ObjectIndex] Error processing message: {e}")
             pass
