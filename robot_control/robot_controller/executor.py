@@ -517,12 +517,14 @@ class TaskExecutor:
                                 print(f"[DEBUG] Object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}, Z={obj[2]:.1f}")
                                 print(f"[DEBUG] Robot coordinates: X={current_pos[0]:.1f}, Y={current_pos[1]:.1f}, Z={current_pos[2]:.1f}")
                             
-                            # DIRECT PASS OF OBJECT COORDINATES TO XARM
-                            # Single move straight to object's XYZ (hover added for APPROACH)
-                            z_target = obj[2] + (hover if act == "APPROACH_OBJECT" else 0.0)
-                            target = [obj[0], obj[1], z_target]
-                            # Use neutral tool orientation for direct drive
-                            rpy = [0, 0, 0]
+                            # SIMPLE SCAN-LIKE LOGIC
+                            # APPROACH_OBJECT: move XY at current Z (no Z change)
+                            # MOVE_TO_OBJECT: move to object's full XYZ
+                            rpy = self.constant_j5_rpy  # keep J5 forward (90° pitch)
+                            if act == "APPROACH_OBJECT":
+                                target = [obj[0], obj[1], current_pos[2]]
+                            else:  # MOVE_TO_OBJECT
+                                target = [obj[0], obj[1], obj[2]]
                             print(f"[DIRECT] Commanding XArm to: {target} rpy={rpy}")
                             ObjectIndex.set_movement_in_progress(True)
                             try:
