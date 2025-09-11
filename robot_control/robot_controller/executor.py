@@ -360,6 +360,30 @@ class TaskExecutor:
 
             try:
                 if act == "MOVE_TO_NAMED":
+                    # If first step is 'home' but a target object is already detected
+                    # (and appears later in the plan), skip going home to begin approach immediately.
+                    if i == 1:
+                        # Look ahead for first APPROACH_OBJECT/MOVE_TO_OBJECT label
+                        future_label = None
+                        for future in steps_list[i:]:
+                            fa = future.get("action")
+                            if fa in ("APPROACH_OBJECT", "MOVE_TO_OBJECT"):
+                                labels = future.get("labels", [])
+                                label = future.get("label")
+                                if label and not labels:
+                                    labels = [label]
+                                if labels:
+                                    future_label = labels[0]
+                                break
+                        if future_label and not self.dry_run:
+                            try:
+                                # Short, non-blocking check
+                                _ = self.obj_index.wait_for(future_label, timeout=0.05)
+                                print(f"[Plan] Skipping initial MOVE_TO_NAMED because '{future_label}' is already detected")
+                                continue
+                            except Exception:
+                                pass
+
                     xyz, rpy = self._named(step["name"])
                     if not self.dry_run:
                         self.runner.move_pose(xyz, rpy)
