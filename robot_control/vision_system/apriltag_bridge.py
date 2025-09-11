@@ -28,6 +28,11 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
     """
     Bridge between AprilTag detection and robot control system.
     
+    IMPORTANT: Camera is mounted on the robot's end effector!
+    - AprilTag coordinates are detected in camera frame
+    - TF tree automatically transforms to robot base frame
+    - Robot moves to coordinates in its own base frame
+    
     Subscribes to:
     - /cam_hand/tag_detections (AprilTag detections)
     - /tf (transform data)
@@ -127,10 +132,11 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
             self._publish_detections(detected_objects)
     
     def _get_tag_position_3d(self, tag_id: int) -> Optional[List[float]]:
-        """Get 3D position of AprilTag from TF tree."""
+        """Get 3D position of AprilTag from TF tree in robot base frame."""
         try:
-            # Look for transform from camera to tag
-            source_frame = "cam_hand_color_optical_frame"
+            # Since camera is on end effector, we need to get the transform from robot base to tag
+            # This gives us the tag's position in the robot's base frame
+            source_frame = "base_link"  # Robot base frame
             target_frame = f"tag36h11:{tag_id}_hand"
             
             # Try to get the transform
@@ -149,6 +155,9 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
                 pos.z * 1000.0
             ]
             
+            # Debug: Print the coordinate transformation
+            self.get_logger().info(f"AprilTag {tag_id} in robot base frame: X={position_mm[0]:.1f}, Y={position_mm[1]:.1f}, Z={position_mm[2]:.1f}mm")
+            
             return position_mm
             
         except Exception as e:
@@ -156,7 +165,7 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
             try:
                 target_frame = f"tag36h11:{tag_id}"
                 transform = self.tf_buffer.lookup_transform(
-                    source_frame,
+                    source_frame,  # Still base_link
                     target_frame,
                     rclpy.time.Time(),
                     timeout=rclpy.duration.Duration(seconds=0.1)
