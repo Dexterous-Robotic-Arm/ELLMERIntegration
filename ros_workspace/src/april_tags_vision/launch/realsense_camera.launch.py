@@ -3,6 +3,7 @@
 RealSense Camera Launch - Matches your friend's setup
 """
 
+import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, LogInfo
 from launch.substitutions import LaunchConfiguration
@@ -26,7 +27,7 @@ def generate_launch_description():
     
     camera_info_url_arg = DeclareLaunchArgument(
         'camera_info_url',
-        default_value='file:///home/apriltag_ws/calibration/cam_hand.yaml',
+        default_value='file://' + os.path.expanduser('~/ELLMERIntegration/ros_workspace/src/april_tags_vision/config/cam_hand.yaml'),
         description='Camera calibration file URL'
     )
     
