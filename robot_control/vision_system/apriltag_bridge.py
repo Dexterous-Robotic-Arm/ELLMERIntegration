@@ -84,7 +84,7 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
             
             # Coordinate history for stabilization
             self.coordinate_history = {}
-            self.max_history_size = 5
+            self.max_history_size = 10  # Increased for better stabilization
             
             self.get_logger().info("AprilTag Bridge initialized")
             print("[AprilTag Bridge] Node initialized and ready")
@@ -127,7 +127,7 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
                     detected_objects.append(detection_obj)
                     
                     self.get_logger().info(
-                        f"Detected {class_name} (AprilTag ID: {tag_id}) at {stabilized_pos}mm"
+                        f"[AprilTag Bridge] Detected {class_name} (AprilTag ID: {tag_id}) at {stabilized_pos}mm"
                     )
                     
             except Exception as e:
@@ -211,7 +211,23 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
         if len(self.coordinate_history[class_name]) > self.max_history_size:
             self.coordinate_history[class_name].pop(0)
         
-        # Calculate average position
+        # Calculate average position with outlier filtering
+        if len(self.coordinate_history[class_name]) >= 3:
+            positions = np.array(self.coordinate_history[class_name])
+            
+            # Remove outliers (positions that are too far from the median)
+            median_pos = np.median(positions, axis=0)
+            distances = np.linalg.norm(positions - median_pos, axis=1)
+            threshold = np.percentile(distances, 75)  # Keep positions within 75th percentile
+            
+            # Filter out outliers
+            valid_indices = distances <= threshold
+            if np.sum(valid_indices) >= 2:  # Need at least 2 valid positions
+                filtered_positions = positions[valid_indices]
+                avg_position = np.mean(filtered_positions, axis=0)
+                return avg_position.tolist()
+        
+        # Fallback to simple average if not enough data
         if len(self.coordinate_history[class_name]) >= 2:
             positions = np.array(self.coordinate_history[class_name])
             avg_position = np.mean(positions, axis=0)
