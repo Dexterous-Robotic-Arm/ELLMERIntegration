@@ -168,23 +168,24 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
                 # Transform from camera frame to robot frame
                 # Camera frame: X=up/down, Y=left/right, Z=forward/backward
                 # Robot frame: X=forward/backward, Y=left/right, Z=up/down
+                # OVERRIDE: Flip coordinates to [Z, X, Y] order
                 position_mm = [
-                    pos.z * 1000.0,  # Camera Z (forward/backward) -> Robot X (forward/backward)
-                    pos.y * 1000.0,  # Camera Y (left/right) -> Robot Y (left/right)
-                    pos.x * 1000.0   # Camera X (up/down) -> Robot Z (up/down)
+                    pos.x * 1000.0,  # Camera X (up/down) -> Robot Z (up/down) -> Position[0]
+                    pos.z * 1000.0,  # Camera Z (forward/backward) -> Robot X (forward/backward) -> Position[1]
+                    pos.y * 1000.0   # Camera Y (left/right) -> Robot Y (left/right) -> Position[2]
                 ]
                 
                 # Validate coordinates to reject swapped values
-                x, y, z = position_mm[0], position_mm[1], position_mm[2]
+                z, x, y = position_mm[0], position_mm[1], position_mm[2]  # Note: order is now [Z, X, Y]
                 
                 # Check for suspicious coordinate patterns (reject if X < Z, which indicates swapping)
                 if x < z:  # If X is smaller than Z, likely swapped (correct: X=526, Z=215)
-                    self.get_logger().warning(f"[AprilTag Bridge] REJECTING swapped coordinates: X={x:.1f}, Y={y:.1f}, Z={z:.1f}mm")
+                    self.get_logger().warning(f"[AprilTag Bridge] REJECTING swapped coordinates: Z={z:.1f}, X={x:.1f}, Y={y:.1f}mm")
                     continue
                 
                 # Debug: Print the coordinate transformation
                 self.get_logger().info(f"[AprilTag Bridge] Tag {tag_id} transform SUCCESS: {source_frame}->{target_frame}")
-                self.get_logger().info(f"[AprilTag Bridge] Final coordinates: X={position_mm[0]:.1f}, Y={position_mm[1]:.1f}, Z={position_mm[2]:.1f}mm")
+                self.get_logger().info(f"[AprilTag Bridge] Final coordinates [Z,X,Y]: Z={position_mm[0]:.1f}, X={position_mm[1]:.1f}, Y={position_mm[2]:.1f}mm")
                 
                 return position_mm
                 
