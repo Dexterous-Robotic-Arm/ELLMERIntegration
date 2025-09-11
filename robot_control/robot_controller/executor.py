@@ -517,25 +517,13 @@ class TaskExecutor:
                                 print(f"[DEBUG] Object coordinates: X={obj[0]:.1f}, Y={obj[1]:.1f}, Z={obj[2]:.1f}")
                                 print(f"[DEBUG] Robot coordinates: X={current_pos[0]:.1f}, Y={current_pos[1]:.1f}, Z={current_pos[2]:.1f}")
                             
-                            # TWO-STAGE APPROACH FOR CAMERA-ON-EEF
-                            # Stage 1: Move XY to tag while holding current Z
-                            rpy = self.constant_j5_rpy  # keep camera up
-                            print(f"[ALIGN] Using constant J5 position: {rpy}")
-                            xy_target = [obj[0], obj[1], current_pos[2]]
-                            print(f"[STAGE 1] XY align at current Z: {xy_target}")
-                            ObjectIndex.set_movement_in_progress(True)
-                            try:
-                                self.runner.move_pose(xy_target, rpy)
-                            finally:
-                                ObjectIndex.set_movement_in_progress(False)
-
-                            # Stage 2: Adjust Z to tag Z minus camera-to-TCP offset (+hover for APPROACH)
-                            z_target = obj[2] - CAMERA_TO_TCP_OFFSET_MM
-                            if act == "APPROACH_OBJECT":
-                                z_target += hover
-                                print(f"[STAGE 2] Adding hover: +{hover:.1f}mm")
+                            # DIRECT PASS OF OBJECT COORDINATES TO XARM
+                            # Single move straight to object's XYZ (hover added for APPROACH)
+                            z_target = obj[2] + (hover if act == "APPROACH_OBJECT" else 0.0)
                             target = [obj[0], obj[1], z_target]
-                            print(f"[STAGE 2] Descend to Z with offset: target={target}")
+                            # Use neutral tool orientation for direct drive
+                            rpy = [0, 0, 0]
+                            print(f"[DIRECT] Commanding XArm to: {target} rpy={rpy}")
                             ObjectIndex.set_movement_in_progress(True)
                             try:
                                 self.runner.move_pose(target, rpy)
