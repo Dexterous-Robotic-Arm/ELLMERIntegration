@@ -159,12 +159,12 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
             # Extract position (convert from meters to mm)
             pos = transform.transform.translation
             # Transform from camera frame to robot frame
-            # Camera frame: X=right, Y=down, Z=depth (away from camera)
-            # Robot frame: X=depth (forward), Y=left, Z=up
+            # Camera frame: X=up/down, Y=left/right, Z=forward/backward
+            # Robot frame: X=forward/backward, Y=left/right, Z=up/down
             position_mm = [
-                pos.z * 1000.0,  # Camera Z (depth) -> Robot X (forward)
-                -pos.x * 1000.0, # Camera X (right) -> Robot Y (left, negated)
-                -pos.y * 1000.0  # Camera Y (down) -> Robot Z (up, negated)
+                pos.z * 1000.0,  # Camera Z (forward/backward) -> Robot X (forward/backward)
+                pos.y * 1000.0,  # Camera Y (left/right) -> Robot Y (left/right)
+                pos.x * 1000.0   # Camera X (up/down) -> Robot Z (up/down)
             ]
             
             # Debug: Print the coordinate transformation
@@ -185,12 +185,12 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
                 
                 pos = transform.transform.translation
                 # Transform from camera frame to robot frame
-                # Camera frame: X=right, Y=down, Z=depth (away from camera)
-                # Robot frame: X=depth (forward), Y=left, Z=up
+                # Camera frame: X=up/down, Y=left/right, Z=forward/backward
+                # Robot frame: X=forward/backward, Y=left/right, Z=up/down
                 position_mm = [
-                    pos.z * 1000.0,  # Camera Z (depth) -> Robot X (forward)
-                    -pos.x * 1000.0, # Camera X (right) -> Robot Y (left, negated)
-                    -pos.y * 1000.0  # Camera Y (down) -> Robot Z (up, negated)
+                    pos.z * 1000.0,  # Camera Z (forward/backward) -> Robot X (forward/backward)
+                    pos.y * 1000.0,  # Camera Y (left/right) -> Robot Y (left/right)
+                    pos.x * 1000.0   # Camera X (up/down) -> Robot Z (up/down)
                 ]
                 
                 return position_mm
