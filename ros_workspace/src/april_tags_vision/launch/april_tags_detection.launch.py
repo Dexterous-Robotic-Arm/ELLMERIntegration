@@ -37,9 +37,9 @@ def generate_launch_description():
         name='apriltag_detector',
         output='screen',
         remappings=[
-            ('image_rect', f'/{LaunchConfiguration("camera_name")}/image_rect'),
-            (f'/{LaunchConfiguration("camera_name")}/camera_info', '/camera/cam_hand/color/camera_info'),
-            ('detections', f'/{LaunchConfiguration("camera_name")}/tag_detections'),
+            ('image_rect', '/cam_hand/image_rect'),
+            ('/cam_hand/camera_info', '/camera/cam_hand/color/camera_info'),
+            ('detections', '/cam_hand/tag_detections'),
         ],
         parameters=[{
             'family': 'tagStandard41h12',

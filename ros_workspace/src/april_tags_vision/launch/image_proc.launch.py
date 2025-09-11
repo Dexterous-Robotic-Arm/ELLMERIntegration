@@ -25,8 +25,9 @@ def generate_launch_description():
         name='image_proc',
         output='screen',
         remappings=[
-            ('image', f'/camera/{LaunchConfiguration("camera_name")}/color/image_raw'),
-            ('camera_info', f'/camera/{LaunchConfiguration("camera_name")}/color/camera_info'),
+            ('image', '/camera/cam_hand/color/image_raw'),
+            ('camera_info', '/camera/cam_hand/color/camera_info'),
+            ('__ns', '/cam_hand'),
         ],
         parameters=[{
             'qos_overrides./camera/cam_hand/color/camera_info.reliability': 'best_effort'
