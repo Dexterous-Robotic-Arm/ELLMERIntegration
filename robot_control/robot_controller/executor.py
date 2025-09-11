@@ -5,6 +5,7 @@ import logging
 import subprocess
 import sys
 import os
+from typing import List, Dict, Any, Optional
 
 # Initialize fallback values BEFORE try-except
 ROS2_AVAILABLE = False
