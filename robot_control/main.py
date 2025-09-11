@@ -82,8 +82,8 @@ Examples:
     parser.add_argument(
         "--vision-script", 
         type=str, 
-        default="robot_control/vision_system/pose_recorder.py",
-        help="Path to vision system script"
+        default="robot_control/vision_system/apriltag_bridge.py",
+        help="Path to vision system script (default: apriltag_bridge.py)"
     )
     
     parser.add_argument(
