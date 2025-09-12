@@ -1012,9 +1012,9 @@ class TaskExecutor:
                         
                         if result == 0:
                             print(f"[SUCCESS] Corrected approach to {target_label} completed")
-                            else:
+                        else:
                             print(f"[ERROR] Corrected approach to {target_label} failed with code {result}")
-                                        else:
+                    else:
                         print(f"[DRY RUN] Would approach {target_label} with corrected coordinate transformation")
 
                 elif act == "SCAN_FOR_OBJECTS" or act == "SCAN_AREA":
