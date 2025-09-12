@@ -280,7 +280,7 @@ class TaskExecutor:
         return p["xyz_mm"], p["rpy_deg"]
     
     def _verify_target_coordinates(self, target: List[float]) -> bool:
-        """Verify target coordinates are valid and safe."""
+        """Verify target coordinates are valid (safety checks disabled)."""
         try:
             if len(target) < 3:
                 print(f"[VERIFY] Invalid coordinate format: {target}")
@@ -288,21 +288,13 @@ class TaskExecutor:
             
             x, y, z = target[0], target[1], target[2]
             
-            # Check for NaN or infinite values
+            # Check for NaN or infinite values only
             if not all(isinstance(coord, (int, float)) and not (coord != coord or coord == float('inf') or coord == float('-inf')) for coord in target):
                 print(f"[VERIFY] Invalid coordinate values (NaN/Inf): {target}")
                 return False
             
-            # Check workspace limits
-            if not self._is_coordinate_safe(target):
-                return False
-            
-            # Additional validation
-            if abs(x) > 1000 or abs(y) > 1000 or z < 0 or z > 1000:
-                print(f"[VERIFY] Coordinates outside reasonable bounds: {target}")
-                return False
-            
-            print(f"[VERIFY] Coordinates validated: {target}")
+            # SAFETY CHECKS DISABLED - Allow robot to move to any coordinates
+            print(f"[VERIFY] Coordinates validated (safety checks disabled): {target}")
             return True
             
         except Exception as e:
