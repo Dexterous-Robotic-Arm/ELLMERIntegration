@@ -948,7 +948,27 @@ class XArmRunner:
         except Exception as e:
             print(f"[Robot] Error getting position: {e}")
             return None
-    
+    def get_current_position_and_rpy(self) -> Optional[Tuple[List[float], List[float]]]:
+        """Get current robot TCP position and orientation."""
+        try:
+            if self.arm is None:
+                return None, None
+            position = self.arm.get_position()
+            print(f"[DEBUG] Raw position+RPY data: {position}")
+            
+            if position[0] == 0:  # Success
+                if isinstance(position[1], (list, tuple)) and len(position[1]) >= 6:
+                    pos_data = position[1]
+                    xyz = [float(pos_data[0]), float(pos_data[1]), float(pos_data[2])]
+                    rpy = [float(pos_data[3]), float(pos_data[4]), float(pos_data[5])]
+                    return xyz, rpy
+            
+            print(f"[DEBUG] Could not extract position+RPY from: {position}")
+            return None, None
+        except Exception as e:
+            print(f"[Robot] Error getting position and RPY: {e}")
+            return None, None
+        
     def go_home(self) -> None:
         """Move robot to home position."""
         try:
@@ -986,9 +1006,13 @@ class XArmRunner:
             safe_speed = min(speed if speed is not None else 50, 80)
             
             # Execute movement with error handling
+            # result = self.arm.set_position(x=xyz_mm[0], y=xyz_mm[1], z=xyz_mm[2],
+            #                     roll=rpy_deg[0], pitch=rpy_deg[1], yaw=rpy_deg[2],
+            #                     speed=safe_speed, wait=True)
+            
             result = self.arm.set_position(x=xyz_mm[0], y=xyz_mm[1], z=xyz_mm[2],
-                                roll=rpy_deg[0], pitch=rpy_deg[1], yaw=rpy_deg[2],
-                                speed=safe_speed, wait=True)
+                    roll=0, pitch=90, yaw=rpy_deg[2],  # Lock roll=0, pitch=90, free yaw
+                    speed=safe_speed, wait=True)
             
             if result == 0:
                 print(f"[Robot] Moved to position {xyz_mm} with orientation {rpy_deg}")
@@ -1069,13 +1093,23 @@ class XArmRunner:
             safe_speed = min(speed if speed is not None else 50, 80)
             
             # Move robot to transformed coordinates
+            # result = self.arm.set_position(
+            #     x=robot_base_coords[0], 
+            #     y=robot_base_coords[1], 
+            #     z=robot_base_coords[2],
+            #     roll=rpy_deg[0], 
+            #     pitch=rpy_deg[1], 
+            #     yaw=rpy_deg[2],
+            #     speed=safe_speed, 
+            #     wait=True
+            # )
             result = self.arm.set_position(
                 x=robot_base_coords[0], 
                 y=robot_base_coords[1], 
                 z=robot_base_coords[2],
-                roll=rpy_deg[0], 
-                pitch=rpy_deg[1], 
-                yaw=rpy_deg[2],
+                roll=0,           # Lock roll 
+                pitch=90,         # Lock pitch
+                yaw=rpy_deg[2],   # Free yaw
                 speed=safe_speed, 
                 wait=True
             )
