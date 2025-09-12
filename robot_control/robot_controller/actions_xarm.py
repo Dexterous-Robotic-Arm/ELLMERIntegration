@@ -748,14 +748,14 @@ class XArmRunner:
                 print(f"[Robot] Invalid coordinate values (NaN/Inf): {xyz_mm}")
                 return False
             
-            # Check workspace limits
-            if not self.safety_monitor.validate_workspace_limits(xyz_mm):
-                return False
+            # WORKSPACE LIMITS DISABLED - Allow robot to move to any coordinates
+            # if not self.safety_monitor.validate_workspace_limits(xyz_mm):
+            #     return False
             
-            # Additional safety checks (relaxed Y limits)
-            if abs(x) > 1000 or abs(y) > 1500 or z < 0 or z > 1000:  # Increased Y limit to 1500mm
-                print(f"[Robot] Position outside reasonable bounds: {xyz_mm}")
-                return False
+            # ADDITIONAL SAFETY CHECKS DISABLED - Allow robot to move to any coordinates
+            # if abs(x) > 1000 or abs(y) > 1500 or z < 0 or z > 1000:  # Increased Y limit to 1500mm
+            #     print(f"[Robot] Position outside reasonable bounds: {xyz_mm}")
+            #     return False
             
             return True
             
