@@ -619,41 +619,45 @@ class TaskExecutor:
                             print(f"[WARN] Step {i} failed: GRIPPER_TEST")
 
                 elif act in ("APPROACH_OBJECT", "MOVE_TO_OBJECT"):
-                    # SIMPLIFIED: Just get the object and move to it
+                    # SIMPLE DETECTION-BASED MOVEMENT - Like YOLO object detection
                     labels = step.get("labels", [])
                     label = step.get("label")
                     if label and not labels:
                         labels = [label]
                     
-                    if not labels:
-                        raise ValueError(f"Step {i}: No label or labels specified for {act}")
-                    
                     target_label = labels[0]
                     
                     if not self.dry_run:
+                        # Get object coordinates from detection
+                        obj = self.obj_index.wait_for(target_label, timeout=step.get("timeout_sec", 5.0))
+                        if obj is None:
+                            print(f"[WARN] Object '{target_label}' not detected")
+                            continue
+                        
+                        print(f"[DETECTION] Found {target_label} at: {obj}")
+                        
+                        # DIRECT ROBOT MOVEMENT - Simple like object detection
                         try:
-                            # Get object coordinates - coordinates are now in zyx order
-                            obj = self.obj_index.wait_for(target_label, timeout=step.get("timeout_sec", 5.0))
-                            if obj is None:
-                                print(f"[WARN] Object '{target_label}' not detected within timeout")
+                            if self.runner.arm is None:
+                                print("[ERROR] Robot not connected")
                                 continue
+                                
+                            # Move robot directly to detected coordinates
+                            result = self.runner.arm.set_position(
+                                x=obj[0], y=obj[1], z=obj[2],
+                                roll=0, pitch=90, yaw=0,
+                                speed=200, wait=True
+                            )
                             
-                            # DIRECT MOVEMENT - NO SAFETY CHECKS, NO VERIFICATION
-                            # obj is now [z, y, x] from the zyx coordinate flip
-                            target = [obj[0], obj[1], obj[2]]  # Use object coordinates directly
-                            rpy = self.constant_j5_rpy
-                            
-                            print(f"[{act}] Moving directly to object at: {target}")
-                            
-                            # Execute movement directly - no verification
-                            self.runner.move_pose(target, rpy, step.get("speed", 50))
-                            print(f"[{act}] Movement command sent to robot")
+                            if result == 0:
+                                print(f"[SUCCESS] Robot moved to {target_label} at {obj}")
+                            else:
+                                print(f"[ERROR] Movement failed with code {result}")
                                 
                         except Exception as e:
-                            print(f"[ERROR] Failed to execute {act} for '{target_label}': {e}")
-                            continue
+                            print(f"[ERROR] Movement exception: {e}")
                     else:
-                        print(f"[DRY RUN] Would {act.lower()} object '{target_label}'")
+                        print(f"[DRY RUN] Would move to {target_label}")
 
                 elif act == "SCAN_FOR_OBJECTS" or act == "SCAN_AREA":
                     # Horizontal sweep in front of the robot
