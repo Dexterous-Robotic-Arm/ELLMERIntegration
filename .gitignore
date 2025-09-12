@@ -78,4 +78,8 @@ tmp/
 *.onnx
 *.bin
 models/
+weights/*.pt
+yolov8x.pt
+venv/
+models/
 weights/
