@@ -37,9 +37,9 @@ except ImportError:
 @dataclass
 class SafetyLimits:
     """Safety limits for robot operation."""
-    # Movement limits (slower for precision)
-    max_cartesian_speed: float = 50.0       # mm/s (reduced for precision)
-    max_joint_speed: float = 15.0            # deg/s (reduced for precision)
+    # Movement limits (increased for visible movement)
+    max_cartesian_speed: float = 500.0      # mm/s (increased for visible movement)
+    max_joint_speed: float = 100.0          # deg/s (increased for visible movement)
     max_acceleration: float = 500.0          # mm/s² (reduced for smoothness)
     max_force: float = 100.0                # N
     max_torque: float = 50.0                # Nm
