@@ -330,8 +330,10 @@ The robot executor ONLY supports these actions. Any other action names will caus
   - Example: `{"action": "RETREAT_Z", "dz_mm": 100}`
 
 - **`SCAN_AREA`** / **`SCAN_FOR_OBJECTS`** - Scan workspace for objects
-  - Optional: `pattern`, `sweep_mm`, `steps`, `pause_sec`
-  - Example: `{"action": "SCAN_AREA", "pattern": "horizontal", "sweep_mm": 300}`
+  - Optional: `pattern`, `sweep_mm`, `steps`, `pause_sec`, `target_objects`, `interrupt_on_detection`
+  - Patterns: `"horizontal"`, `"arc"`, `"overhead"`, `"hierarchical"` (default)
+  - Hierarchical: horizontal → arc → overhead (stops when target found)
+  - Example: `{"action": "SCAN_AREA", "pattern": "hierarchical", "target_objects": ["bottle"]}`
 
 #### Gripper Actions
 - **`OPEN_GRIPPER`** - Open gripper
@@ -384,6 +386,14 @@ These actions DO NOT EXIST and will cause execution failure:
   {"action": "SCAN_AREA", "sweep_mm": 300, "steps": 5},
   {"action": "APPROACH_OBJECT", "label": "target", "hover_mm": 100},
   {"action": "MOVE_TO_NAMED", "name": "home"}
+]
+```
+
+**Hierarchical Scanning (Recommended):**
+```json
+[
+  {"action": "SCAN_AREA", "pattern": "hierarchical", "target_objects": ["bottle"], "interrupt_on_detection": true},
+  {"action": "APPROACH_OBJECT", "label": "bottle", "hover_mm": 80}
 ]
 ```
 

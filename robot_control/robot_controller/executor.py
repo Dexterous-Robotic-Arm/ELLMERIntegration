@@ -347,6 +347,277 @@ class TaskExecutor:
         p = self.world[name]
         return p["xyz_mm"], p["rpy_deg"]
     
+    def _perform_hierarchical_scan(self, 
+                                 target_objects: List[str] = [],
+                                 sweep_mm: float = 300,
+                                 steps: int = 5,
+                                 pause_sec: float = 1.0,
+                                 interrupt_on_detection: bool = True) -> List[str]:
+        """
+        Perform hierarchical scanning: horizontal → arc → overhead.
+        
+        Args:
+            target_objects: List of specific objects to look for (empty = any object)
+            sweep_mm: Sweep distance in mm
+            steps: Number of scan positions per pattern
+            pause_sec: Pause time at each position
+            interrupt_on_detection: Whether to stop when objects are found
+            
+        Returns:
+            List of found object labels (empty if none found)
+        """
+        print(f"[HIERARCHICAL_SCAN] Starting hierarchical scan for targets: {target_objects if target_objects else 'any'}")
+        
+        # Get current position for reference
+        current_pos = self.runner.get_current_position()
+        print(f"[HIERARCHICAL_SCAN] Current position: {current_pos}")
+        
+        # Define scan parameters
+        scan_x = 400.0  # Center of X workspace
+        base_scan_z = 250.0  # Base height for horizontal scan
+        
+        if current_pos is not None and len(current_pos) >= 3:
+            if 100 <= current_pos[2] <= 400:
+                base_scan_z = current_pos[2]
+        
+        # Calculate sweep range
+        y_min = max(-300, -sweep_mm / 2)
+        y_max = min(300, sweep_mm / 2)
+        
+        # Ensure minimum steps
+        if steps < 2:
+            steps = 2
+        
+        # 1. HORIZONTAL SCAN
+        print(f"[HIERARCHICAL_SCAN] 🔍 Phase 1: Horizontal scan at Z={base_scan_z}")
+        found_objects = self._perform_horizontal_scan(
+            scan_x, base_scan_z, y_min, y_max, steps, pause_sec, 
+            target_objects, interrupt_on_detection
+        )
+        
+        if found_objects and interrupt_on_detection:
+            print(f"[HIERARCHICAL_SCAN] ✅ Horizontal scan found targets: {found_objects}")
+            return found_objects
+        
+        # 2. ARC SCAN
+        print(f"[HIERARCHICAL_SCAN] 🔍 Phase 2: Arc scan")
+        found_objects = self._perform_arc_scan(
+            scan_x, base_scan_z, y_min, y_max, steps, pause_sec,
+            target_objects, interrupt_on_detection
+        )
+        
+        if found_objects and interrupt_on_detection:
+            print(f"[HIERARCHICAL_SCAN] ✅ Arc scan found targets: {found_objects}")
+            return found_objects
+        
+        # 3. OVERHEAD SCAN
+        print(f"[HIERARCHICAL_SCAN] 🔍 Phase 3: Overhead scan")
+        found_objects = self._perform_overhead_scan(
+            scan_x, base_scan_z, y_min, y_max, steps, pause_sec,
+            target_objects, interrupt_on_detection
+        )
+        
+        if found_objects:
+            print(f"[HIERARCHICAL_SCAN] ✅ Overhead scan found targets: {found_objects}")
+        else:
+            print(f"[HIERARCHICAL_SCAN] ❌ All scan phases completed - no targets found")
+        
+        return found_objects
+    
+    def _perform_horizontal_scan(self, scan_x: float, scan_z: float, y_min: float, y_max: float,
+                                steps: int, pause_sec: float, target_objects: List[str],
+                                interrupt_on_detection: bool) -> List[str]:
+        """Perform horizontal sweep scan."""
+        print(f"[HORIZONTAL_SCAN] Sweep range: Y={y_min:.1f} to {y_max:.1f}")
+        
+        # Move to scan center first
+        scan_center = [scan_x, 0, scan_z]
+        print(f"[HORIZONTAL_SCAN] Moving to scan center: {scan_center}")
+        
+        try:
+            self.runner.move_pose(scan_center, self.constant_j5_rpy)
+            print(f"[HORIZONTAL_SCAN] Arrived at scan center")
+        except Exception as e:
+            print(f"[HORIZONTAL_SCAN] Failed to move to scan center: {e}")
+            return []
+        
+        # Perform horizontal sweep
+        for j in range(steps):
+            # Calculate target position
+            if steps == 1:
+                y_target = y_min
+            else:
+                y_target = y_min + (y_max - y_min) * j / (steps - 1)
+            
+            target = [scan_x, y_target, scan_z]
+            print(f"[HORIZONTAL_SCAN] Moving to position {j+1}/{steps}: {target}")
+            
+            try:
+                self.runner.move_pose(target, self.constant_j5_rpy)
+                print(f"[HORIZONTAL_SCAN] Pausing {pause_sec}s for detection...")
+                
+                # Check for objects during pause
+                found_targets = self._check_for_objects_during_pause(
+                    pause_sec, target_objects, interrupt_on_detection
+                )
+                
+                if found_targets and interrupt_on_detection:
+                    print(f"[HORIZONTAL_SCAN] 🎯 TARGETS DETECTED: {found_targets}")
+                    return found_targets
+                    
+            except Exception as e:
+                print(f"[HORIZONTAL_SCAN] Error at position {j+1}: {e}")
+                continue
+        
+        print(f"[HORIZONTAL_SCAN] ✅ Horizontal scan completed - no targets found")
+        return []
+    
+    def _perform_arc_scan(self, scan_x: float, base_scan_z: float, y_min: float, y_max: float,
+                          steps: int, pause_sec: float, target_objects: List[str],
+                          interrupt_on_detection: bool) -> List[str]:
+        """Perform arc pattern scan with varying heights."""
+        print(f"[ARC_SCAN] Performing arc pattern with {steps} positions")
+        
+        # Move to arc start position
+        arc_start = [scan_x, y_min, base_scan_z]
+        print(f"[ARC_SCAN] Moving to arc start: {arc_start}")
+        
+        try:
+            self.runner.move_pose(arc_start, self.constant_j5_rpy)
+        except Exception as e:
+            print(f"[ARC_SCAN] Failed to move to arc start: {e}")
+            return []
+        
+        # Perform arc sweep with varying Z heights
+        for j in range(steps):
+            # Calculate Y position
+            if steps == 1:
+                y_target = y_min
+            else:
+                y_target = y_min + (y_max - y_min) * j / (steps - 1)
+            
+            # Calculate Z position (arc pattern: lower at edges, higher in center)
+            arc_height_range = 50.0  # 50mm height variation
+            if steps == 1:
+                z_offset = 0
+            else:
+                # Create arc: low at edges, high in center
+                progress = j / (steps - 1)  # 0 to 1
+                arc_factor = 4 * progress * (1 - progress)  # Parabolic arc: 0 at edges, 1 at center
+                z_offset = arc_height_range * arc_factor
+            
+            target_z = base_scan_z + z_offset
+            target = [scan_x, y_target, target_z]
+            
+            print(f"[ARC_SCAN] Moving to arc position {j+1}/{steps}: {target} (Z offset: {z_offset:.1f})")
+            
+            try:
+                self.runner.move_pose(target, self.constant_j5_rpy)
+                print(f"[ARC_SCAN] Pausing {pause_sec}s for detection...")
+                
+                # Check for objects during pause
+                found_targets = self._check_for_objects_during_pause(
+                    pause_sec, target_objects, interrupt_on_detection
+                )
+                
+                if found_targets and interrupt_on_detection:
+                    print(f"[ARC_SCAN] 🎯 TARGETS DETECTED: {found_targets}")
+                    return found_targets
+                    
+            except Exception as e:
+                print(f"[ARC_SCAN] Error at position {j+1}: {e}")
+                continue
+        
+        print(f"[ARC_SCAN] ✅ Arc scan completed - no targets found")
+        return []
+    
+    def _perform_overhead_scan(self, scan_x: float, base_scan_z: float, y_min: float, y_max: float,
+                              steps: int, pause_sec: float, target_objects: List[str],
+                              interrupt_on_detection: bool) -> List[str]:
+        """Perform overhead scan from higher position."""
+        print(f"[OVERHEAD_SCAN] Performing overhead scan with {steps} positions")
+        
+        # Use higher Z position for overhead view
+        overhead_z = min(400, base_scan_z + 100)  # 100mm higher, but not exceeding limits
+        
+        # Move to overhead center first
+        overhead_center = [scan_x, 0, overhead_z]
+        print(f"[OVERHEAD_SCAN] Moving to overhead center: {overhead_center}")
+        
+        try:
+            self.runner.move_pose(overhead_center, self.constant_j5_rpy)
+        except Exception as e:
+            print(f"[OVERHEAD_SCAN] Failed to move to overhead center: {e}")
+            return []
+        
+        # Perform overhead sweep
+        for j in range(steps):
+            # Calculate target position
+            if steps == 1:
+                y_target = y_min
+            else:
+                y_target = y_min + (y_max - y_min) * j / (steps - 1)
+            
+            target = [scan_x, y_target, overhead_z]
+            print(f"[OVERHEAD_SCAN] Moving to overhead position {j+1}/{steps}: {target}")
+            
+            try:
+                self.runner.move_pose(target, self.constant_j5_rpy)
+                print(f"[OVERHEAD_SCAN] Pausing {pause_sec}s for detection...")
+                
+                # Check for objects during pause
+                found_targets = self._check_for_objects_during_pause(
+                    pause_sec, target_objects, interrupt_on_detection
+                )
+                
+                if found_targets and interrupt_on_detection:
+                    print(f"[OVERHEAD_SCAN] 🎯 TARGETS DETECTED: {found_targets}")
+                    return found_targets
+                    
+            except Exception as e:
+                print(f"[OVERHEAD_SCAN] Error at position {j+1}: {e}")
+                continue
+        
+        print(f"[OVERHEAD_SCAN] ✅ Overhead scan completed - no targets found")
+        return []
+    
+    def _check_for_objects_during_pause(self, pause_sec: float, target_objects: List[str],
+                                      interrupt_on_detection: bool) -> List[str]:
+        """Check for objects during pause period."""
+        if not interrupt_on_detection:
+            time.sleep(pause_sec)
+            return []
+        
+        # Check for objects during pause with shorter intervals
+        detection_interval = 0.2  # Check every 200ms
+        elapsed = 0.0
+        
+        while elapsed < pause_sec:
+            time.sleep(detection_interval)
+            elapsed += detection_interval
+            
+            # Check if target objects are detected
+            with self.obj_index._global_lock:
+                detected_objects = list(self.obj_index.latest_mm.keys())
+            
+            # Check if we found any target objects (or any objects if no specific targets)
+            found_targets = []
+            if target_objects:
+                # Look for specific target objects
+                found_targets = [obj for obj in target_objects if obj in detected_objects]
+            else:
+                # Any detected object is a target
+                found_targets = detected_objects
+            
+            if found_targets:
+                if target_objects:
+                    print(f"[OBJECT_CHECK] 🎯 TARGET OBJECTS DETECTED: {found_targets}")
+                else:
+                    print(f"[OBJECT_CHECK] 🎯 OBJECTS DETECTED: {found_targets}")
+                return found_targets
+        
+        return []
+    
     def _verify_target_coordinates(self, target: List[float]) -> bool:
         """Verify target coordinates are valid (safety checks disabled)."""
         try:
@@ -741,124 +1012,42 @@ class TaskExecutor:
                         
                         if result == 0:
                             print(f"[SUCCESS] Corrected approach to {target_label} completed")
-                        else:
+                            else:
                             print(f"[ERROR] Corrected approach to {target_label} failed with code {result}")
-                    else:
+                                        else:
                         print(f"[DRY RUN] Would approach {target_label} with corrected coordinate transformation")
 
                 elif act == "SCAN_FOR_OBJECTS" or act == "SCAN_AREA":
-                    # Horizontal sweep in front of the robot
-                    pattern = step.get("pattern", "horizontal")
+                    # Hierarchical scanning: horizontal → arc → overhead
+                    pattern = step.get("pattern", "hierarchical")  # Default to hierarchical
                     sweep_mm = float(step.get("sweep_mm", 300))
                     steps = int(step.get("steps", 5))
                     pause_sec = float(step.get("pause_sec", 1.0))
-                    interrupt_on_detection = step.get("interrupt_on_detection", True)  # Default: interrupt when objects found
-                    target_objects = step.get("target_objects", [])  # Specific objects to look for (empty = any object)
+                    interrupt_on_detection = step.get("interrupt_on_detection", True)
+                    target_objects = step.get("target_objects", [])
                     
-                    print(f"[SCAN] Starting scan: pattern={pattern}, sweep={sweep_mm}mm, steps={steps}, pause={pause_sec}s, interrupt_on_detection={interrupt_on_detection}")
+                    print(f"[SCAN] Starting hierarchical scan: pattern={pattern}, sweep={sweep_mm}mm, steps={steps}, pause={pause_sec}s")
                     
                     if not self.dry_run:
-                        # Get current position for Z coordinate
-                        current_pos = self.runner.get_current_position()
-                        print(f"[SCAN] Current position: {current_pos}")
+                        # Perform hierarchical scanning
+                        found_objects = self._perform_hierarchical_scan(
+                            target_objects=target_objects,
+                            sweep_mm=sweep_mm,
+                            steps=steps,
+                            pause_sec=pause_sec,
+                            interrupt_on_detection=interrupt_on_detection
+                        )
                         
-                        # Use fixed scan position for maximum workspace utilization
-                        scan_x = 400.0  # Center of X workspace
-                        scan_z = 250.0  # Good height for scanning
-                        
-                        if current_pos is not None and len(current_pos) >= 3:
-                            # Use current Z if reasonable
-                            if 100 <= current_pos[2] <= 400:
-                                scan_z = current_pos[2]
-                        
-                        # Move to scan center position first
-                        scan_center = [scan_x, 0, scan_z]
-                        print(f"[SCAN] Moving to scan center: {scan_center}")
-                        
-                        try:
-                            self.runner.move_pose(scan_center, self.constant_j5_rpy)
-                            print(f"[SCAN] Arrived at scan center")
-                        except Exception as e:
-                            print(f"[SCAN] Failed to move to scan center: {e}")
-                            return
-                        
-                        # Calculate sweep range
-                        y_min = max(-300, -sweep_mm / 2)
-                        y_max = min(300, sweep_mm / 2)
-                        
-                        print(f"[SCAN] Sweep range: Y={y_min:.1f} to {y_max:.1f}")
-                        
-                        # Ensure minimum steps
-                        if steps < 2:
-                            steps = 2
-                        
-                        # Perform scan sweep with early termination on object detection
-                        scan_interrupted = False
-                        for j in range(steps):
-                            # Calculate target position
-                            if steps == 1:
-                                y_target = y_min
-                            else:
-                                y_target = y_min + (y_max - y_min) * j / (steps - 1)
-                            
-                            target = [scan_x, y_target, scan_z]
-                            print(f"[SCAN] Moving to scan position {j+1}/{steps}: {target}")
-                            
-                            try:
-                                self.runner.move_pose(target, self.constant_j5_rpy)
-                                print(f"[SCAN] Pausing {pause_sec}s for detection...")
-                                
-                                # Check for objects during pause with shorter intervals
-                                detection_interval = 0.2  # Check every 200ms
-                                elapsed = 0.0
-                                while elapsed < pause_sec:
-                                    time.sleep(detection_interval)
-                                    elapsed += detection_interval
-                                    
-                                    # Check if target objects are detected (only if interrupt_on_detection is enabled)
-                                    if interrupt_on_detection:
-                                        with self.obj_index._global_lock:
-                                            detected_objects = list(self.obj_index.latest_mm.keys())
-                                        
-                                        # Check if we found any target objects (or any objects if no specific targets)
-                                        found_targets = []
-                                        if target_objects:
-                                            # Look for specific target objects
-                                            found_targets = [obj for obj in target_objects if obj in detected_objects]
-                                        else:
-                                            # Any detected object is a target
-                                            found_targets = detected_objects
-                                        
-                                        if found_targets:
-                                            if target_objects:
-                                                print(f"[SCAN] 🎯 TARGET OBJECTS DETECTED: {found_targets}")
-                                            else:
-                                                print(f"[SCAN] 🎯 OBJECTS DETECTED: {found_targets}")
-                                            print(f"[SCAN] Interrupting scan at position {j+1}/{steps} - moving to next step!")
-                                            scan_interrupted = True
-                                            break
-                                
-                                if scan_interrupted:
-                                    break
-                                    
-                            except Exception as e:
-                                print(f"[SCAN] Error at position {j+1}: {e}")
-                                continue
-                        
-                        if scan_interrupted:
-                            print(f"[SCAN] ✅ Scan interrupted due to object detection - proceeding to next step")
+                        if found_objects:
+                            print(f"[SCAN] ✅ Hierarchical scan successful - found objects: {found_objects}")
                         else:
-                            print(f"[SCAN] ✅ Scan completed - no objects detected in {steps} positions")
+                            print(f"[SCAN] ❌ Hierarchical scan completed - no target objects found")
                     else:
                         # Dry run
-                        print(f"[SCAN] DRY RUN: Would scan {steps} positions over {sweep_mm}mm sweep")
-                        print(f"[SCAN] DRY RUN: Would move to scan center: [400, 0, 250]")
-                        
-                        for j in range(steps):
-                            y_target = -sweep_mm/2 + (sweep_mm) * j / max(steps - 1, 1)
-                            target = [400, y_target, 250]
-                            print(f"[SCAN] DRY RUN: Would move to position {j+1}/{steps}: {target}")
-                            print(f"[SCAN] DRY RUN: Would pause {pause_sec}s for detection...")
+                        print(f"[SCAN] DRY RUN: Would perform hierarchical scan:")
+                        print(f"[SCAN] DRY RUN:   1. Horizontal sweep: {steps} positions over {sweep_mm}mm")
+                        print(f"[SCAN] DRY RUN:   2. Arc sweep: {steps} positions in arc pattern")
+                        print(f"[SCAN] DRY RUN:   3. Overhead sweep: {steps} positions from above")
 
                 elif act == "SLEEP":
                     sleep_time = float(step["seconds"])
