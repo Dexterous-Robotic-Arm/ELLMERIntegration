@@ -111,7 +111,7 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
                     if lab and isinstance(pos, list) and len(pos) == 3:
                         # Normalize object name
                         normalized_lab = self._normalize_object_name(lab)
-                        self.latest_mm[normalized_lab] = [float(pos[2])*k, float(pos[1])*k, float(pos[0])*k]
+                        self.latest_mm[normalized_lab] = [float(pos[2])*k, -float(pos[1])*k, float(pos[0])*k]
                         print(f"[ObjectIndex] Updated {normalized_lab} (from {lab}) position: {self.latest_mm[normalized_lab]}")
         except Exception as e:
             print(f"[ObjectIndex] Error processing message: {e}")
