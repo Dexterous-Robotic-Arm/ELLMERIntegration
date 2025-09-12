@@ -5,6 +5,7 @@ import logging
 import subprocess
 import sys
 import os
+import numpy as np
 from typing import List, Dict, Any, Optional
 
 # Initialize fallback values BEFORE try-except
@@ -23,11 +24,60 @@ except ImportError:
 
 from .actions_xarm import XArmRunner
 
+class CameraToRobotTransformer:
+    """Handles coordinate transformation from camera to robot base frame."""
+    
+    def __init__(self, camera_offset_mm: List[float] = [0, 0, 22.5]):
+        """
+        Initialize transformer with camera offset from TCP.
+        
+        Args:
+            camera_offset_mm: [x, y, z] offset from TCP to camera optical center (mm)
+        """
+        self.camera_offset = np.array(camera_offset_mm)
+        
+        # Transformation matrix from camera frame to robot TCP frame
+        # Camera: X=left/right, Y=up/down, Z=forward/backward
+        # Robot:  X=forward/backward, Y=left/right, Z=up/down
+        self.camera_to_tcp_matrix = np.array([
+            [0,  0,  1],   # Camera Z (forward/backward) -> Robot X (forward/backward)
+            [1,  0,  0],   # Camera X (left/right) -> Robot Y (left/right)
+            [0,  1,  0]    # Camera Y (up/down) -> Robot Z (up/down)
+        ])
+    
+    def transform_camera_to_robot_base(self, 
+                                    camera_coords: List[float], 
+                                    robot_tcp_position: List[float]) -> List[float]:
+        """
+        Transform camera coordinates to robot base coordinates.
+        
+        Args:
+            camera_coords: [x, y, z] in camera frame (mm)
+            robot_tcp_position: Current robot TCP position [x, y, z] (mm)
+            
+        Returns:
+            robot_base_coords: [x, y, z] in robot base frame (mm)
+        """
+        # Convert to numpy arrays
+        cam_coords = np.array(camera_coords)
+        tcp_pos = np.array(robot_tcp_position)
+        
+        # Step 1: Transform camera coordinates to TCP-relative coordinates
+        tcp_relative = self.camera_to_tcp_matrix @ cam_coords
+        
+        # Step 2: Add camera offset from TCP
+        tcp_relative += self.camera_offset
+        
+        # Step 3: Add current TCP position to get robot base coordinates
+        robot_base_coords = tcp_pos + tcp_relative
+        
+        return robot_base_coords.tolist()
+
 DEFAULT_HOVER_MM = 80
 DEFAULT_PICK_RPY = [0, 90, 0]  # Tilt camera up more to see objects
 # Camera is mounted on the end effector; distance from TCP to camera optical center (mm)
 # If you recalibrate the mount, update this value accordingly.
-CAMERA_TO_TCP_OFFSET_MM = 22.5
+CAMERA_TO_TCP_OFFSET_MM = [0, 0, 22.5]  # [x, y, z] offset from TCP to camera optical center
 
 # Safety limits for real-life testing
 MAX_EXECUTION_TIME = 300  # seconds - maximum time for any plan
@@ -111,9 +161,10 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
                     if lab and isinstance(pos, list) and len(pos) == 3:
                         # Normalize object name
                         normalized_lab = self._normalize_object_name(lab)
-                        # Transform xyz to zyx order: pos[0]=Z, pos[1]=X, pos[2]=Y -> [Z,Y,X] 
-                        self.latest_mm[normalized_lab] = [float(pos[2])*k, float(pos[1])*k, float(pos[0])*k]
-                        print(f"[ObjectIndex] Updated {normalized_lab} (from {lab}) position: {self.latest_mm[normalized_lab]}")
+                        # Store camera coordinates directly - transformation will be done during movement
+                        # Camera frame: X=left/right, Y=up/down, Z=forward/backward
+                        self.latest_mm[normalized_lab] = [float(pos[0])*k, float(pos[1])*k, float(pos[2])*k]
+                        print(f"[ObjectIndex] Updated {normalized_lab} (from {lab}) camera position: {self.latest_mm[normalized_lab]}")
         except Exception as e:
             print(f"[ObjectIndex] Error processing message: {e}")
             pass
@@ -156,6 +207,9 @@ class TaskExecutor:
         self.pick_rpy = DEFAULT_PICK_RPY
         self.sim = sim
         self.dry_run = dry_run
+        
+        # Initialize coordinate transformer
+        self.coordinate_transformer = CameraToRobotTransformer(CAMERA_TO_TCP_OFFSET_MM)
         
         # Constant J5 position for all movements (except home)
         # J5 at 90 degrees = camera pointing up for scanning
@@ -620,9 +674,7 @@ class TaskExecutor:
                             print(f"[WARN] Step {i} failed: GRIPPER_TEST")
 
                 elif act in ("APPROACH_OBJECT", "MOVE_TO_OBJECT"):
-                    # USE DIRECT APPROACH FUNCTION - No safety, just move
-                    from .direct_approach import approach_detected_object
-                    
+                    # USE CORRECTED APPROACH WITH PROPER COORDINATE TRANSFORMATION
                     labels = step.get("labels", [])
                     label = step.get("label")
                     if label and not labels:
@@ -631,20 +683,48 @@ class TaskExecutor:
                     target_label = labels[0]
                     
                     if not self.dry_run:
-                        # Use direct approach function
-                        success = approach_detected_object(
-                            robot_arm=self.runner.arm,
-                            object_index=self.obj_index,
-                            object_name=target_label,
-                            speed=step.get("speed", 300)
+                        # Get current robot TCP position
+                        robot_tcp_position = self.runner.get_current_position()
+                        if robot_tcp_position is None:
+                            print(f"[ERROR] Could not get robot TCP position for {target_label}")
+                            continue
+                        
+                        # Get camera coordinates from object index
+                        with self.obj_index._global_lock:
+                            camera_coordinates = self.obj_index.latest_mm.get(target_label)
+                        
+                        if camera_coordinates is None:
+                            print(f"[ERROR] Object '{target_label}' not detected")
+                            continue
+                        
+                        print(f"[CORRECTED] Found {target_label} at camera coords: {camera_coordinates}")
+                        print(f"[CORRECTED] Current robot TCP: {robot_tcp_position}")
+                        
+                        # Transform camera coordinates to robot base coordinates
+                        robot_base_coords = self.coordinate_transformer.transform_camera_to_robot_base(
+                            camera_coordinates, 
+                            robot_tcp_position
                         )
                         
-                        if success:
-                            print(f"[SUCCESS] Direct approach to {target_label} completed")
+                        print(f"[CORRECTED] Transformed to robot base: {robot_base_coords}")
+                        
+                        # Move robot to transformed coordinates
+                        speed = step.get("speed", 300)
+                        result = self.runner.arm.set_position(
+                            x=robot_base_coords[0], 
+                            y=robot_base_coords[1], 
+                            z=robot_base_coords[2],
+                            roll=0, pitch=90, yaw=0,  # Fixed orientation
+                            speed=speed, 
+                            wait=True
+                        )
+                        
+                        if result == 0:
+                            print(f"[SUCCESS] Corrected approach to {target_label} completed")
                         else:
-                            print(f"[ERROR] Direct approach to {target_label} failed")
+                            print(f"[ERROR] Corrected approach to {target_label} failed with code {result}")
                     else:
-                        print(f"[DRY RUN] Would directly approach {target_label}")
+                        print(f"[DRY RUN] Would approach {target_label} with corrected coordinate transformation")
 
                 elif act == "SCAN_FOR_OBJECTS" or act == "SCAN_AREA":
                     # Horizontal sweep in front of the robot

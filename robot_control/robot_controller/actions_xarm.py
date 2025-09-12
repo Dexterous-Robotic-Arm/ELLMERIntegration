@@ -22,6 +22,7 @@ Usage:
 
 import time
 import math
+import numpy as np
 from typing import Optional, Tuple, List, Dict, Any
 from dataclasses import dataclass
 from xarm.wrapper import XArmAPI
@@ -32,6 +33,84 @@ try:
 except ImportError:
     DYNAMIXEL_AVAILABLE = False
     print("Warning: Dynamixel SDK not available. Install with: pip install dynamixel-sdk")
+
+
+class CameraToRobotTransformer:
+    """Handles coordinate transformation from camera to robot base frame."""
+    
+    def __init__(self, camera_offset_mm: List[float] = [0, 0, 22.5]):
+        """
+        Initialize transformer with camera offset from TCP.
+        
+        Args:
+            camera_offset_mm: [x, y, z] offset from TCP to camera optical center (mm)
+        """
+        self.camera_offset = np.array(camera_offset_mm)
+        
+        # Transformation matrix from camera frame to robot TCP frame
+        # Camera: X=left/right, Y=up/down, Z=forward/backward
+        # Robot:  X=forward/backward, Y=left/right, Z=up/down
+        self.camera_to_tcp_matrix = np.array([
+            [0,  0,  1],   # Camera Z (forward/backward) -> Robot X (forward/backward)
+            [1,  0,  0],   # Camera X (left/right) -> Robot Y (left/right)
+            [0,  1,  0]    # Camera Y (up/down) -> Robot Z (up/down)
+        ])
+    
+    def transform_camera_to_robot_base(self, 
+                                    camera_coords: List[float], 
+                                    robot_tcp_position: List[float]) -> List[float]:
+        """
+        Transform camera coordinates to robot base coordinates.
+        
+        Args:
+            camera_coords: [x, y, z] in camera frame (mm)
+            robot_tcp_position: Current robot TCP position [x, y, z] (mm)
+            
+        Returns:
+            robot_base_coords: [x, y, z] in robot base frame (mm)
+        """
+        # Convert to numpy arrays
+        cam_coords = np.array(camera_coords)
+        tcp_pos = np.array(robot_tcp_position)
+        
+        # Step 1: Transform camera coordinates to TCP-relative coordinates
+        tcp_relative = self.camera_to_tcp_matrix @ cam_coords
+        
+        # Step 2: Add camera offset from TCP
+        tcp_relative += self.camera_offset
+        
+        # Step 3: Add current TCP position to get robot base coordinates
+        robot_base_coords = tcp_pos + tcp_relative
+        
+        return robot_base_coords.tolist()
+    
+    def transform_robot_base_to_camera(self, 
+                                     robot_base_coords: List[float], 
+                                     robot_tcp_position: List[float]) -> List[float]:
+        """
+        Transform robot base coordinates to camera coordinates (inverse transform).
+        
+        Args:
+            robot_base_coords: [x, y, z] in robot base frame (mm)
+            robot_tcp_position: Current robot TCP position [x, y, z] (mm)
+            
+        Returns:
+            camera_coords: [x, y, z] in camera frame (mm)
+        """
+        # Convert to numpy arrays
+        robot_coords = np.array(robot_base_coords)
+        tcp_pos = np.array(robot_tcp_position)
+        
+        # Step 1: Get TCP-relative coordinates
+        tcp_relative = robot_coords - tcp_pos
+        
+        # Step 2: Subtract camera offset
+        tcp_relative -= self.camera_offset
+        
+        # Step 3: Transform from robot TCP frame to camera frame
+        camera_coords = self.camera_to_tcp_matrix.T @ tcp_relative
+        
+        return camera_coords.tolist()
 
 
 @dataclass
@@ -636,6 +715,9 @@ class XArmRunner:
         # Initialize gripper (will be reinitialized after connection)
         self.gripper = None
         
+        # Initialize coordinate transformer
+        self.coordinate_transformer = CameraToRobotTransformer([0, 0, 22.5])
+        
         if not sim:
             self._connect_and_configure()
         else:
@@ -946,6 +1028,67 @@ class XArmRunner:
             
         except Exception as e:
             print(f"[Robot] Error in move_rel_z: {e}")
+    
+    def move_to_camera_coordinates(self, camera_coords: List[float], rpy_deg: List[float] = [0, 90, 0], 
+                                 speed: Optional[float] = None) -> bool:
+        """
+        Move robot to camera-detected coordinates with proper transformation.
+        
+        Args:
+            camera_coords: [x, y, z] in camera frame (mm)
+            rpy_deg: Robot orientation [roll, pitch, yaw] in degrees
+            speed: Movement speed in mm/s (optional)
+            
+        Returns:
+            bool: True if movement successful, False otherwise
+        """
+        try:
+            if self.arm is None:
+                print("[Robot] No robot connection - cannot move")
+                return False
+            
+            # Get current robot TCP position
+            robot_tcp_position = self.get_current_position()
+            if robot_tcp_position is None:
+                print("[Robot] Cannot get current robot TCP position")
+                return False
+            
+            print(f"[Robot] Camera coordinates: {camera_coords}")
+            print(f"[Robot] Current robot TCP: {robot_tcp_position}")
+            
+            # Transform camera coordinates to robot base coordinates
+            robot_base_coords = self.coordinate_transformer.transform_camera_to_robot_base(
+                camera_coords, 
+                robot_tcp_position
+            )
+            
+            print(f"[Robot] Transformed to robot base: {robot_base_coords}")
+            
+            # Use safe speed
+            safe_speed = min(speed if speed is not None else 50, 80)
+            
+            # Move robot to transformed coordinates
+            result = self.arm.set_position(
+                x=robot_base_coords[0], 
+                y=robot_base_coords[1], 
+                z=robot_base_coords[2],
+                roll=rpy_deg[0], 
+                pitch=rpy_deg[1], 
+                yaw=rpy_deg[2],
+                speed=safe_speed, 
+                wait=True
+            )
+            
+            if result == 0:
+                print(f"[Robot] SUCCESS: Moved to camera coordinates {camera_coords}")
+                return True
+            else:
+                print(f"[Robot] FAILED: Movement failed with code {result}")
+                return False
+                
+        except Exception as e:
+            print(f"[Robot] Error in move_to_camera_coordinates: {e}")
+            return False
     
     # Gripper methods (delegated to GripperController)
     def open_gripper(self, position: Optional[float] = None, 

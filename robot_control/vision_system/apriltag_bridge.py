@@ -165,27 +165,26 @@ class AprilTagBridge(Node if ROS2_AVAILABLE else object):
                 # Debug: Print raw TF coordinates
                 self.get_logger().debug(f"Raw TF coordinates for tag {tag_id}: x={pos.x:.3f}, y={pos.y:.3f}, z={pos.z:.3f}m")
                 
-                # Transform from camera frame to robot frame
-                # Camera frame: X=up/down, Y=left/right, Z=forward/backward
-                # Robot frame: X=forward/backward, Y=left/right, Z=up/down
-                # OVERRIDE: Flip coordinates to [Z, X, Y] order
+                # Store camera coordinates directly - transformation will be done during movement
+                # Camera frame: X=left/right, Y=up/down, Z=forward/backward
+                # Store as [x, y, z] in camera coordinate system
                 position_mm = [
-                    pos.x * 1000.0,  # Camera X (up/down) -> Robot Z (up/down) -> Position[0]
-                    pos.z * 1000.0,  # Camera Z (forward/backward) -> Robot X (forward/backward) -> Position[1]
-                    pos.y * 1000.0   # Camera Y (left/right) -> Robot Y (left/right) -> Position[2]
+                    pos.x * 1000.0,  # Camera X (left/right)
+                    pos.y * 1000.0,  # Camera Y (up/down)  
+                    pos.z * 1000.0   # Camera Z (forward/backward)
                 ]
                 
-                # Validate coordinates to reject swapped values
-                z, x, y = position_mm[0], position_mm[1], position_mm[2]  # Note: order is now [Z, X, Y]
+                # Validate coordinates (basic sanity check)
+                x, y, z = position_mm[0], position_mm[1], position_mm[2]
                 
-                # Check for suspicious coordinate patterns (reject if X < Z, which indicates swapping)
-                if x < z:  # If X is smaller than Z, likely swapped (correct: X=526, Z=215)
-                    self.get_logger().warning(f"[AprilTag Bridge] REJECTING swapped coordinates: Z={z:.1f}, X={x:.1f}, Y={y:.1f}mm")
+                # Check for reasonable coordinate ranges (camera frame)
+                if abs(x) > 2000 or abs(y) > 2000 or abs(z) > 2000:  # 2m range check
+                    self.get_logger().warning(f"[AprilTag Bridge] REJECTING coordinates out of range: X={x:.1f}, Y={y:.1f}, Z={z:.1f}mm")
                     continue
                 
                 # Debug: Print the coordinate transformation
                 self.get_logger().info(f"[AprilTag Bridge] Tag {tag_id} transform SUCCESS: {source_frame}->{target_frame}")
-                self.get_logger().info(f"[AprilTag Bridge] Final coordinates [Z,X,Y]: Z={position_mm[0]:.1f}, X={position_mm[1]:.1f}, Y={position_mm[2]:.1f}mm")
+                self.get_logger().info(f"[AprilTag Bridge] Camera coordinates: X={position_mm[0]:.1f}, Y={position_mm[1]:.1f}, Z={position_mm[2]:.1f}mm")
                 
                 return position_mm
                 
