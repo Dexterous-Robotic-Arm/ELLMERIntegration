@@ -72,3 +72,10 @@ tmp/
 # Camera calibration
 *.calib
 *.yaml.bak
+
+*.pt
+*.pth
+*.onnx
+*.bin
+models/
+weights/
