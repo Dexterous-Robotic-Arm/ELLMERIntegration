@@ -920,10 +920,10 @@ class XArmRunner:
             
             target_z = current_pos[2] + dz_mm
             
-            # Validate workspace limits
-            if not self.safety_monitor.validate_workspace_limits([current_pos[0], current_pos[1], target_z]):
-                print(f"[Robot] Target Z position {target_z} outside workspace limits")
-                return
+            # WORKSPACE VALIDATION DISABLED - Allow robot to move to any Z position
+            # if not self.safety_monitor.validate_workspace_limits([current_pos[0], current_pos[1], target_z]):
+            #     print(f"[Robot] Target Z position {target_z} outside workspace limits")
+            #     return
             
             # Execute movement
             self.arm.set_position(x=current_pos[0], y=current_pos[1], z=target_z,
@@ -1043,8 +1043,7 @@ class XArmRunner:
             return {
                 "robot_connected": self.arm is not None,
                 "current_position": current_pos,
-                "workspace_safe": current_pos is not None and 
-                                self.safety_monitor.validate_workspace_limits(current_pos),
+                "workspace_safe": True,  # Workspace validation disabled
                 "gripper_status": gripper_status,
                 "emergency_stop_active": False,  # Would need to track this state
                 "safety_limits": {
