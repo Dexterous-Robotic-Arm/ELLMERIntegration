@@ -111,8 +111,8 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
                     if lab and isinstance(pos, list) and len(pos) == 3:
                         # Normalize object name
                         normalized_lab = self._normalize_object_name(lab)
-                        # Vision system already transforms to robot frame [Z,X,Y], use directly
-                        self.latest_mm[normalized_lab] = [float(pos[0])*k, float(pos[1])*k, float(pos[2])*k]
+                        # Vision system outputs [Z,X,Y], transform to [Z,Y,X] (zyx order)
+                        self.latest_mm[normalized_lab] = [float(pos[0])*k, float(pos[2])*k, float(pos[1])*k]
                         print(f"[ObjectIndex] Updated {normalized_lab} (from {lab}) position: {self.latest_mm[normalized_lab]}")
         except Exception as e:
             print(f"[ObjectIndex] Error processing message: {e}")
@@ -620,7 +620,9 @@ class TaskExecutor:
                             print(f"[WARN] Step {i} failed: GRIPPER_TEST")
 
                 elif act in ("APPROACH_OBJECT", "MOVE_TO_OBJECT"):
-                    # SIMPLE DETECTION-BASED MOVEMENT - Like YOLO object detection
+                    # USE DIRECT APPROACH FUNCTION - No safety, just move
+                    from .direct_approach import approach_detected_object
+                    
                     labels = step.get("labels", [])
                     label = step.get("label")
                     if label and not labels:
@@ -629,36 +631,20 @@ class TaskExecutor:
                     target_label = labels[0]
                     
                     if not self.dry_run:
-                        # Get object coordinates from detection
-                        obj = self.obj_index.wait_for(target_label, timeout=step.get("timeout_sec", 5.0))
-                        if obj is None:
-                            print(f"[WARN] Object '{target_label}' not detected")
-                            continue
+                        # Use direct approach function
+                        success = approach_detected_object(
+                            robot_arm=self.runner.arm,
+                            object_index=self.obj_index,
+                            object_name=target_label,
+                            speed=step.get("speed", 300)
+                        )
                         
-                        print(f"[DETECTION] Found {target_label} at: {obj}")
-                        
-                        # DIRECT ROBOT MOVEMENT - Simple like object detection
-                        try:
-                            if self.runner.arm is None:
-                                print("[ERROR] Robot not connected")
-                                continue
-                                
-                            # Move robot directly to detected coordinates
-                            result = self.runner.arm.set_position(
-                                x=obj[0], y=obj[1], z=obj[2],
-                                roll=0, pitch=90, yaw=0,
-                                speed=200, wait=True
-                            )
-                            
-                            if result == 0:
-                                print(f"[SUCCESS] Robot moved to {target_label} at {obj}")
-                            else:
-                                print(f"[ERROR] Movement failed with code {result}")
-                                
-                        except Exception as e:
-                            print(f"[ERROR] Movement exception: {e}")
+                        if success:
+                            print(f"[SUCCESS] Direct approach to {target_label} completed")
+                        else:
+                            print(f"[ERROR] Direct approach to {target_label} failed")
                     else:
-                        print(f"[DRY RUN] Would move to {target_label}")
+                        print(f"[DRY RUN] Would directly approach {target_label}")
 
                 elif act == "SCAN_FOR_OBJECTS" or act == "SCAN_AREA":
                     # Horizontal sweep in front of the robot

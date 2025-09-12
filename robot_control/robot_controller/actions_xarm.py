@@ -664,6 +664,13 @@ class XArmRunner:
             # Apply speed limits
             self._apply_speed_limits(self.cart_speed, self.cart_acc, self.joint_speed, self.joint_acc)
             
+            # Disable collision detection for free movement
+            try:
+                self.arm.set_collision_sensitivity(0)  # Disable collision detection
+                print("[Robot] Collision detection disabled for free movement")
+            except:
+                print("[Robot] Could not disable collision detection (might not be supported)")
+            
             # Reinitialize gripper with connected arm
             self.gripper = GripperController(self.arm, self.safety_limits, self.gripper_config)
             
@@ -714,19 +721,25 @@ class XArmRunner:
             # Set TCP (tool center point) acceleration limit
             self.arm.set_tcp_maxacc(min(2000, self.safety_limits.max_acceleration))
             
-            # Set TCP speed limit - use the correct API method
+            # Use FULL speed limits instead of reduced limits for better Y-axis movement
             try:
-                self.arm.set_reduced_max_tcp_speed(min(cart_speed, self.safety_limits.max_cartesian_speed))
-            except:
-                # Fallback method
+                # Try full speed method first
                 self.arm.set_tcp_maxvel(min(cart_speed, self.safety_limits.max_cartesian_speed))
-            
-            # Set joint speed limit - use the correct API method
-            try:
-                self.arm.set_reduced_max_joint_speed(min(joint_speed, self.safety_limits.max_joint_speed))
+                print(f"[Robot] Set full TCP speed: {min(cart_speed, self.safety_limits.max_cartesian_speed)}")
             except:
-                # Fallback method
+                # Fallback to reduced method
+                self.arm.set_reduced_max_tcp_speed(min(cart_speed, self.safety_limits.max_cartesian_speed))
+                print(f"[Robot] Set reduced TCP speed: {min(cart_speed, self.safety_limits.max_cartesian_speed)}")
+            
+            # Use FULL joint speed limits instead of reduced limits
+            try:
+                # Try full speed method first
                 self.arm.set_joint_maxvel(min(joint_speed, self.safety_limits.max_joint_speed))
+                print(f"[Robot] Set full joint speed: {min(joint_speed, self.safety_limits.max_joint_speed)}")
+            except:
+                # Fallback to reduced method
+                self.arm.set_reduced_max_joint_speed(min(joint_speed, self.safety_limits.max_joint_speed))
+                print(f"[Robot] Set reduced joint speed: {min(joint_speed, self.safety_limits.max_joint_speed)}")
             
             print("[Robot] Speed limits applied successfully")
             
