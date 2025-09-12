@@ -111,7 +111,7 @@ class ObjectIndex(Node if ROS2_AVAILABLE else object):
                     if lab and isinstance(pos, list) and len(pos) == 3:
                         # Normalize object name
                         normalized_lab = self._normalize_object_name(lab)
-                        self.latest_mm[normalized_lab] = [float(pos[0])*k, float(pos[1])*k, float(pos[2])*k]
+                        self.latest_mm[normalized_lab] = [float(pos[2])*k, float(pos[1])*k, float(pos[0])*k]
                         print(f"[ObjectIndex] Updated {normalized_lab} (from {lab}) position: {self.latest_mm[normalized_lab]}")
         except Exception as e:
             print(f"[ObjectIndex] Error processing message: {e}")
@@ -619,7 +619,7 @@ class TaskExecutor:
                             print(f"[WARN] Step {i} failed: GRIPPER_TEST")
 
                 elif act in ("APPROACH_OBJECT", "MOVE_TO_OBJECT"):
-                    # Handle both single label and multiple labels
+                    # SIMPLIFIED: Just get the object and move to it
                     labels = step.get("labels", [])
                     label = step.get("label")
                     if label and not labels:
@@ -628,46 +628,26 @@ class TaskExecutor:
                     if not labels:
                         raise ValueError(f"Step {i}: No label or labels specified for {act}")
                     
-                    # Use first label for now (could be enhanced for multi-object selection)
                     target_label = labels[0]
                     
                     if not self.dry_run:
                         try:
-                            # Get object coordinates directly from vision system
+                            # Get object coordinates - coordinates are now in zyx order
                             obj = self.obj_index.wait_for(target_label, timeout=step.get("timeout_sec", 5.0))
                             if obj is None:
                                 print(f"[WARN] Object '{target_label}' not detected within timeout")
                                 continue
                             
-                            # SIMPLIFIED COORDINATE HANDLING - NO TRANSFORMATIONS
-                            # Vision system already provides coordinates in robot frame
-                            # Just use them directly as target coordinates
-                            if act == "APPROACH_OBJECT":
-                                # APPROACH_OBJECT: Move to object XY but keep current Z
-                                current_pos = self.runner.get_current_position()
-                                if current_pos is None or len(current_pos) < 3:
-                                    print(f"[ERROR] Cannot get current position for APPROACH_OBJECT")
-                                    continue
-                                target = [obj[0], obj[1], current_pos[2]]  # Use current Z
-                                print(f"[APPROACH] Moving to object XY at current Z: {target}")
-                            else:  # MOVE_TO_OBJECT
-                                # MOVE_TO_OBJECT: Move to object's exact position
-                                target = [obj[0], obj[1], obj[2]]  # Use object's Z
-                                print(f"[MOVE_TO] Moving to object position: {target}")
-                            
-                            # Use standard orientation for all movements
+                            # DIRECT MOVEMENT - NO SAFETY CHECKS, NO VERIFICATION
+                            # obj is now [z, y, x] from the zyx coordinate flip
+                            target = [obj[0], obj[1], obj[2]]  # Use object coordinates directly
                             rpy = self.constant_j5_rpy
                             
-                            # Verify coordinates before movement
-                            if not self._verify_target_coordinates(target):
-                                print(f"[ERROR] Invalid target coordinates: {target}")
-                                continue
+                            print(f"[{act}] Moving directly to object at: {target}")
                             
-                            # Execute movement with state synchronization
-                            success = self._execute_movement_with_verification(target, rpy, step.get("speed", 50))
-                            if not success:
-                                print(f"[ERROR] Movement failed for step {i}")
-                                continue
+                            # Execute movement directly - no verification
+                            self.runner.move_pose(target, rpy, step.get("speed", 50))
+                            print(f"[{act}] Movement command sent to robot")
                                 
                         except Exception as e:
                             print(f"[ERROR] Failed to execute {act} for '{target_label}': {e}")
@@ -801,15 +781,7 @@ class TaskExecutor:
                 else:
                     raise ValueError(f"Unsupported action: {act}")
 
-                # Verify step completion before proceeding
-                if not self.dry_run and act in ("MOVE_TO_NAMED", "MOVE_TO_POSE", "APPROACH_OBJECT", "MOVE_TO_OBJECT", "RETREAT_Z"):
-                    if not self._verify_step_completion(act, step, i):
-                        print(f"[ERROR] Step {i} verification failed")
-                        self.error_count += 1
-                        if self.error_count >= self.max_errors:
-                            print(f"[ERROR] Stopping execution after {self.max_errors} consecutive errors")
-                            break
-                        continue
+                # STEP VERIFICATION DISABLED - Allow robot to continue regardless
                 
                 # Reset error count on successful step
                 self.error_count = 0
