@@ -490,7 +490,14 @@ class TaskExecutor:
                 
                 if found_targets and interrupt_on_detection:
                     print(f"[HORIZONTAL_SCAN] 🎯 TARGETS DETECTED: {found_targets}")
-                    return found_targets
+                    # Approach object directly from current position
+                    approach_success = self._approach_detected_object_from_arc(found_targets[0])
+                    if approach_success:
+                        print(f"[HORIZONTAL_SCAN] ✅ Successfully approached {found_targets[0]} from horizontal position")
+                        return found_targets
+                    else:
+                        print(f"[HORIZONTAL_SCAN] ⚠️ Approach failed, continuing scan")
+                        # Continue scanning instead of stopping
                     
             except Exception as e:
                 print(f"[HORIZONTAL_SCAN] Error at position {j+1}: {e}")
@@ -609,9 +616,13 @@ class TaskExecutor:
                     
                     if found_targets and interrupt_on_detection:
                         print(f"[ARC_SCAN] TARGETS DETECTED at left position: {found_targets}")
-                        # Return to center before exiting
-                        self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
-                        return found_targets
+                        # Approach object directly from current position
+                        approach_success = self._approach_detected_object_from_arc(found_targets[0])
+                        if approach_success:
+                            return found_targets
+                        else:
+                            self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
+                            return found_targets
             
             # Return to center between positions
             print(f"[ARC_SCAN] Returning to center position between arc movements")
@@ -638,9 +649,15 @@ class TaskExecutor:
                     
                     if found_targets and interrupt_on_detection:
                         print(f"[ARC_SCAN] TARGETS DETECTED at right position: {found_targets}")
-                        # Return to center before exiting
-                        self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
-                        return found_targets
+                        # Approach object directly from current position
+                        approach_success = self._approach_detected_object_from_arc(found_targets[0])
+                        if approach_success:
+                            print(f"[ARC_SCAN] ✅ Successfully approached {found_targets[0]} from right arc position")
+                            return found_targets
+                        else:
+                            print(f"[ARC_SCAN] ⚠️ Approach failed, returning to center for safety")
+                            self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
+                            return found_targets
             
             # Phase 4: Optional overhead scanning position
             if steps > 2:  # Only do overhead if more scan positions requested
@@ -660,9 +677,15 @@ class TaskExecutor:
                         
                         if found_targets and interrupt_on_detection:
                             print(f"[ARC_SCAN] TARGETS DETECTED at overhead position: {found_targets}")
-                            # Return to center before exiting
-                            self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
-                            return found_targets
+                            # Approach object directly from current position
+                            approach_success = self._approach_detected_object_from_arc(found_targets[0])
+                            if approach_success:
+                                print(f"[ARC_SCAN] ✅ Successfully approached {found_targets[0]} from overhead position")
+                                return found_targets
+                            else:
+                                print(f"[ARC_SCAN] ⚠️ Approach failed, returning to center for safety")
+                                self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
+                                return found_targets
             
             # Always return to center position after arc scan
             print(f"[ARC_SCAN] Returning to final center position")
@@ -825,7 +848,14 @@ class TaskExecutor:
                     
                     if found_targets and interrupt_on_detection:
                         print(f"[OVERHEAD_SCAN] TARGETS DETECTED at position {pos_num}: {found_targets}")
-                        return found_targets
+                        # Approach object directly from current position
+                        approach_success = self._approach_detected_object_from_arc(found_targets[0])
+                        if approach_success:
+                            print(f"[OVERHEAD_SCAN] ✅ Successfully approached {found_targets[0]} from overhead position")
+                            return found_targets
+                        else:
+                            print(f"[OVERHEAD_SCAN] ⚠️ Approach failed, continuing scan")
+                            # Continue scanning instead of stopping
             
             print(f"[OVERHEAD_SCAN] Joint-based overhead scan completed - no targets found")
             return []
@@ -941,6 +971,76 @@ class TaskExecutor:
                 return found_targets
         
         return []
+    
+    def _approach_detected_object_from_arc(self, target_label: str) -> bool:
+        """
+        Approach a detected object directly from the current arc position.
+        
+        Args:
+            target_label: Label of the object to approach
+            
+        Returns:
+            bool: True if approach was successful, False otherwise
+        """
+        try:
+            print(f"[ARC_APPROACH] Attempting to approach {target_label} from current arc position")
+            
+            # Get current robot TCP position
+            robot_tcp_position = self.runner.get_current_position()
+            if robot_tcp_position is None:
+                print(f"[ARC_APPROACH] ERROR: Could not get current robot position")
+                return False
+            
+            print(f"[ARC_APPROACH] Current robot TCP: {robot_tcp_position}")
+            
+            # Get object coordinates from vision system
+            camera_coordinates = self.obj_index.wait_for(target_label, timeout=2.0)
+            if camera_coordinates is None:
+                print(f"[ARC_APPROACH] ERROR: Object '{target_label}' not detected")
+                return False
+            
+            print(f"[ARC_APPROACH] Found {target_label} at camera coords: {camera_coordinates}")
+            
+            # Transform camera coordinates to robot base coordinates
+            robot_base_coords = self.coordinate_transformer.transform_camera_to_robot_base(
+                camera_coordinates, 
+                robot_tcp_position
+            )
+            
+            print(f"[ARC_APPROACH] Transformed to robot base: {robot_base_coords}")
+            
+            # Safety check: Ensure coordinates are within reasonable bounds
+            x, y, z = robot_base_coords[0], robot_base_coords[1], robot_base_coords[2]
+            if (abs(x) > 1000 or abs(y) > 1000 or z < 0 or z > 1000):
+                print(f"[ARC_APPROACH] ERROR: Coordinates out of bounds: X={x:.1f}, Y={y:.1f}, Z={z:.1f}")
+                return False
+            
+            # Calculate approach position (hover above object)
+            hover_height = 80.0  # 80mm above object
+            approach_coords = [robot_base_coords[0], robot_base_coords[1], robot_base_coords[2] + hover_height]
+            
+            print(f"[ARC_APPROACH] Moving to approach position: {approach_coords}")
+            
+            # Move to approach position with safe speed
+            result = self.runner.arm.set_position(
+                x=approach_coords[0], 
+                y=approach_coords[1], 
+                z=approach_coords[2],
+                roll=0, pitch=90, yaw=0,  # Fixed orientation
+                speed=200,  # Moderate speed for safety
+                wait=True
+            )
+            
+            if result == 0:
+                print(f"[ARC_APPROACH] ✅ Successfully approached {target_label} from arc position")
+                return True
+            else:
+                print(f"[ARC_APPROACH] ERROR: Movement failed with code {result}")
+                return False
+                
+        except Exception as e:
+            print(f"[ARC_APPROACH] ERROR: Exception during approach: {e}")
+            return False
     
     def _verify_target_coordinates(self, target: List[float]) -> bool:
         """Verify target coordinates are valid (safety checks disabled)."""
