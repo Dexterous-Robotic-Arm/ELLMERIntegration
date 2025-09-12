@@ -39,10 +39,15 @@ class CameraToRobotTransformer:
         # Transformation matrix from camera frame to robot TCP frame
         # Camera: X=left/right, Y=up/down, Z=forward/backward
         # Robot:  X=forward/backward, Y=left/right, Z=up/down
+        # self.camera_to_tcp_matrix = np.array([
+        #     [0,  0,  1],   # Camera Z (forward/backward) -> Robot X (forward/backward)
+        #     [1,  0,  0],   # Camera X (left/right) -> Robot Y (left/right)
+        #     [0,  1,  0]    # Camera Y (up/down) -> Robot Z (up/down)
+        # ])
         self.camera_to_tcp_matrix = np.array([
-            [0,  0,  1],   # Camera Z (forward/backward) -> Robot X (forward/backward)
-            [1,  0,  0],   # Camera X (left/right) -> Robot Y (left/right)
-            [0,  1,  0]    # Camera Y (up/down) -> Robot Z (up/down)
+            [1,  0,  0],   # Camera X -> Robot X (same direction)
+            [0,  1,  0],   # Camera Y -> Robot Y (same direction)  
+            [0,  0,  1]    # Camera Z -> Robot Z (same direction)
         ])
     
     def transform_camera_to_robot_base(self, 
@@ -90,7 +95,8 @@ DEFAULT_HOVER_MM = 80
 DEFAULT_PICK_RPY = [0, 90, 0]  # Tilt camera up more to see objects
 # Camera is mounted on the end effector; distance from TCP to camera optical center (mm)
 # If you recalibrate the mount, update this value accordingly.
-CAMERA_TO_TCP_OFFSET_MM = [0, 0, 22.5]  # [x, y, z] offset from TCP to camera optical center
+#CAMERA_TO_TCP_OFFSET_MM = [0, 0, 22.5]  # [x, y, z] offset from TCP to camera optical center
+CAMERA_TO_TCP_OFFSET_MM = [0, 0, -150]
 
 # Safety limits for real-life testing
 MAX_EXECUTION_TIME = 300  # seconds - maximum time for any plan
@@ -417,12 +423,33 @@ class TaskExecutor:
             target_objects, interrupt_on_detection
         )
         
+        if original_pos:
+            print(f"[HIERARCHICAL_SCAN] Returning to original position: {original_pos}")
+            try:
+                self.runner.move_pose(original_pos, original_rpy)
+                print(f"[HIERARCHICAL_SCAN] Successfully returned to original position")
+            except Exception as e:
+                print(f"[HIERARCHICAL_SCAN] Failed to return to original position: {e}")
+
         if found_objects:
-            print(f"[HIERARCHICAL_SCAN] ✅ Overhead scan found targets: {found_objects}")
+            print(f"[HIERARCHICAL_SCAN] Overhead scan found targets: {found_objects}")
         else:
-            print(f"[HIERARCHICAL_SCAN] ❌ All scan phases completed - no targets found")
-        
+            print(f"[HIERARCHICAL_SCAN] All scan phases completed - no targets found")
+            # Go home if nothing was found
+            try:
+                xyz, rpy = self._named("home")
+                self.runner.move_pose(xyz, rpy)
+                print(f"[HIERARCHICAL_SCAN] Returned to home position - no objects detected")
+            except Exception as e:
+                print(f"[HIERARCHICAL_SCAN] Failed to go home: {e}")
+
         return found_objects
+        # if found_objects:
+        #     print(f"[HIERARCHICAL_SCAN] ✅ Overhead scan found targets: {found_objects}")
+        # else:
+        #     print(f"[HIERARCHICAL_SCAN] ❌ All scan phases completed - no targets found")
+        
+        # return found_objects
     
     def _perform_horizontal_scan(self, scan_x: float, scan_z: float, y_min: float, y_max: float,
                                 steps: int, pause_sec: float, target_objects: List[str],
@@ -472,115 +499,412 @@ class TaskExecutor:
         print(f"[HORIZONTAL_SCAN] ✅ Horizontal scan completed - no targets found")
         return []
     
+    # def _perform_arc_scan(self, scan_x: float, base_scan_z: float, y_min: float, y_max: float,
+    #                       steps: int, pause_sec: float, target_objects: List[str],
+    #                       interrupt_on_detection: bool) -> List[str]:
+    #     """Perform arc pattern scan with varying heights."""
+    #     print(f"[ARC_SCAN] Performing arc pattern with {steps} positions")
+        
+    #     # Move to arc start position
+    #     arc_start = [scan_x, y_min, base_scan_z]
+    #     print(f"[ARC_SCAN] Moving to arc start: {arc_start}")
+        
+    #     try:
+    #         self.runner.move_pose(arc_start, self.constant_j5_rpy)
+    #     except Exception as e:
+    #         print(f"[ARC_SCAN] Failed to move to arc start: {e}")
+    #         return []
+        
+    #     # Perform arc sweep with varying Z heights
+    #     for j in range(steps):
+    #         # Calculate Y position
+    #         if steps == 1:
+    #             y_target = y_min
+    #         else:
+    #             y_target = y_min + (y_max - y_min) * j / (steps - 1)
+            
+    #         # Calculate Z position (arc pattern: lower at edges, higher in center)
+    #         arc_height_range = 50.0  # 50mm height variation
+    #         if steps == 1:
+    #             z_offset = 0
+    #         else:
+    #             # Create arc: low at edges, high in center
+    #             progress = j / (steps - 1)  # 0 to 1
+    #             arc_factor = 4 * progress * (1 - progress)  # Parabolic arc: 0 at edges, 1 at center
+    #             z_offset = arc_height_range * arc_factor
+            
+    #         target_z = base_scan_z + z_offset
+    #         target = [scan_x, y_target, target_z]
+            
+    #         print(f"[ARC_SCAN] Moving to arc position {j+1}/{steps}: {target} (Z offset: {z_offset:.1f})")
+            
+    #         try:
+    #             self.runner.move_pose(target, self.constant_j5_rpy)
+    #             print(f"[ARC_SCAN] Pausing {pause_sec}s for detection...")
+                
+    #             # Check for objects during pause
+    #             found_targets = self._check_for_objects_during_pause(
+    #                 pause_sec, target_objects, interrupt_on_detection
+    #             )
+                
+    #             if found_targets and interrupt_on_detection:
+    #                 print(f"[ARC_SCAN] 🎯 TARGETS DETECTED: {found_targets}")
+    #                 return found_targets
+                    
+    #         except Exception as e:
+    #             print(f"[ARC_SCAN] Error at position {j+1}: {e}")
+    #             continue
+        
+    #     print(f"[ARC_SCAN] ✅ Arc scan completed - no targets found")
+    #     return []
+    
     def _perform_arc_scan(self, scan_x: float, base_scan_z: float, y_min: float, y_max: float,
+                      steps: int, pause_sec: float, target_objects: List[str],
+                      interrupt_on_detection: bool) -> List[str]:
+        """Perform arc pattern scan using joint angles for safe collision-free movement."""
+        print(f"[ARC_SCAN] Performing joint-based arc scan with collision avoidance")
+        
+        # Define safe joint positions for arc scanning (approximate values)
+        # Center/neutral position for safe transitions
+        #center_joints = [0, -45, -90, 45, 90, 0]  # Safe neutral position
+        #center_joints = [-0.8, -4, -3, 179.2, -89.3, 2.2]  # Your specified center
+        #center_joints = [-0.8, -4, -3, 179.2, -89.3, 2.2]
+        center_joints = [3.9, -11.9, -5.9, 183.8, -96.7, 2]  # Image 1 center position
+        
+        # Left arc position (approximate values based on your specifications)
+        #left_arc_joints = [39.6, -80.2, -122.4, 276.3, -96.1, -41.3]  # Updated left position
+        left_arc_joints = [49.1, -59.6, -62.8, 280.1, -83.6, -9.2]  # Image 3 left position  
+        
+        # Right arc position (approximate values based on your specifications) 
+        #right_arc_joints = [-30, -85, -135, 80, -85, 50]  # Right side arc view
+        right_arc_joints = [-56.6, -60.3, -62.1, 72.1, -88.8, -1.1]  # Image 2 right position
+        
+        # Overhead scanning position
+        overhead_joints = [0, -60, -120, 90, 33, 180]  # Wrist down, looking from above
+        
+        try:
+            # Phase 1: Move to center position first for safety
+            print(f"[ARC_SCAN] Moving to center position for safety")
+            if not self.dry_run:
+                result = self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
+                if result != 0:
+                    print(f"[ARC_SCAN] Failed to move to center position: error {result}")
+                    return []
+                time.sleep(1)  # Allow settling
+            
+            # Phase 2: Left arc position
+            print(f"[ARC_SCAN] Moving to LEFT arc position: {left_arc_joints}")
+            if not self.dry_run:
+                result = self.runner.arm.set_servo_angle(angle=left_arc_joints, speed=25, wait=True)
+                if result != 0:
+                    print(f"[ARC_SCAN] Failed to move to left arc position: error {result}")
+                else:
+                    time.sleep(0.5)  # Stabilize
+                    print(f"[ARC_SCAN] At left arc position, pausing {pause_sec}s for detection...")
+                    
+                    # Check for objects at left position
+                    found_targets = self._check_for_objects_during_pause(
+                        pause_sec, target_objects, interrupt_on_detection
+                    )
+                    
+                    if found_targets and interrupt_on_detection:
+                        print(f"[ARC_SCAN] TARGETS DETECTED at left position: {found_targets}")
+                        # Return to center before exiting
+                        self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
+                        return found_targets
+            
+            # Return to center between positions
+            print(f"[ARC_SCAN] Returning to center position between arc movements")
+            if not self.dry_run:
+                result = self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
+                if result != 0:
+                    print(f"[ARC_SCAN] Failed to return to center: error {result}")
+                time.sleep(0.8)  # Allow settling
+            
+            # Phase 3: Right arc position
+            print(f"[ARC_SCAN] Moving to RIGHT arc position: {right_arc_joints}")
+            if not self.dry_run:
+                result = self.runner.arm.set_servo_angle(angle=right_arc_joints, speed=25, wait=True)
+                if result != 0:
+                    print(f"[ARC_SCAN] Failed to move to right arc position: error {result}")
+                else:
+                    time.sleep(0.5)  # Stabilize
+                    print(f"[ARC_SCAN] At right arc position, pausing {pause_sec}s for detection...")
+                    
+                    # Check for objects at right position
+                    found_targets = self._check_for_objects_during_pause(
+                        pause_sec, target_objects, interrupt_on_detection
+                    )
+                    
+                    if found_targets and interrupt_on_detection:
+                        print(f"[ARC_SCAN] TARGETS DETECTED at right position: {found_targets}")
+                        # Return to center before exiting
+                        self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
+                        return found_targets
+            
+            # Phase 4: Optional overhead scanning position
+            if steps > 2:  # Only do overhead if more scan positions requested
+                print(f"[ARC_SCAN] Moving to OVERHEAD scanning position: {overhead_joints}")
+                if not self.dry_run:
+                    result = self.runner.arm.set_servo_angle(angle=overhead_joints, speed=25, wait=True)
+                    if result != 0:
+                        print(f"[ARC_SCAN] Failed to move to overhead position: error {result}")
+                    else:
+                        time.sleep(0.5)  # Stabilize
+                        print(f"[ARC_SCAN] At overhead position, pausing {pause_sec}s for detection...")
+                        
+                        # Check for objects at overhead position
+                        found_targets = self._check_for_objects_during_pause(
+                            pause_sec, target_objects, interrupt_on_detection
+                        )
+                        
+                        if found_targets and interrupt_on_detection:
+                            print(f"[ARC_SCAN] TARGETS DETECTED at overhead position: {found_targets}")
+                            # Return to center before exiting
+                            self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
+                            return found_targets
+            
+            # Always return to center position after arc scan
+            print(f"[ARC_SCAN] Returning to final center position")
+            if not self.dry_run:
+                result = self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
+                if result != 0:
+                    print(f"[ARC_SCAN] Warning: Failed to return to final center position")
+                time.sleep(0.5)
+            
+            print(f"[ARC_SCAN] Arc scan completed - no targets found")
+            return []
+            
+        except Exception as e:
+            print(f"[ARC_SCAN] Error during arc scan: {e}")
+            # Emergency return to center on any error
+            try:
+                if not self.dry_run:
+                    print(f"[ARC_SCAN] Emergency return to center position")
+                    self.runner.arm.set_servo_angle(angle=center_joints, speed=20, wait=True)
+            except Exception as recovery_error:
+                print(f"[ARC_SCAN] Failed to recover to center: {recovery_error}")
+            return []
+    
+    def _perform_straight_tcp_approach_from_detection_position(self, target_coords, detection_position="center"):
+        """Perform straight TCP approach maintaining linear path regardless of joint angles."""
+        print(f"[TCP_APPROACH] Straight TCP approach from {detection_position} detection position")
+        
+        # Get current TCP position
+        current_tcp = self.runner.get_current_position()
+        if not current_tcp:
+            return False
+        
+        # Transform target coordinates to robot base frame
+        target_robot_coords = self.coordinate_transformer.transform_camera_to_robot_base(
+            target_coords, current_tcp
+        )
+        
+        # Calculate straight TCP path: current TCP -> approach point -> target
+        approach_distance = 100  # mm before target
+        
+        # Vector from current TCP to target
+        direction_vector = [
+            target_robot_coords[0] - current_tcp[0],
+            target_robot_coords[1] - current_tcp[1], 
+            target_robot_coords[2] - current_tcp[2]
+        ]
+        
+        # Normalize direction vector
+        vector_length = (direction_vector[0]**2 + direction_vector[1]**2 + direction_vector[2]**2)**0.5
+        if vector_length == 0:
+            return False
+        
+        normalized_direction = [v/vector_length for v in direction_vector]
+        
+        # Calculate approach point (100mm before target along straight line)
+        approach_point = [
+            target_robot_coords[0] - normalized_direction[0] * approach_distance,
+            target_robot_coords[1] - normalized_direction[1] * approach_distance,
+            target_robot_coords[2] - normalized_direction[2] * approach_distance
+        ]
+        
+        # Ensure safe height
+        approach_point[2] = max(approach_point[2], 120)
+        
+        print(f"[TCP_APPROACH] Current TCP: {current_tcp}")
+        print(f"[TCP_APPROACH] Target (robot coords): {target_robot_coords}")
+        print(f"[TCP_APPROACH] Approach point: {approach_point}")
+        
+        # Use linear movement to approach point (TCP moves in straight line)
+        print(f"[TCP_APPROACH] Moving TCP in straight line to approach point")
+        result = self.runner.arm.set_position(
+            x=approach_point[0], 
+            y=approach_point[1], 
+            z=approach_point[2],
+            roll=0, pitch=90, yaw=0,  # Keep camera orientation
+            speed=50,  # Slower for precision
+            wait=True
+        )
+        
+        if result != 0:
+            print(f"[TCP_APPROACH] Failed to reach approach point: error {result}")
+            return False
+        
+        # Final approach to target (also straight TCP line)
+        print(f"[TCP_APPROACH] Final straight TCP approach to target")
+        result = self.runner.arm.set_position(
+            x=target_robot_coords[0], 
+            y=target_robot_coords[1], 
+            z=target_robot_coords[2] + 20,  # 20mm above target
+            roll=0, pitch=90, yaw=0,
+            speed=30,  # Very slow for final approach
+            wait=True
+        )
+        
+        return result == 0
+
+    def _perform_overhead_scan(self, scan_x: float, base_scan_z: float, y_min: float, y_max: float,
                           steps: int, pause_sec: float, target_objects: List[str],
                           interrupt_on_detection: bool) -> List[str]:
-        """Perform arc pattern scan with varying heights."""
-        print(f"[ARC_SCAN] Performing arc pattern with {steps} positions")
+        """Perform overhead scan using joint movements with wrist pointing down."""
+        print(f"[OVERHEAD_SCAN] Starting joint-based overhead scan with wrist pointing down")
         
-        # Move to arc start position
-        arc_start = [scan_x, y_min, base_scan_z]
-        print(f"[ARC_SCAN] Moving to arc start: {arc_start}")
+        # Joint positions for overhead scanning
+        # Base overhead position (wrist down, looking from above)
+        overhead_base_joints = [-0.9, -50.9, -117.4, 2.5, -63.3, 2.3]  # Base overhead position
         
-        try:
-            self.runner.move_pose(arc_start, self.constant_j5_rpy)
-        except Exception as e:
-            print(f"[ARC_SCAN] Failed to move to arc start: {e}")
-            return []
+        # Start position for overhead scanning
+        overhead_start_joints = [-33.9, -50.9, -117.3, 2.5, -63.3, 2.4]  # Start position
         
-        # Perform arc sweep with varying Z heights
-        for j in range(steps):
-            # Calculate Y position
-            if steps == 1:
-                y_target = y_min
-            else:
-                y_target = y_min + (y_max - y_min) * j / (steps - 1)
-            
-            # Calculate Z position (arc pattern: lower at edges, higher in center)
-            arc_height_range = 50.0  # 50mm height variation
-            if steps == 1:
-                z_offset = 0
-            else:
-                # Create arc: low at edges, high in center
-                progress = j / (steps - 1)  # 0 to 1
-                arc_factor = 4 * progress * (1 - progress)  # Parabolic arc: 0 at edges, 1 at center
-                z_offset = arc_height_range * arc_factor
-            
-            target_z = base_scan_z + z_offset
-            target = [scan_x, y_target, target_z]
-            
-            print(f"[ARC_SCAN] Moving to arc position {j+1}/{steps}: {target} (Z offset: {z_offset:.1f})")
-            
-            try:
-                self.runner.move_pose(target, self.constant_j5_rpy)
-                print(f"[ARC_SCAN] Pausing {pause_sec}s for detection...")
-                
-                # Check for objects during pause
-                found_targets = self._check_for_objects_during_pause(
-                    pause_sec, target_objects, interrupt_on_detection
-                )
-                
-                if found_targets and interrupt_on_detection:
-                    print(f"[ARC_SCAN] 🎯 TARGETS DETECTED: {found_targets}")
-                    return found_targets
-                    
-            except Exception as e:
-                print(f"[ARC_SCAN] Error at position {j+1}: {e}")
-                continue
-        
-        print(f"[ARC_SCAN] ✅ Arc scan completed - no targets found")
-        return []
-    
-    def _perform_overhead_scan(self, scan_x: float, base_scan_z: float, y_min: float, y_max: float,
-                              steps: int, pause_sec: float, target_objects: List[str],
-                              interrupt_on_detection: bool) -> List[str]:
-        """Perform overhead scan from higher position."""
-        print(f"[OVERHEAD_SCAN] Performing overhead scan with {steps} positions")
-        
-        # Use higher Z position for overhead view
-        overhead_z = min(400, base_scan_z + 100)  # 100mm higher, but not exceeding limits
-        
-        # Move to overhead center first
-        overhead_center = [scan_x, 0, overhead_z]
-        print(f"[OVERHEAD_SCAN] Moving to overhead center: {overhead_center}")
+        # End position for overhead scanning  
+        overhead_end_joints = [44, -49, -117, 3, -63, 2]  # End position
         
         try:
-            self.runner.move_pose(overhead_center, self.constant_j5_rpy)
-        except Exception as e:
-            print(f"[OVERHEAD_SCAN] Failed to move to overhead center: {e}")
-            return []
-        
-        # Perform overhead sweep
-        for j in range(steps):
-            # Calculate target position
-            if steps == 1:
-                y_target = y_min
-            else:
-                y_target = y_min + (y_max - y_min) * j / (steps - 1)
+            # Move to base overhead position first
+            print(f"[OVERHEAD_SCAN] Moving to base overhead position: {overhead_base_joints}")
+            if not self.dry_run:
+                result = self.runner.arm.set_servo_angle(angle=overhead_base_joints, speed=30, wait=True)
+                if result != 0:
+                    print(f"[OVERHEAD_SCAN] Failed to move to base overhead position: error {result}")
+                    return []
+                time.sleep(0.5)
             
-            target = [scan_x, y_target, overhead_z]
-            print(f"[OVERHEAD_SCAN] Moving to overhead position {j+1}/{steps}: {target}")
+            # Calculate intermediate positions between start and end
+            num_positions = max(3, steps)  # At least 3 positions (start, middle, end)
+            scan_positions = []
             
-            try:
-                self.runner.move_pose(target, self.constant_j5_rpy)
-                print(f"[OVERHEAD_SCAN] Pausing {pause_sec}s for detection...")
+            # Generate interpolated positions from start to end
+            for i in range(num_positions):
+                progress = i / max(num_positions - 1, 1)  # 0 to 1
                 
-                # Check for objects during pause
-                found_targets = self._check_for_objects_during_pause(
-                    pause_sec, target_objects, interrupt_on_detection
-                )
+                # Interpolate each joint angle
+                interpolated_joints = []
+                for j in range(6):  # 6 joints
+                    start_angle = overhead_start_joints[j]
+                    end_angle = overhead_end_joints[j]
+                    current_angle = start_angle + (end_angle - start_angle) * progress
+                    interpolated_joints.append(current_angle)
                 
-                if found_targets and interrupt_on_detection:
-                    print(f"[OVERHEAD_SCAN] 🎯 TARGETS DETECTED: {found_targets}")
-                    return found_targets
+                scan_positions.append(interpolated_joints)
+            
+            print(f"[OVERHEAD_SCAN] Will scan {len(scan_positions)} positions from start to end")
+            
+            # Perform overhead scan along the path
+            for pos_num, joint_angles in enumerate(scan_positions, 1):
+                print(f"[OVERHEAD_SCAN] Moving to overhead position {pos_num}/{len(scan_positions)}: {joint_angles}")
+                
+                if not self.dry_run:
+                    result = self.runner.arm.set_servo_angle(angle=joint_angles, speed=20, wait=True)
+                    if result != 0:
+                        print(f"[OVERHEAD_SCAN] Failed to move to position {pos_num}: error {result}")
+                        continue
                     
-            except Exception as e:
-                print(f"[OVERHEAD_SCAN] Error at position {j+1}: {e}")
-                continue
+                    time.sleep(0.3)  # Brief stabilization
+                    print(f"[OVERHEAD_SCAN] Pausing {pause_sec}s for detection...")
+                    
+                    # Check for objects at this position
+                    found_targets = self._check_for_objects_during_pause(
+                        pause_sec, target_objects, interrupt_on_detection
+                    )
+                    
+                    if found_targets and interrupt_on_detection:
+                        print(f"[OVERHEAD_SCAN] TARGETS DETECTED at position {pos_num}: {found_targets}")
+                        return found_targets
+            
+            print(f"[OVERHEAD_SCAN] Joint-based overhead scan completed - no targets found")
+            return []
+            
+        except Exception as e:
+            print(f"[OVERHEAD_SCAN] Error during overhead scan: {e}")
+            return []
+
+
+    def _get_obstacles_near_target(self, target_coords, obstacle_radius_mm=200):
+        """Get obstacles within radius of target coordinates."""
+        obstacles = []
         
-        print(f"[OVERHEAD_SCAN] ✅ Overhead scan completed - no targets found")
-        return []
+        with self.obj_index._global_lock:
+            for obj_name, obj_pos in self.obj_index.latest_mm.items():
+                if "obstacle" not in obj_name.lower():
+                    continue
+                    
+                distance = ((obj_pos[0] - target_coords[0])**2 + 
+                        (obj_pos[1] - target_coords[1])**2 + 
+                        (obj_pos[2] - target_coords[2])**2)**0.5
+                
+                if distance < obstacle_radius_mm:
+                    obstacles.append({
+                        "name": obj_name,
+                        "coords": obj_pos,
+                        "distance_to_target": distance
+                    })
+        
+        return obstacles
     
+    def _calculate_safe_approach_path(self, current_pos, target_coords, obstacles, approach_offset_mm=100):
+        """Calculate safe approach path avoiding obstacles."""
+        
+        if not obstacles:
+            safe_target = target_coords.copy()
+            safe_target[2] += approach_offset_mm
+            return [safe_target]
+        
+        approach_vectors = [
+            [approach_offset_mm, 0, approach_offset_mm],
+            [-approach_offset_mm, 0, approach_offset_mm],
+            [0, approach_offset_mm, approach_offset_mm],
+            [0, -approach_offset_mm, approach_offset_mm]
+        ]
+        
+        best_approach = None
+        min_obstacle_conflicts = float('inf')
+        
+        for approach_vec in approach_vectors:
+            approach_point = [
+                target_coords[0] + approach_vec[0],
+                target_coords[1] + approach_vec[1], 
+                target_coords[2] + approach_vec[2]
+            ]
+            
+            conflicts = 0
+            for obs in obstacles:
+                obs_distance = ((obs["coords"][0] - approach_point[0])**2 + 
+                            (obs["coords"][1] - approach_point[1])**2 + 
+                            (obs["coords"][2] - approach_point[2])**2)**0.5
+                if obs_distance < 150:
+                    conflicts += 1
+            
+            if conflicts < min_obstacle_conflicts:
+                min_obstacle_conflicts = conflicts
+                best_approach = approach_point
+        
+        if best_approach:
+            best_approach[2] = max(best_approach[2], 120)
+            target_hover = target_coords.copy()
+            target_hover[2] += 50
+            
+            return [best_approach, target_hover]
+        else:
+            above_target = target_coords.copy()
+            above_target[2] += 150
+            return [above_target]
+        
     def _check_for_objects_during_pause(self, pause_sec: float, target_objects: List[str],
                                       interrupt_on_detection: bool) -> List[str]:
         """Check for objects during pause period."""
@@ -957,66 +1281,217 @@ class TaskExecutor:
                             self.error_count += 1
                             print(f"[WARN] Step {i} failed: GRIPPER_TEST")
 
-                elif act in ("APPROACH_OBJECT", "MOVE_TO_OBJECT"):
-                    # USE CORRECTED APPROACH WITH PROPER COORDINATE TRANSFORMATION
+                elif act in ("APPROACH_OBJECT", "MOVE_TO_OBJECT") or act == "APPROACH_WITH_OBSTACLE_AVOIDANCE":
                     labels = step.get("labels", [])
                     label = step.get("label")
                     if label and not labels:
                         labels = [label]
                     
                     target_label = labels[0]
+                    approach_distance = step.get("approach_distance_mm", 100)
+                    obstacle_check_radius = step.get("obstacle_radius_mm", 200)
+                    use_obstacle_avoidance = (act == "APPROACH_WITH_OBSTACLE_AVOIDANCE" or 
+                                            step.get("use_obstacle_avoidance", True))
                     
                     if not self.dry_run:
-                        # Get current robot TCP position
-                        robot_tcp_position = self.runner.get_current_position()
-                        if robot_tcp_position is None:
-                            print(f"[ERROR] Could not get robot TCP position for {target_label}")
-                            continue
+                        current_pos = self.runner.get_current_position()
                         
-                        # Get camera coordinates from object index
                         with self.obj_index._global_lock:
-                            camera_coordinates = self.obj_index.latest_mm.get(target_label)
+                            target_coords = self.obj_index.latest_mm.get(target_label)
                         
-                        if camera_coordinates is None:
-                            print(f"[ERROR] Object '{target_label}' not detected")
-                            continue
-                        
-                        print(f"[CORRECTED] Found {target_label} at camera coords: {camera_coordinates}")
-                        print(f"[CORRECTED] Current robot TCP: {robot_tcp_position}")
-                        
-                        # Transform camera coordinates to robot base coordinates
-                        robot_base_coords = self.coordinate_transformer.transform_camera_to_robot_base(
-                            camera_coordinates, 
-                            robot_tcp_position
-                        )
-                        
-                        print(f"[CORRECTED] Transformed to robot base: {robot_base_coords}")
-                        
-                        # Safety check: Ensure coordinates are within reasonable bounds
-                        x, y, z = robot_base_coords[0], robot_base_coords[1], robot_base_coords[2]
-                        if (abs(x) > 1000 or abs(y) > 1000 or z < 0 or z > 1000):
-                            print(f"[CORRECTED ERROR] Coordinates out of bounds: X={x:.1f}, Y={y:.1f}, Z={z:.1f}")
-                            print(f"[CORRECTED ERROR] Skipping movement to prevent damage!")
-                            continue
-                        
-                        # Move robot to transformed coordinates
-                        speed = step.get("speed", 300)
-                        result = self.runner.arm.set_position(
-                            x=robot_base_coords[0], 
-                            y=robot_base_coords[1], 
-                            z=robot_base_coords[2],
-                            roll=0, pitch=90, yaw=0,  # Fixed orientation
-                            speed=speed, 
-                            wait=True
-                        )
-                        
-                        if result == 0:
-                            print(f"[SUCCESS] Corrected approach to {target_label} completed")
-                        else:
-                            print(f"[ERROR] Corrected approach to {target_label} failed with code {result}")
-                    else:
-                        print(f"[DRY RUN] Would approach {target_label} with corrected coordinate transformation")
+                        if current_pos and target_coords:
+                            print(f"[SMART_APPROACH] Approaching {target_label} at {target_coords}")
+                            
+                            if use_obstacle_avoidance:
+                                obstacles = self._get_obstacles_near_target(target_coords, obstacle_check_radius)
+                                
+                                if obstacles:
+                                    print(f"[SMART_APPROACH] Found {len(obstacles)} obstacles near target")
+                                    for obs in obstacles:
+                                        print(f"[SMART_APPROACH]   - {obs['name']} at distance {obs['distance_to_target']:.1f}mm")
+                                    
+                                    approach_path = self._calculate_safe_approach_path(
+                                        current_pos, target_coords, obstacles, approach_distance
+                                    )
+                                    print(f"[SMART_APPROACH] Planned {len(approach_path)} waypoint avoidance path")
+                                else:
+                                    print(f"[SMART_APPROACH] No obstacles detected, using direct approach")
+                                    # Transform target coordinates first, THEN add hover offset
+                                    robot_target_coords = self.coordinate_transformer.transform_camera_to_robot_base(
+                                        target_coords, current_pos
+                                    )
+                                    # Add hover offset in robot coordinate space, not camera space
+                                    hover_target = robot_target_coords.copy()
+                                    hover_target[2] += approach_distance  # Add hover in robot Z (up), not camera Z (forward)
+                                    approach_path = [hover_target]
+                                    # hover_target = target_coords.copy()
+                                    # hover_target[2] += approach_distance
+                                    # approach_path = [hover_target]
+                            else:
+                                print(f"[SMART_APPROACH] Using direct approach (obstacle avoidance disabled)")
 
+                                # Transform target coordinates first, THEN add hover offset
+                                robot_target_coords = self.coordinate_transformer.transform_camera_to_robot_base(
+                                    target_coords, current_pos
+                                )
+                                # Add hover offset in robot coordinate space, not camera space
+                                hover_target = robot_target_coords.copy()
+                                hover_target[2] += approach_distance  # Add hover in robot Z (up), not camera Z (forward)
+                                approach_path = [hover_target]
+                                # hover_target = target_coords.copy()
+                                # hover_target[2] += approach_distance
+                                # approach_path = [hover_target]
+                            for i, waypoint in enumerate(approach_path):
+                                print(f"[SMART_APPROACH] Moving to waypoint {i+1}/{len(approach_path)}: {waypoint}")
+                                
+                                # Waypoint is already in robot coordinates, so use it directly
+                                if not self._is_coordinate_safe(waypoint):
+                                    print(f"[SMART_APPROACH] Waypoint {i+1} failed safety check, skipping")
+                                    continue
+                                
+                                try:
+                                    result = self.runner.arm.set_position(
+                                        x=waypoint[0],
+                                        y=waypoint[1], 
+                                        z=waypoint[2],
+                                        roll=0, pitch=90, yaw=0,
+                                        speed=step.get("speed", 100),
+                                        wait=True
+                                    )
+                                    
+                                    if result == 0:
+                                        print(f"[SMART_APPROACH] Successfully reached waypoint {i+1}")
+                                        current_pos = self.runner.get_current_position()
+                                    else:
+                                        print(f"[SMART_APPROACH] Failed to reach waypoint {i+1}, error code: {result}")
+                                        break
+                                        
+                                except Exception as e:
+                                    print(f"[SMART_APPROACH] Error moving to waypoint {i+1}: {e}")
+                                    break
+
+                            # for i, waypoint in enumerate(approach_path):
+                            #     print(f"[SMART_APPROACH] Moving to waypoint {i+1}/{len(approach_path)}: {waypoint}")
+                                
+                            #     robot_coords = self.coordinate_transformer.transform_camera_to_robot_base(
+                            #         waypoint, current_pos
+                            #     )
+                                
+                            #     if not self._is_coordinate_safe(robot_coords):
+                            #         print(f"[SMART_APPROACH] Waypoint {i+1} failed safety check, skipping")
+                            #         continue
+                                
+                            #     try:
+                            #         result = self.runner.arm.set_position(
+                            #             x=robot_coords[0], 
+                            #             y=robot_coords[1], 
+                            #             z=robot_coords[2],
+                            #             roll=0, pitch=90, yaw=0,
+                            #             speed=step.get("speed", 100),
+                            #             wait=True
+                            #         )
+                                    
+                            #         if result == 0:
+                            #             print(f"[SMART_APPROACH] Successfully reached waypoint {i+1}")
+                            #             current_pos = self.runner.get_current_position()
+                            #         else:
+                            #             print(f"[SMART_APPROACH] Failed to reach waypoint {i+1}, error code: {result}")
+                            #             break
+                                        
+                            #     except Exception as e:
+                            #         print(f"[SMART_APPROACH] Error moving to waypoint {i+1}: {e}")
+                            #         break
+                            
+                            print(f"[SMART_APPROACH] Approach completed")
+                            
+                        else:
+                            print(f"[SMART_APPROACH] Could not get current position or target coordinates")
+                    
+                    else:
+                        print(f"[DRY_RUN] Would approach {target_label} with smart obstacle avoidance")
+                # elif act in ("APPROACH_OBJECT", "MOVE_TO_OBJECT"):
+                #     # USE CORRECTED APPROACH WITH PROPER COORDINATE TRANSFORMATION
+                #     labels = step.get("labels", [])
+                #     label = step.get("label")
+                #     if label and not labels:
+                #         labels = [label]
+                    
+                #     target_label = labels[0]
+                    
+                #     if not self.dry_run:
+                #         # Get current robot TCP position
+                #         robot_tcp_position = self.runner.get_current_position()
+                #         if robot_tcp_position is None:
+                #             print(f"[ERROR] Could not get robot TCP position for {target_label}")
+                #             continue
+                        
+                #         # Get camera coordinates from object index
+                #         with self.obj_index._global_lock:
+                #             camera_coordinates = self.obj_index.latest_mm.get(target_label)
+                        
+                #         if camera_coordinates is None:
+                #             print(f"[ERROR] Object '{target_label}' not detected")
+                #             continue
+                        
+                #         print(f"[CORRECTED] Found {target_label} at camera coords: {camera_coordinates}")
+                #         print(f"[CORRECTED] Current robot TCP: {robot_tcp_position}")
+                        
+                #         # Transform camera coordinates to robot base coordinates
+                #         robot_base_coords = self.coordinate_transformer.transform_camera_to_robot_base(
+                #             camera_coordinates, 
+                #             robot_tcp_position
+                #         )
+                        
+                #         print(f"[CORRECTED] Transformed to robot base: {robot_base_coords}")
+                        
+                #         # Safety check: Ensure coordinates are within reasonable bounds
+                #         x, y, z = robot_base_coords[0], robot_base_coords[1], robot_base_coords[2]
+                #         if (abs(x) > 1000 or abs(y) > 1000 or z < 0 or z > 1000):
+                #             print(f"[CORRECTED ERROR] Coordinates out of bounds: X={x:.1f}, Y={y:.1f}, Z={z:.1f}")
+                #             print(f"[CORRECTED ERROR] Skipping movement to prevent damage!")
+                #             continue
+                        
+                #         # Move robot to transformed coordinates
+                #         speed = step.get("speed", 300)
+                #         result = self.runner.arm.set_position(
+                #             x=robot_base_coords[0], 
+                #             y=robot_base_coords[1], 
+                #             z=robot_base_coords[2],
+                #             roll=0, pitch=90, yaw=0,  # Fixed orientation
+                #             speed=speed, 
+                #             wait=True
+                #         )
+                        
+                #         if result == 0:
+                #             print(f"[SUCCESS] Corrected approach to {target_label} completed")
+                #         else:
+                #             print(f"[ERROR] Corrected approach to {target_label} failed with code {result}")
+                #     else:
+                #         print(f"[DRY RUN] Would approach {target_label} with corrected coordinate transformation")
+
+                elif act == "STRAIGHT_TCP_APPROACH":
+                    labels = step.get("labels", [])
+                    label = step.get("label") 
+                    if label and not labels:
+                        labels = [label]
+                    
+                    target_label = labels[0]
+                    
+                    if not self.dry_run:
+                        with self.obj_index._global_lock:
+                            target_coords = self.obj_index.latest_mm.get(target_label)
+                        
+                        if target_coords:
+                            success = self._perform_straight_tcp_approach_from_detection_position(
+                                target_coords, 
+                                detection_position=step.get("detection_position", "unknown")
+                            )
+                            
+                            if success:
+                                print(f"[TCP_APPROACH] Successfully approached {target_label}")
+                            else:
+                                print(f"[TCP_APPROACH] Failed to approach {target_label}")
+                                
                 elif act == "SCAN_FOR_OBJECTS" or act == "SCAN_AREA":
                     # Hierarchical scanning: horizontal → arc → overhead
                     pattern = step.get("pattern", "hierarchical")  # Default to hierarchical

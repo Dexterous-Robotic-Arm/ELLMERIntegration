@@ -67,6 +67,8 @@ actions:
     - "MOVE_TO_POSE"
     - "SLEEP"
     - "SCAN_AREA"
+    - "STRAIGHT_TCP_APPROACH"
+    - "APPROACH_WITH_OBSTACLE_AVOIDANCE"
   
   gripper_actions:
     - "OPEN_GRIPPER"
