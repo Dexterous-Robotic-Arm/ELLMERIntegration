@@ -62,14 +62,27 @@ class CameraToRobotTransformer:
         cam_coords = np.array(camera_coords)
         tcp_pos = np.array(robot_tcp_position)
         
+        print(f"[TRANSFORM DEBUG] Input camera coords: {camera_coords}")
+        print(f"[TRANSFORM DEBUG] Input robot TCP: {robot_tcp_position}")
+        
         # Step 1: Transform camera coordinates to TCP-relative coordinates
         tcp_relative = self.camera_to_tcp_matrix @ cam_coords
+        print(f"[TRANSFORM DEBUG] After matrix transform: {tcp_relative}")
         
-        # Step 2: Add camera offset from TCP
-        tcp_relative += self.camera_offset
+        # Step 2: Subtract camera offset from TCP (we want TCP to move to object position)
+        # Camera offset represents where camera is relative to TCP, so we subtract it
+        tcp_relative -= self.camera_offset
+        print(f"[TRANSFORM DEBUG] After subtracting camera offset {self.camera_offset}: {tcp_relative}")
         
         # Step 3: Add current TCP position to get robot base coordinates
         robot_base_coords = tcp_pos + tcp_relative
+        print(f"[TRANSFORM DEBUG] Final robot base coords: {robot_base_coords}")
+        
+        # Safety check: Ensure coordinates are within reasonable bounds
+        if (abs(robot_base_coords[0]) > 1000 or abs(robot_base_coords[1]) > 1000 or 
+            robot_base_coords[2] < 0 or robot_base_coords[2] > 1000):
+            print(f"[TRANSFORM WARNING] Coordinates seem out of bounds: {robot_base_coords}")
+            print(f"[TRANSFORM WARNING] This might indicate incorrect transformation!")
         
         return robot_base_coords.tolist()
 
@@ -707,6 +720,13 @@ class TaskExecutor:
                         )
                         
                         print(f"[CORRECTED] Transformed to robot base: {robot_base_coords}")
+                        
+                        # Safety check: Ensure coordinates are within reasonable bounds
+                        x, y, z = robot_base_coords[0], robot_base_coords[1], robot_base_coords[2]
+                        if (abs(x) > 1000 or abs(y) > 1000 or z < 0 or z > 1000):
+                            print(f"[CORRECTED ERROR] Coordinates out of bounds: X={x:.1f}, Y={y:.1f}, Z={z:.1f}")
+                            print(f"[CORRECTED ERROR] Skipping movement to prevent damage!")
+                            continue
                         
                         # Move robot to transformed coordinates
                         speed = step.get("speed", 300)

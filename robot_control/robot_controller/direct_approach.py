@@ -55,8 +55,9 @@ class CameraToRobotTransformer:
         # Step 1: Transform camera coordinates to TCP-relative coordinates
         tcp_relative = self.camera_to_tcp_matrix @ cam_coords
         
-        # Step 2: Add camera offset from TCP
-        tcp_relative += self.camera_offset
+        # Step 2: Subtract camera offset from TCP (we want TCP to move to object position)
+        # Camera offset represents where camera is relative to TCP, so we subtract it
+        tcp_relative -= self.camera_offset
         
         # Step 3: Add current TCP position to get robot base coordinates
         robot_base_coords = tcp_pos + tcp_relative
