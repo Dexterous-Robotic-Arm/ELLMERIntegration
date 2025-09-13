@@ -1,0 +1,171 @@
+(venv) cui028@cui028-virtual-machine:~/ELLMERIntegration$ python3 robot_control/main.py --task "appraoch and pick up bottle while avoiding obstacles"
+SDK_VERSION: 1.17.0
+[Config] Using default robot IP: 192.168.1.241
+2025-09-12 23:30:29,751 - robot_control - INFO - Starting Robot Control System
+2025-09-12 23:30:29,752 - robot_control - INFO - Connecting to robot at 192.168.1.241
+ROBOT_IP: 192.168.1.241, VERSION: v2.5.1, PROTOCOL: V1, DETAIL: 6,12,FX8510,AC8500,v2.5.1, TYPE1300: [1, 1]
+change protocol identifier to 3
+[Robot] Connected to robot at 192.168.1.241
+[Robot] Current state: (0, 2)
+[Robot] Motion enabled
+[Robot] Set to position control mode
+[Robot] Set to ready state
+[Robot] Final state: (0, 2)
+[Robot] Robot is ready (state: 2)
+[Robot] Set reduced TCP speed: 100
+[Robot] Set reduced joint speed: 20
+[Robot] Speed limits applied successfully
+[Robot] Collision detection disabled for free movement
+[Gripper] Dynamixel initialization failed: [Errno 2] could not open port /dev/ttyUSB0: [Errno 2] No such file or directory: '/dev/ttyUSB0'
+[Gripper] Dynamixel failed to initialize, gripper disabled
+2025-09-12 23:30:33,339 - robot_control - INFO - Robot connected successfully
+2025-09-12 23:30:33,340 - robot_control - INFO - Starting vision system: robot_control/vision_system/apriltag_bridge.py
+2025-09-12 23:30:33,345 - robot_control - INFO - Vision system started
+2025-09-12 23:30:35,348 - robot_control - INFO - Executing task: appraoch and pick up bottle while avoiding obstacles
+[TaskExecutor] Using provided XArmRunner instance
+[J5] Current J5 position: -83.362724 degrees
+[J5] Using default J5=90° as constant position
+[Vision] Vision system handled by main.py (apriltag_bridge.py)
+[Vision] Skipping vision process - handled by main.py
+[ObjectIndex] ROS2 subscription created for /detected_objects
+[Vision] Vision system ready - camera handled by apriltag_bridge.py
+2025-09-12 23:30:35,476 - robot_control - INFO - Planning task with True RAG intelligence: appraoch and pick up bottle while avoiding obstacles
+2025-09-12 23:30:42,101 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+2025-09-12 23:30:44,894 - robot_control.rag_system.true_rag_planner - INFO - Loaded existing collection: robotics_knowledge
+2025-09-12 23:30:44,899 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-09-12 23:30:44,901 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+2025-09-12 23:30:45,490 - robot_control.rag_system.true_rag_planner - INFO - Embedding model loaded successfully
+Batches: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:04<00:00,  4.30s/it]
+2025-09-12 23:30:49,980 - robot_control.rag_system.true_rag_planner - INFO - Added 27 documents to vector database
+2025-09-12 23:30:49,981 - robot_control.rag_system.true_rag_planner - INFO - Indexed 27 knowledge documents (including action schema)
+[WARN] [1757734249.986240174] [rcl.logging_rosout]: Publisher already registered for provided node name. If this is due to multiple nodes with the same name then all logs for that logger name will go out over the existing publisher. As soon as any node with that name is destructed it will unregister the publisher, preventing any further logs for that name from being published on the rosout topic.
+[ObjectIndex] ROS2 subscription created for /detected_objects
+2025-09-12 23:30:50,040 - robot_control.rag_system.true_rag_planner - INFO - Vision integration initialized for RAG system
+2025-09-12 23:30:50,041 - robot_control.rag_system.true_rag_planner - INFO - True RAG Planner initialized with semantic knowledge retrieval
+2025-09-12 23:30:50,041 - robot_control.rag_system.true_rag_planner - INFO - Starting RAG-based planning for: 'appraoch and pick up bottle while avoiding obstacles'
+Batches: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00, 22.88it/s]
+2025-09-12 23:30:50,160 - robot_control.rag_system.true_rag_planner - INFO - Retrieved 5 relevant documents for query: appraoch and pick up bottle while avoiding obstacles robot manipulation movement planning
+2025-09-12 23:30:50,163 - robot_control.rag_system.true_rag_planner - INFO - Retrieved 5 relevant documents for: 'appraoch and pick up bottle while avoiding obstacles'
+[DEBUG] Raw position data: (0, [531.283997, -193.173569, 274.033936, 74.488925, 89.999981, 0.0])
+2025-09-12 23:30:57,507 - robot_control.rag_system.true_rag_planner - INFO - RAG planning completed with 5 retrieved documents
+2025-09-12 23:30:57,508 - robot_control - INFO - RAG Plan Generated: Approach and pick up a bottle while avoiding obstacles.
+2025-09-12 23:30:57,508 - robot_control - INFO - Knowledge Retrieved: 5 documents
+2025-09-12 23:30:57,508 - robot_control - INFO - Knowledge Categories: ['general']
+2025-09-12 23:30:57,508 - robot_control - INFO - RAG Understanding: The user wants the robot to approach and pick up a bottle while avoiding obstacles. This requires a combination of scanning, approaching, grasping, and retreating actions, while adhering to safety guidelines.
+2025-09-12 23:30:57,508 - robot_control - INFO - Applied Knowledge: I will use the 'Complete Pick and Place Operation' (Knowledge 2) and 'Safe Object Approach Pattern' (Knowledge 3) to structure the plan. I will also use the 'xArm Action Plan Contract' (Knowledge 1) to ensure that the actions are valid and the JSON format is correct.
+[Plan] Goal: Approach and pick up a bottle while avoiding obstacles.
+[Plan] Gripper status: {'enabled': False, 'position': None, 'error': 'Gripper not enabled'}
+[Plan] Step 1/7: MOVE_TO_NAMED {'action': 'MOVE_TO_NAMED', 'name': 'home', 'knowledge_source': 'Knowledge 1: xArm Action Plan Contract'}
+[ObjectIndex] Waiting for 'bottle' for 0.05s...
+[ObjectIndex] Current cached objects: []
+[ObjectIndex] Timeout waiting for 'bottle'. Available objects: []
+[Robot] Target coordinates: X=300.0, Y=0.0, Z=300.0mm
+[Robot] Moved to position [300, 0, 300] with orientation [0, 90, 0]
+[Plan] Step 2/7: SCAN_AREA {'action': 'SCAN_AREA', 'pattern': 'horizontal', 'sweep_mm': 300, 'steps': 5, 'knowledge_source': 'Knowledge 2: Complete Pick and Place Operation, Knowledge 3: Safe Object Approach Pattern'}
+[SCAN] Starting hierarchical scan: pattern=horizontal, sweep=300.0mm, steps=5, pause=1.0s
+[HIERARCHICAL_SCAN] Starting hierarchical scan for targets: any
+[DEBUG] Raw position data: (0, [300.0, -0.0, 300.0, 0.0, 89.999981, 0.0])
+[HIERARCHICAL_SCAN] Current position: [300.0, -0.0, 300.0]
+[HIERARCHICAL_SCAN] 🔍 Phase 1: Horizontal scan at Z=300.0
+[HORIZONTAL_SCAN] Sweep range: Y=-150.0 to 150.0
+[HORIZONTAL_SCAN] Moving to scan center: [400.0, 0, 300.0]
+[Robot] Target coordinates: X=400.0, Y=0.0, Z=300.0mm
+[Robot] Moved to position [400.0, 0, 300.0] with orientation [0, 90, 0]
+[HORIZONTAL_SCAN] Arrived at scan center
+[HORIZONTAL_SCAN] Moving to position 1/5: [400.0, -150.0, 300.0]
+[Robot] Target coordinates: X=400.0, Y=-150.0, Z=300.0mm
+[Robot] Moved to position [400.0, -150.0, 300.0] with orientation [0, 90, 0]
+[HORIZONTAL_SCAN] Pausing 1.0s for detection...
+[HORIZONTAL_SCAN] Moving to position 2/5: [400.0, -75.0, 300.0]
+[Robot] Target coordinates: X=400.0, Y=-75.0, Z=300.0mm
+[Robot] Moved to position [400.0, -75.0, 300.0] with orientation [0, 90, 0]
+[HORIZONTAL_SCAN] Pausing 1.0s for detection...
+[HORIZONTAL_SCAN] Moving to position 3/5: [400.0, 0.0, 300.0]
+[Robot] Target coordinates: X=400.0, Y=0.0, Z=300.0mm
+[Robot] Moved to position [400.0, 0.0, 300.0] with orientation [0, 90, 0]
+[HORIZONTAL_SCAN] Pausing 1.0s for detection...
+[HORIZONTAL_SCAN] Moving to position 4/5: [400.0, 75.0, 300.0]
+[Robot] Target coordinates: X=400.0, Y=75.0, Z=300.0mm
+[Robot] Moved to position [400.0, 75.0, 300.0] with orientation [0, 90, 0]
+[HORIZONTAL_SCAN] Pausing 1.0s for detection...
+[HORIZONTAL_SCAN] Moving to position 5/5: [400.0, 150.0, 300.0]
+[Robot] Target coordinates: X=400.0, Y=150.0, Z=300.0mm
+[Robot] Moved to position [400.0, 150.0, 300.0] with orientation [0, 90, 0]
+[HORIZONTAL_SCAN] Pausing 1.0s for detection...
+[HORIZONTAL_SCAN] ✅ Horizontal scan completed - no targets found
+[HIERARCHICAL_SCAN] 🔍 Phase 2: Arc scan
+[ARC_SCAN] Performing procedural arc scan with hardcoded positions
+[ARC_SCAN] Step 1/3: Moving to LEFT position: [46, -57, -74, -74, -90.4, -18.4]
+[ARC_SCAN] At LEFT position, pausing 1.0s for detection...
+[ARC_SCAN] Step 2/3: Moving to CENTER position: [-0.7, 3.3, 1.1, -180.5, -90.2, -2]
+[ARC_SCAN] At CENTER position, pausing 1.0s for detection...
+[ARC_SCAN] Step 3/3: Moving to RIGHT position: [-53, -57, -64, -281, -87, 0]
+[ObjectIndex] Received message with 1 items: [{'class': 'bottle', 'tag_id': 0, 'pos': [-13.95719271325575, 2.8788301085327843, 273.4007537794504], 'conf': 0.95, 'object_type': 'april_tag', 'object_name': 'bottle', 'timestamp': 1757734297.3182428}]
+[ObjectIndex] Updated bottle (from bottle) camera position: [-13.95719271325575, 2.8788301085327843, 273.4007537794504]
+[ObjectIndex] Received message with 1 items: [{'class': 'bottle', 'tag_id': 0, 'pos': [-16.802906673948815, 7.746374589226474, 269.14179539305167], 'conf': 0.95, 'object_type': 'april_tag', 'object_name': 'bottle', 'timestamp': 1757734297.6350183}]
+[ObjectIndex] Updated bottle (from bottle) camera position: [-16.802906673948815, 7.746374589226474, 269.14179539305167]
+[ARC_SCAN] At RIGHT position, pausing 1.0s for detection...
+[OBJECT_CHECK] 🎯 OBJECTS DETECTED: ['bottle']
+[ARC_SCAN] ⚠️ TARGETS DETECTED at RIGHT position: ['bottle']
+[ARC_SCAN] Immediately approaching bottle from RIGHT position
+[ARC_SCAN] Using current RIGHT position joints for approach
+[DEBUG] Raw position data: (0, [377.044678, -356.097107, 164.879318, -122.196371, 81.874294, -74.488524])
+[ARC_SCAN] RIGHT scan position - Joints: (0, [-53.000028, -57.000019, -64.000016, -280.999989, -86.999974, 0.0, 0.0]), Pos: [377.044678, -356.097107, 164.879318], RPY: [-122.196371, 81.874294, -74.488524]
+[ARC_APPROACH] Attempting to approach bottle using RPY transformation
+[DEBUG] Raw position+RPY data: (0, [377.044678, -356.097107, 164.879318, -122.196371, 81.874294, -74.488524])
+[ARC_APPROACH] Current robot TCP: [377.044678, -356.097107, 164.879318], RPY: [-122.196371, 81.874294, -74.488524]
+[ObjectIndex] Waiting for 'bottle' for 2.0s...
+[ObjectIndex] Current cached objects: ['bottle']
+[ObjectIndex] Found 'bottle' in cache at position: [-16.802906673948815, 7.746374589226474, 269.14179539305167]
+[ARC_APPROACH] Found bottle at camera coords: [-16.802906673948815, 7.746374589226474, 269.14179539305167]
+[TRANSFORM RPY] Input camera coords: [-16.802906673948815, 7.746374589226474, 269.14179539305167]
+[TRANSFORM RPY] Input robot TCP: [377.044678, -356.097107, 164.879318]
+[TRANSFORM RPY] Input TCP RPY: [-122.196371, 81.874294, -74.488524]
+[TRANSFORM RPY] Combined rotation matrix R_cw:
+[[ 0.03780019 -0.73745121  0.6743418 ]
+ [-0.13619716  0.66472483  0.73456874]
+ [-0.98996034 -0.11961028 -0.07531203]]
+[TRANSFORM RPY] Rotated camera coords: [175.14583532 205.14086623  -4.56195046]
+[TRANSFORM RPY] Final robot base coords: [ 552.19051332 -150.95624077  160.31736754]
+[ARC_APPROACH] Transformed to robot base with RPY: [552.1905133197988, -150.95624077015688, 160.31736754379614]
+[ARC_APPROACH] Current yaw: -74.488524°
+[ARC_APPROACH] Using standard approach offsets
+[ARC_APPROACH] Moving to approach position: [552.1905133197988, -190.95624077015688, 240.31736754379614]
+[ARC_APPROACH] Maintaining current orientation - Roll: -122.196371, Pitch: 81.874294, Yaw: -74.488524
+[ObjectIndex] Received message with 1 items: [{'class': 'bottle', 'tag_id': 0, 'pos': [-16.79615939357104, 5.733235805878517, 274.4439409722181], 'conf': 0.95, 'object_type': 'april_tag', 'object_name': 'bottle', 'timestamp': 1757734299.2323823}]
+[ObjectIndex] Updated bottle (from bottle) camera position: [-16.79615939357104, 5.733235805878517, 274.4439409722181]
+[ObjectIndex] Received message with 1 items: [{'class': 'bottle', 'tag_id': 0, 'pos': [-18.447007528656577, 9.84636326059109, 262.67653833926124], 'conf': 0.95, 'object_type': 'april_tag', 'object_name': 'bottle', 'timestamp': 1757734299.4324443}]
+[ObjectIndex] Updated bottle (from bottle) camera position: [-18.447007528656577, 9.84636326059109, 262.67653833926124]
+[ObjectIndex] Received message with 1 items: [{'class': 'bottle', 'tag_id': 0, 'pos': [-19.86419204512087, 10.560641498977859, 258.5095464886046], 'conf': 0.95, 'object_type': 'april_tag', 'object_name': 'bottle', 'timestamp': 1757734299.6314902}]
+[ObjectIndex] Updated bottle (from bottle) camera position: [-19.86419204512087, 10.560641498977859, 258.5095464886046]
+[ObjectIndex] Received message with 1 items: [{'class': 'bottle', 'tag_id': 0, 'pos': [-21.46451383057795, 10.415575842974368, 255.74550616553], 'conf': 0.95, 'object_type': 'april_tag', 'object_name': 'bottle', 'timestamp': 1757734299.9005492}]
+[ObjectIndex] Updated bottle (from bottle) camera position: [-21.46451383057795, 10.415575842974368, 255.74550616553]
+[ARC_APPROACH] ✅ Successfully approached bottle from arc position
+[ARC_SCAN] ✅ Successfully approached bottle from RIGHT position
+[HIERARCHICAL_SCAN] ✅ Objects detected during scan: ['bottle']
+[HIERARCHICAL_SCAN] Keeping robot at current position for approach
+[SCAN] ✅ Hierarchical scan successful - found objects: ['bottle']
+[Plan] Step 3/7: OPEN_GRIPPER {'action': 'OPEN_GRIPPER', 'knowledge_source': 'Knowledge 2: Complete Pick and Place Operation'}
+[Gripper] Gripper not enabled
+[WARN] Step 3 failed: OPEN_GRIPPER
+[Plan] Step 4/7: APPROACH_OBJECT {'action': 'APPROACH_OBJECT', 'label': 'bottle', 'hover_mm': 80, 'timeout_sec': 5, 'knowledge_source': 'Knowledge 2: Complete Pick and Place Operation, Knowledge 3: Safe Object Approach Pattern'}
+[RPY_APPROACH] Using stored successful coordinates for bottle
+[DEBUG YAW] Using stored detection yaw: -74.488524
+[SAFETY] Coordinates [552.2, -191.0, 190.3]mm are within safe workspace
+[RPY_APPROACH] Successfully approached bottle
+[DEBUG] Raw position data: (0, [552.190491, -190.956238, 190.317368, 74.488524, 89.999981, 0.0])
+[WARN] Safety check failed: 'emergency_stop'
+[Plan] Step 5/7: MOVE_TO_OBJECT {'action': 'MOVE_TO_OBJECT', 'label': 'bottle', 'offset_mm': [0, 0, 0], 'timeout_sec': 5, 'knowledge_source': 'Knowledge 2: Complete Pick and Place Operation'}
+[RPY_APPROACH] Using stored successful coordinates for bottle
+[DEBUG YAW] Using stored detection yaw: -74.488524
+[SAFETY] Coordinates [552.2, -191.0, 190.3]mm are within safe workspace
+[RPY_APPROACH] Successfully approached bottle
+[Plan] Step 6/7: GRIPPER_GRASP {'action': 'GRIPPER_GRASP', 'target_position': 200, 'speed': 100, 'force': 50, 'timeout': 5.0, 'knowledge_source': 'Knowledge 2: Complete Pick and Place Operation'}
+[Gripper] Gripper not enabled
+[WARN] Step 6 failed: GRIPPER_GRASP
+[Plan] Step 7/7: RETREAT_Z {'action': 'RETREAT_Z', 'dz_mm': 100, 'knowledge_source': 'Knowledge 2: Complete Pick and Place Operation, Knowledge 3: Safe Object Approach Pattern'}
+[DEBUG] Raw position data: (0, [552.190491, -190.956238, 190.317368, 74.488524, 89.999981, 0.0])
+[Robot] Moved relative Z by 100.0mm
+[Plan] Done. Execution time: 50.7s, Steps completed: 7
+2025-09-12 23:31:48,175 - robot_control - INFO - Cleaning up system resources
+2025-09-12 23:31:48,557 - robot_control - INFO - Vision system stopped
