@@ -472,25 +472,14 @@ class TaskExecutor:
             print(f"[HIERARCHICAL_SCAN] ✅ Horizontal scan found targets: {found_objects}")
             return found_objects
         
-        # 2. ARC SCAN
+        # 2. ARC SCAN - ONLY scan pattern to execute
         print(f"[HIERARCHICAL_SCAN] 🔍 Phase 2: Arc scan")
         found_objects = self._perform_arc_scan(
             scan_x, base_scan_z, y_min, y_max, steps, pause_sec,
             target_objects, interrupt_on_detection
         )
         
-        if found_objects and interrupt_on_detection:
-            print(f"[HIERARCHICAL_SCAN] ✅ Arc scan found targets: {found_objects}")
-            return found_objects
-        
-        # 3. OVERHEAD SCAN
-        print(f"[HIERARCHICAL_SCAN] 🔍 Phase 3: Overhead scan")
-        found_objects = self._perform_overhead_scan(
-            scan_x, base_scan_z, y_min, y_max, steps, pause_sec,
-            target_objects, interrupt_on_detection
-        )
-        
-        # Get current position to optionally return to
+        # Before returning, attempt to go to a safe position
         current_pos = self.runner.get_current_position()
         if current_pos:
             print(f"[HIERARCHICAL_SCAN] Returning to safe position")
@@ -503,8 +492,9 @@ class TaskExecutor:
             except Exception as e:
                 print(f"[HIERARCHICAL_SCAN] Failed to return to safe position: {e}")
 
+        # Return results from arc scan - NEVER continue to overhead scan
         if found_objects:
-            print(f"[HIERARCHICAL_SCAN] Overhead scan found targets: {found_objects}")
+            print(f"[HIERARCHICAL_SCAN] Arc scan found targets: {found_objects}")
         else:
             print(f"[HIERARCHICAL_SCAN] All scan phases completed - no targets found")
             # Go home if nothing was found
@@ -515,6 +505,7 @@ class TaskExecutor:
             except Exception as e:
                 print(f"[HIERARCHICAL_SCAN] Failed to go home: {e}")
 
+        print(f"[HIERARCHICAL_SCAN] Scan complete after arc scan")
         return found_objects
         # if found_objects:
         #     print(f"[HIERARCHICAL_SCAN] ✅ Overhead scan found targets: {found_objects}")
@@ -644,12 +635,13 @@ class TaskExecutor:
         print(f"[ARC_SCAN] Performing procedural arc scan with hardcoded positions")
         
         # Using hardcoded values for precise arc scan positions - sequence: RIGHT -> CENTER -> LEFT
-        right_arc_joints = [-46, -61, 71, -275, -90, 13]  # RIGHT side position
+        # Fixed RIGHT position - adjusted joint 2 value from 71 to 30 to stay within joint limits
+        right_arc_joints = [-46, -61, 30, -275, -90, 13]  # RIGHT side position (corrected)
         center_joints = [-0.7, 3.3, 1.1, -180.5, -90.2, -2]  # CENTER position
         left_arc_joints = [46, -57, -74, -74, -90.4, -18.4]  # LEFT side position
         
         # Overhead scanning position
-        overhead_joints = [0, -60, -120, 90, 33, 180]  # Wrist down, looking from above
+        #overhead_joints = [0, -60, -120, 90, 33, 180]  # Wrist down, looking from above
         
         try:
             # Step 1: Move directly to RIGHT position first
@@ -717,9 +709,12 @@ class TaskExecutor:
                             self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
                             return found_targets
             
-            # Step 4: Only perform overhead scan if explicitly requested
-            if steps > 3:  # Only do overhead scan if more than 3 positions requested
-                print(f"[ARC_SCAN] Step 4/4: Moving to OVERHEAD position: {overhead_joints}")
+            # Arc scan complete - skip overhead scan entirely
+            # Only return to center position - NEVER proceed to overhead scan from here
+            print(f"[ARC_SCAN] Arc scan complete - SKIPPING overhead scan")
+            
+            # Explicitly setting to False to ensure overhead scan never runs
+            if False:  # Completely disabled - never execute overhead scan from arc scan
                 if not self.dry_run:
                     result = self.runner.arm.set_servo_angle(angle=overhead_joints, speed=25, wait=True)
                     if result != 0:
