@@ -636,38 +636,26 @@ class TaskExecutor:
                       steps: int, pause_sec: float, target_objects: List[str],
                       interrupt_on_detection: bool) -> List[str]:
         """Perform arc pattern scan using joint angles for safe collision-free movement."""
-        print(f"[ARC_SCAN] Performing joint-based arc scan with collision avoidance")
+        print(f"[ARC_SCAN] Performing procedural arc scan with hardcoded positions")
         
-        # Define safe joint positions for arc scanning (approximate values)
-        # Center/neutral position for safe transitions
-        #center_joints = [0, -45, -90, 45, 90, 0]  # Safe neutral position
-        #center_joints = [-0.8, -4, -3, 179.2, -89.3, 2.2]  # Your specified center
-        #center_joints = [-0.8, -4, -3, 179.2, -89.3, 2.2]
-        # Using hardcoded values for precise arc scan positions
-        center_joints = [-0.7, 3.3, 1.1, -180.5, -90.2, -2]  # CENTER SAFETY position
-        
-        # Left arc position (hardcoded calibrated values)
-        left_arc_joints = [46, -57, -74, -74, -90.4, -18.4]  # Left side position
-        
-        # Right arc position (hardcoded calibrated values)
-        right_arc_joints = [-46, -61, 71, -275, -90, 13]  # Right side position
+        # Using hardcoded values for precise arc scan positions - sequence: LEFT -> CENTER -> RIGHT
+        left_arc_joints = [46, -57, -74, -74, -90.4, -18.4]  # LEFT side position
+        center_joints = [-0.7, 3.3, 1.1, -180.5, -90.2, -2]  # CENTER position
+        right_arc_joints = [-46, -61, 71, -275, -90, 13]  # RIGHT side position
         
         # Overhead scanning position
         overhead_joints = [0, -60, -120, 90, 33, 180]  # Wrist down, looking from above
         
         try:
-            # Skipping initial center position movement - directly proceeding to arc scan
-            print(f"[ARC_SCAN] Directly proceeding to arc scan positions")
-            
-            # Phase 2: Left arc position
-            print(f"[ARC_SCAN] Moving to LEFT arc position: {left_arc_joints}")
+            # Step 1: Move directly to LEFT position first
+            print(f"[ARC_SCAN] Step 1/3: Moving to LEFT position: {left_arc_joints}")
             if not self.dry_run:
                 result = self.runner.arm.set_servo_angle(angle=left_arc_joints, speed=25, wait=True)
                 if result != 0:
-                    print(f"[ARC_SCAN] Failed to move to left arc position: error {result}")
+                    print(f"[ARC_SCAN] Failed to move to LEFT position: error {result}")
                 else:
                     time.sleep(0.5)  # Stabilize
-                    print(f"[ARC_SCAN] At left arc position, pausing {pause_sec}s for detection...")
+                    print(f"[ARC_SCAN] At LEFT position, pausing {pause_sec}s for detection...")
                     
                     # Check for objects at left position
                     found_targets = self._check_for_objects_during_pause(
@@ -675,35 +663,37 @@ class TaskExecutor:
                     )
                     
                     if found_targets and interrupt_on_detection:
-                        print(f"[ARC_SCAN] TARGETS DETECTED at left position: {found_targets}")
+                        print(f"[ARC_SCAN] TARGETS DETECTED at LEFT position: {found_targets}")
                         return found_targets
-                    # if found_targets and interrupt_on_detection:
-                    #     print(f"[ARC_SCAN] TARGETS DETECTED at left position: {found_targets}")
-                    #     # Approach object directly from current position
-                    #     approach_success = self._approach_detected_object_from_arc(found_targets[0])
-                    #     if approach_success:
-                    #         return found_targets
-                    #     else:
-                    #         self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
-                    #         return found_targets
             
-            # Return to center between positions
-            print(f"[ARC_SCAN] Returning to center position between arc movements")
+            # Step 2: Move to CENTER position
+            print(f"[ARC_SCAN] Step 2/3: Moving to CENTER position: {center_joints}")
             if not self.dry_run:
                 result = self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
                 if result != 0:
-                    print(f"[ARC_SCAN] Failed to return to center: error {result}")
-                time.sleep(0.8)  # Allow settling
+                    print(f"[ARC_SCAN] Failed to move to CENTER position: error {result}")
+                else:
+                    time.sleep(0.5)  # Stabilize
+                    print(f"[ARC_SCAN] At CENTER position, pausing {pause_sec}s for detection...")
+                    
+                    # Check for objects at center position
+                    found_targets = self._check_for_objects_during_pause(
+                        pause_sec, target_objects, interrupt_on_detection
+                    )
+                    
+                    if found_targets and interrupt_on_detection:
+                        print(f"[ARC_SCAN] TARGETS DETECTED at CENTER position: {found_targets}")
+                        return found_targets
             
-            # Phase 3: Right arc position
-            print(f"[ARC_SCAN] Moving to RIGHT arc position: {right_arc_joints}")
+            # Step 3: Move to RIGHT position
+            print(f"[ARC_SCAN] Step 3/3: Moving to RIGHT position: {right_arc_joints}")
             if not self.dry_run:
                 result = self.runner.arm.set_servo_angle(angle=right_arc_joints, speed=25, wait=True)
                 if result != 0:
-                    print(f"[ARC_SCAN] Failed to move to right arc position: error {result}")
+                    print(f"[ARC_SCAN] Failed to move to RIGHT position: error {result}")
                 else:
                     time.sleep(0.5)  # Stabilize
-                    print(f"[ARC_SCAN] At right arc position, pausing {pause_sec}s for detection...")
+                    print(f"[ARC_SCAN] At RIGHT position, pausing {pause_sec}s for detection...")
                     
                     # Check for objects at right position
                     found_targets = self._check_for_objects_during_pause(
@@ -711,27 +701,27 @@ class TaskExecutor:
                     )
                     
                     if found_targets and interrupt_on_detection:
-                        print(f"[ARC_SCAN] TARGETS DETECTED at right position: {found_targets}")
+                        print(f"[ARC_SCAN] TARGETS DETECTED at RIGHT position: {found_targets}")
                         # Approach object directly from current position
                         approach_success = self._approach_detected_object_from_arc(found_targets[0])
                         if approach_success:
-                            print(f"[ARC_SCAN] ✅ Successfully approached {found_targets[0]} from right arc position")
+                            print(f"[ARC_SCAN] ✅ Successfully approached {found_targets[0]} from RIGHT position")
                             return found_targets
                         else:
                             print(f"[ARC_SCAN] ⚠️ Approach failed, returning to center for safety")
                             self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
                             return found_targets
             
-            # Phase 4: Optional overhead scanning position
-            if steps > 2:  # Only do overhead if more scan positions requested
-                print(f"[ARC_SCAN] Moving to OVERHEAD scanning position: {overhead_joints}")
+            # Step 4: Only perform overhead scan if explicitly requested
+            if steps > 3:  # Only do overhead scan if more than 3 positions requested
+                print(f"[ARC_SCAN] Step 4/4: Moving to OVERHEAD position: {overhead_joints}")
                 if not self.dry_run:
                     result = self.runner.arm.set_servo_angle(angle=overhead_joints, speed=25, wait=True)
                     if result != 0:
-                        print(f"[ARC_SCAN] Failed to move to overhead position: error {result}")
+                        print(f"[ARC_SCAN] Failed to move to OVERHEAD position: error {result}")
                     else:
                         time.sleep(0.5)  # Stabilize
-                        print(f"[ARC_SCAN] At overhead position, pausing {pause_sec}s for detection...")
+                        print(f"[ARC_SCAN] At OVERHEAD position, pausing {pause_sec}s for detection...")
                         
                         # Check for objects at overhead position
                         found_targets = self._check_for_objects_during_pause(
@@ -739,26 +729,26 @@ class TaskExecutor:
                         )
                         
                         if found_targets and interrupt_on_detection:
-                            print(f"[ARC_SCAN] TARGETS DETECTED at overhead position: {found_targets}")
+                            print(f"[ARC_SCAN] TARGETS DETECTED at OVERHEAD position: {found_targets}")
                             # Approach object directly from current position
                             approach_success = self._approach_detected_object_from_arc(found_targets[0])
                             if approach_success:
-                                print(f"[ARC_SCAN] ✅ Successfully approached {found_targets[0]} from overhead position")
+                                print(f"[ARC_SCAN] ✅ Successfully approached {found_targets[0]} from OVERHEAD position")
                                 return found_targets
                             else:
                                 print(f"[ARC_SCAN] ⚠️ Approach failed, returning to center for safety")
                                 self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
                                 return found_targets
             
-            # Always return to center position after arc scan
-            print(f"[ARC_SCAN] Returning to final center position")
+            # Return to center position as final resting state after all scanning
+            print(f"[ARC_SCAN] Scan sequence complete - returning to CENTER position")
             if not self.dry_run:
                 result = self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
                 if result != 0:
-                    print(f"[ARC_SCAN] Warning: Failed to return to final center position")
+                    print(f"[ARC_SCAN] Warning: Failed to return to CENTER position")
                 time.sleep(0.5)
             
-            print(f"[ARC_SCAN] Arc scan completed - no targets found")
+            print(f"[ARC_SCAN] Procedural arc scan completed - no targets found")
             return []
             
         except Exception as e:
