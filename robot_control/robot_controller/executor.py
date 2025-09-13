@@ -656,14 +656,8 @@ class TaskExecutor:
         overhead_joints = [0, -60, -120, 90, 33, 180]  # Wrist down, looking from above
         
         try:
-            # Phase 1: Move to center position first for safety
-            print(f"[ARC_SCAN] Moving to center position for safety")
-            if not self.dry_run:
-                result = self.runner.arm.set_servo_angle(angle=center_joints, speed=30, wait=True)
-                if result != 0:
-                    print(f"[ARC_SCAN] Failed to move to center position: error {result}")
-                    return []
-                time.sleep(1)  # Allow settling
+            # Skipping initial center position movement - directly proceeding to arc scan
+            print(f"[ARC_SCAN] Directly proceeding to arc scan positions")
             
             # Phase 2: Left arc position
             print(f"[ARC_SCAN] Moving to LEFT arc position: {left_arc_joints}")
