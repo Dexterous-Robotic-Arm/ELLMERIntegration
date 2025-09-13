@@ -709,11 +709,29 @@ class TaskExecutor:
                     )
                     
                     if found_targets and interrupt_on_detection:
-                        print(f"[ARC_SCAN] TARGETS DETECTED at RIGHT position: {found_targets}")
+                        print(f"[ARC_SCAN] ⚠️ TARGETS DETECTED at RIGHT position: {found_targets}")
+                        # IMMEDIATE STOP and approach from RIGHT position
+                        target_label = found_targets[0]
+                        print(f"[ARC_SCAN] Immediately approaching {target_label} from RIGHT position")
+                        
+                        # Ensure we stay at RIGHT position and approach from here
+                        print(f"[ARC_SCAN] Using current RIGHT position joints for approach")
+                        
+                        # Get current joint angles and position for approach
+                        joint_angles = self.runner.arm.get_servo_angle()
+                        current_xyz = self.runner.get_current_position()
+                        current_rpy = self.runner.arm.get_position(is_radian=False)
+                        if current_rpy[0] == 0:
+                            current_rpy = current_rpy[1][3:6]  # Extract RPY values
+                        else:
+                            current_rpy = [0, 90, 0]  # Fallback
+                            
+                        print(f"[ARC_SCAN] RIGHT scan position - Joints: {joint_angles}, Pos: {current_xyz}, RPY: {current_rpy}")
+                        
                         # Approach object directly from current position
-                        approach_success = self._approach_detected_object_from_arc(found_targets[0])
+                        approach_success = self._approach_detected_object_from_arc(target_label)
                         if approach_success:
-                            print(f"[ARC_SCAN] ✅ Successfully approached {found_targets[0]} from RIGHT position")
+                            print(f"[ARC_SCAN] ✅ Successfully approached {target_label} from RIGHT position")
                             return found_targets
                         else:
                             print(f"[ARC_SCAN] ⚠️ Approach failed, returning to center for safety")
@@ -1151,13 +1169,39 @@ class TaskExecutor:
                 return False
             
             # Calculate approach position (hover above object with y offset)
+            # Adjust hover height and y_offset based on current RPY orientation
             hover_height = 80.0  # 80mm above object
             y_offset = -40.0  # 40mm offset in Y direction (away from the object)
-            approach_coords = [
-                robot_base_coords[0],
-                robot_base_coords[1] + y_offset, 
-                robot_base_coords[2] + hover_height
-            ]
+            
+            # Calculate appropriate approach vector based on current orientation
+            # For RIGHT scan position (yaw around 0°), we need different offsets
+            current_yaw = tcp_rpy[2]
+            print(f"[ARC_APPROACH] Current yaw: {current_yaw}°")
+            
+            if -30 < current_yaw < 30:
+                # RIGHT scan position (looking straight)
+                print(f"[ARC_APPROACH] Using RIGHT position approach offsets")
+                approach_coords = [
+                    robot_base_coords[0] - 20,  # X offset for better approach
+                    robot_base_coords[1] - 40,  # Y offset for better approach 
+                    robot_base_coords[2] + hover_height  # Standard hover height
+                ]
+            elif current_yaw < -160 or current_yaw > 160:
+                # Opposite direction approach
+                print(f"[ARC_APPROACH] Using opposite direction approach offsets")
+                approach_coords = [
+                    robot_base_coords[0] + 20,  # Opposite X offset
+                    robot_base_coords[1] + 40,  # Opposite Y offset
+                    robot_base_coords[2] + hover_height  # Standard hover height
+                ]
+            else:
+                # Standard approach for other angles
+                print(f"[ARC_APPROACH] Using standard approach offsets")
+                approach_coords = [
+                    robot_base_coords[0],
+                    robot_base_coords[1] + y_offset, 
+                    robot_base_coords[2] + hover_height
+                ]
             
             print(f"[ARC_APPROACH] Moving to approach position: {approach_coords}")
             
@@ -1175,6 +1219,13 @@ class TaskExecutor:
                 speed=150,  # Moderate speed for precision
                 wait=True
             )
+            
+            # Store the successful coordinates for potential further approaches
+            if result == 0:
+                self.last_successful_coords = {
+                    'robot_base_coords': robot_base_coords,
+                    'detection_rpy': tcp_rpy
+                }
             
             if result == 0:
                 print(f"[ARC_APPROACH] ✅ Successfully approached {target_label} from arc position")
