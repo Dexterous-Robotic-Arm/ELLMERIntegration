@@ -643,17 +643,14 @@ class TaskExecutor:
         #center_joints = [0, -45, -90, 45, 90, 0]  # Safe neutral position
         #center_joints = [-0.8, -4, -3, 179.2, -89.3, 2.2]  # Your specified center
         #center_joints = [-0.8, -4, -3, 179.2, -89.3, 2.2]
-        # Calculate proper center position with yaw as average of left and right positions
-        # Left yaw = -9.2, right yaw = -1.1, so center yaw should be around -5.15
-        center_joints = [3.9, -11.9, -5.9, 183.8, -96.7, -5.15]  # Corrected yaw for center position
+        # Using hardcoded values for precise arc scan positions
+        center_joints = [-0.7, 3.3, 1.1, -180.5, -90.2, -2]  # CENTER SAFETY position
         
-        # Left arc position (approximate values based on your specifications)
-        #left_arc_joints = [39.6, -80.2, -122.4, 276.3, -96.1, -41.3]  # Updated left position
-        left_arc_joints = [49.1, -59.6, -62.8, 280.1, -83.6, -9.2]  # Image 3 left position  
+        # Left arc position (hardcoded calibrated values)
+        left_arc_joints = [46, -57, -74, -74, -90.4, -18.4]  # Left side position
         
-        # Right arc position (approximate values based on your specifications) 
-        #right_arc_joints = [-30, -85, -135, 80, -85, 50]  # Right side arc view
-        right_arc_joints = [-56.6, -60.3, -62.1, 72.1, -88.8, -1.1]  # Image 2 right position
+        # Right arc position (hardcoded calibrated values)
+        right_arc_joints = [-46, -61, 71, -275, -90, 13]  # Right side position
         
         # Overhead scanning position
         overhead_joints = [0, -60, -120, 90, 33, 180]  # Wrist down, looking from above
