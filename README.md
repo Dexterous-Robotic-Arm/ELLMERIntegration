@@ -178,5 +178,3 @@ python3 robot_control/main.py --interactive
 # Simulation testing
 python3 robot_control/main.py --task "test" --sim --dry-run
 ```
-
-The system is now ready for extreme reasoning and precise manipulation of any object with an April Tag!
