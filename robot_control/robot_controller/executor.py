@@ -479,10 +479,17 @@ class TaskExecutor:
             target_objects, interrupt_on_detection
         )
         
-        # Before returning, attempt to go to a safe position
+        # Check if we already found objects - if so, skip any safe position movement
+        if found_objects:
+            print(f"[HIERARCHICAL_SCAN] ✅ Objects detected during scan: {found_objects}")
+            print(f"[HIERARCHICAL_SCAN] Keeping robot at current position for approach")
+            # Return immediately without moving to safe position or home
+            return found_objects
+            
+        # Only if NO objects were found, move to a safe position
         current_pos = self.runner.get_current_position()
         if current_pos:
-            print(f"[HIERARCHICAL_SCAN] Returning to safe position")
+            print(f"[HIERARCHICAL_SCAN] No objects found - returning to safe position")
             try:
                 # Return to a safe height above current XY coordinates
                 safe_pos = [current_pos[0], current_pos[1], 200]  # Z=200mm is a safe height
@@ -491,19 +498,15 @@ class TaskExecutor:
                 print(f"[HIERARCHICAL_SCAN] Successfully returned to safe position")
             except Exception as e:
                 print(f"[HIERARCHICAL_SCAN] Failed to return to safe position: {e}")
-
-        # Return results from arc scan - NEVER continue to overhead scan
-        if found_objects:
-            print(f"[HIERARCHICAL_SCAN] Arc scan found targets: {found_objects}")
-        else:
-            print(f"[HIERARCHICAL_SCAN] All scan phases completed - no targets found")
-            # Go home if nothing was found
-            try:
-                xyz, rpy = self._named("home")
-                self.runner.move_pose(xyz, rpy)
-                print(f"[HIERARCHICAL_SCAN] Returned to home position - no objects detected")
-            except Exception as e:
-                print(f"[HIERARCHICAL_SCAN] Failed to go home: {e}")
+        
+        # Go home ONLY if nothing was found
+        print(f"[HIERARCHICAL_SCAN] All scan phases completed - no targets found")
+        try:
+            xyz, rpy = self._named("home")
+            self.runner.move_pose(xyz, rpy)
+            print(f"[HIERARCHICAL_SCAN] Returned to home position - no objects detected")
+        except Exception as e:
+            print(f"[HIERARCHICAL_SCAN] Failed to go home: {e}")
 
         print(f"[HIERARCHICAL_SCAN] Scan complete after arc scan")
         return found_objects
@@ -1205,17 +1208,23 @@ class TaskExecutor:
             
             print(f"[ARC_APPROACH] Moving to approach position: {approach_coords}")
             
-            # Preserve yaw from current position, but keep standard roll and pitch for approach
-            # This helps maintain proper orientation toward the April tag
-            approach_yaw = tcp_rpy[2]  # Keep current yaw for better approach
-            print(f"[ARC_APPROACH] Using approach orientation - Roll: 0, Pitch: 90, Yaw: {approach_yaw}")
+            # Prepare to maintain the exact orientation during approach
+            # This ensures we preserve the camera's view of the April tag
             
-            # Move to approach position with safe speed
+            # Maintain exact current orientation throughout the approach
+            # Keep original roll, pitch and yaw for proper alignment with the target
+            approach_roll = tcp_rpy[0]
+            approach_pitch = tcp_rpy[1]
+            approach_yaw = tcp_rpy[2]
+            
+            print(f"[ARC_APPROACH] Maintaining current orientation - Roll: {approach_roll}, Pitch: {approach_pitch}, Yaw: {approach_yaw}")
+            
+            # Move to approach position with safe speed, maintaining original orientation
             result = self.runner.arm.set_position(
                 x=approach_coords[0], 
                 y=approach_coords[1], 
                 z=approach_coords[2],
-                roll=0, pitch=90, yaw=approach_yaw,  # Use current yaw for better orientation
+                roll=approach_roll, pitch=approach_pitch, yaw=approach_yaw,  # Keep exact current orientation
                 speed=150,  # Moderate speed for precision
                 wait=True
             )
