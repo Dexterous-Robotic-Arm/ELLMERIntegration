@@ -660,6 +660,12 @@ class TaskExecutor:
                     
                     if found_targets and interrupt_on_detection:
                         print(f"[ARC_SCAN] TARGETS DETECTED at LEFT position: {found_targets}")
+                        # Immediately approach detected object using RPY values
+                        target_label = found_targets[0]
+                        print(f"[ARC_SCAN] Immediately approaching {target_label} using detection RPY")
+                        approach_success = self._approach_detected_object_from_arc(target_label)
+                        if approach_success:
+                            print(f"[ARC_SCAN] ✅ Successfully approached {target_label} from LEFT position")
                         return found_targets
             
             # Step 2: Move to CENTER position
@@ -679,6 +685,12 @@ class TaskExecutor:
                     
                     if found_targets and interrupt_on_detection:
                         print(f"[ARC_SCAN] TARGETS DETECTED at CENTER position: {found_targets}")
+                        # Immediately approach detected object using RPY values
+                        target_label = found_targets[0]
+                        print(f"[ARC_SCAN] Immediately approaching {target_label} using detection RPY")
+                        approach_success = self._approach_detected_object_from_arc(target_label)
+                        if approach_success:
+                            print(f"[ARC_SCAN] ✅ Successfully approached {target_label} from CENTER position")
                         return found_targets
             
             # Step 3: Move to RIGHT position
@@ -1096,7 +1108,7 @@ class TaskExecutor:
     
     def _approach_detected_object_from_arc(self, target_label: str) -> bool:
         """
-        Approach a detected object directly from the current arc position.
+        Approach a detected object directly from the current arc position using RPY transformation.
         
         Args:
             target_label: Label of the object to approach
@@ -1105,15 +1117,15 @@ class TaskExecutor:
             bool: True if approach was successful, False otherwise
         """
         try:
-            print(f"[ARC_APPROACH] Attempting to approach {target_label} from current arc position")
+            print(f"[ARC_APPROACH] Attempting to approach {target_label} using RPY transformation")
             
-            # Get current robot TCP position
-            robot_tcp_position = self.runner.get_current_position()
-            if robot_tcp_position is None:
-                print(f"[ARC_APPROACH] ERROR: Could not get current robot position")
+            # Get current robot TCP position AND RPY values
+            tcp_position, tcp_rpy = self.runner.get_current_position_and_rpy()
+            if tcp_position is None or tcp_rpy is None:
+                print(f"[ARC_APPROACH] ERROR: Could not get current robot position and orientation")
                 return False
             
-            print(f"[ARC_APPROACH] Current robot TCP: {robot_tcp_position}")
+            print(f"[ARC_APPROACH] Current robot TCP: {tcp_position}, RPY: {tcp_rpy}")
             
             # Get object coordinates from vision system
             camera_coordinates = self.obj_index.wait_for(target_label, timeout=2.0)
@@ -1123,13 +1135,14 @@ class TaskExecutor:
             
             print(f"[ARC_APPROACH] Found {target_label} at camera coords: {camera_coordinates}")
             
-            # Transform camera coordinates to robot base coordinates
-            robot_base_coords = self.coordinate_transformer.transform_camera_to_robot_base(
+            # Transform camera coordinates to robot base coordinates using RPY transformation
+            robot_base_coords = self.coordinate_transformer.transform_camera_to_robot_base_with_rpy(
                 camera_coordinates, 
-                robot_tcp_position
+                tcp_position,
+                tcp_rpy
             )
             
-            print(f"[ARC_APPROACH] Transformed to robot base: {robot_base_coords}")
+            print(f"[ARC_APPROACH] Transformed to robot base with RPY: {robot_base_coords}")
             
             # Safety check: Ensure coordinates are within reasonable bounds
             x, y, z = robot_base_coords[0], robot_base_coords[1], robot_base_coords[2]
@@ -1137,19 +1150,29 @@ class TaskExecutor:
                 print(f"[ARC_APPROACH] ERROR: Coordinates out of bounds: X={x:.1f}, Y={y:.1f}, Z={z:.1f}")
                 return False
             
-            # Calculate approach position (hover above object)
+            # Calculate approach position (hover above object with y offset)
             hover_height = 80.0  # 80mm above object
-            approach_coords = [robot_base_coords[0], robot_base_coords[1], robot_base_coords[2] + hover_height]
+            y_offset = -40.0  # 40mm offset in Y direction (away from the object)
+            approach_coords = [
+                robot_base_coords[0],
+                robot_base_coords[1] + y_offset, 
+                robot_base_coords[2] + hover_height
+            ]
             
             print(f"[ARC_APPROACH] Moving to approach position: {approach_coords}")
+            
+            # Preserve yaw from current position, but keep standard roll and pitch for approach
+            # This helps maintain proper orientation toward the April tag
+            approach_yaw = tcp_rpy[2]  # Keep current yaw for better approach
+            print(f"[ARC_APPROACH] Using approach orientation - Roll: 0, Pitch: 90, Yaw: {approach_yaw}")
             
             # Move to approach position with safe speed
             result = self.runner.arm.set_position(
                 x=approach_coords[0], 
                 y=approach_coords[1], 
                 z=approach_coords[2],
-                roll=0, pitch=90, yaw=-70,  # Fixed orientation
-                speed=200,  # Moderate speed for safety
+                roll=0, pitch=90, yaw=approach_yaw,  # Use current yaw for better orientation
+                speed=150,  # Moderate speed for precision
                 wait=True
             )
             
