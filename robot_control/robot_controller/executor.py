@@ -779,7 +779,7 @@ class TaskExecutor:
                 print(f"[ARC_SCAN] Failed to recover to center: {recovery_error}")
             return []
     
-    def _perform_straight_tcp_approach_from_detection_position(self, target_coords, detection_position="center"):
+    def _perform_straight_tcp_approach_from_detection_position(self, target_coords, detection_position="center", target_yaw=-70):
         """Perform straight TCP approach maintaining linear path regardless of joint angles."""
         print(f"[TCP_APPROACH] Straight TCP approach from {detection_position} detection position")
         
@@ -830,7 +830,7 @@ class TaskExecutor:
             x=approach_point[0], 
             y=approach_point[1], 
             z=approach_point[2],
-            roll=0, pitch=90, yaw=0,  # Keep camera orientation
+            roll=0, pitch=90, yaw=target_yaw,  # Keep camera orientation
             speed=50,  # Slower for precision
             wait=True
         )
@@ -845,7 +845,7 @@ class TaskExecutor:
             x=target_robot_coords[0], 
             y=target_robot_coords[1], 
             z=target_robot_coords[2] + 20,  # 20mm above target
-            roll=0, pitch=90, yaw=0,
+            roll=0, pitch=90, yaw=target_yaw,
             speed=30,  # Very slow for final approach
             wait=True
         )
@@ -1113,17 +1113,27 @@ class TaskExecutor:
     #         return False
     
     def _approach_detected_object_from_arc(self, target_label: str) -> bool:
+        """
+        Approach a detected object directly from the current arc position.
+        
+        Args:
+            target_label: Label of the object to approach
+            
+        Returns:
+            bool: True if approach was successful, False otherwise
+        """
         try:
             print(f"[ARC_APPROACH] Attempting to approach {target_label} from current arc position")
             
-            # Get current robot TCP position AND orientation
-            tcp_position, tcp_rpy = self.runner.get_current_position_and_rpy()
-            if tcp_position is None or tcp_rpy is None:
-                print(f"[ARC_APPROACH] ERROR: Could not get current robot position and orientation")
+            # Get current robot TCP position
+            robot_tcp_position = self.runner.get_current_position()
+            if robot_tcp_position is None:
+                print(f"[ARC_APPROACH] ERROR: Could not get current robot position")
                 return False
             
-            print(f"[ARC_APPROACH] Current robot TCP: {tcp_position}, RPY: {tcp_rpy}")
+            print(f"[ARC_APPROACH] Current robot TCP: {robot_tcp_position}")
             
+            # Get object coordinates from vision system
             camera_coordinates = self.obj_index.wait_for(target_label, timeout=2.0)
             if camera_coordinates is None:
                 print(f"[ARC_APPROACH] ERROR: Object '{target_label}' not detected")
@@ -1131,43 +1141,38 @@ class TaskExecutor:
             
             print(f"[ARC_APPROACH] Found {target_label} at camera coords: {camera_coordinates}")
             
-            # Transform using proper rotation matrices with TCP RPY
-            robot_base_coords = self.coordinate_transformer.transform_camera_to_robot_base_with_rpy(
+            # Transform camera coordinates to robot base coordinates
+            robot_base_coords = self.coordinate_transformer.transform_camera_to_robot_base(
                 camera_coordinates, 
-                tcp_position,
-                tcp_rpy
+                robot_tcp_position
             )
             
             print(f"[ARC_APPROACH] Transformed to robot base: {robot_base_coords}")
             
-            # Store successful coordinates IMMEDIATELY after transformation
-            self.last_successful_coords = {
-                'robot_base_coords': robot_base_coords,
-                'detection_tcp': tcp_position,
-                'detection_rpy': tcp_rpy,
-                'camera_coords': camera_coordinates
-            }
-        
-            # Add small hover offset
-            approach_coords = [robot_base_coords[0], robot_base_coords[1], robot_base_coords[2]+30]
-            
-            if not self._is_coordinate_safe(approach_coords):
-                print(f"[ARC_APPROACH] ERROR: Coordinates failed safety check")
+            # Safety check: Ensure coordinates are within reasonable bounds
+            x, y, z = robot_base_coords[0], robot_base_coords[1], robot_base_coords[2]
+            if (abs(x) > 1000 or abs(y) > 1000 or z < 0 or z > 1000):
+                print(f"[ARC_APPROACH] ERROR: Coordinates out of bounds: X={x:.1f}, Y={y:.1f}, Z={z:.1f}")
                 return False
+            
+            # Calculate approach position (hover above object)
+            hover_height = 80.0  # 80mm above object
+            approach_coords = [robot_base_coords[0], robot_base_coords[1], robot_base_coords[2] + hover_height]
             
             print(f"[ARC_APPROACH] Moving to approach position: {approach_coords}")
             
+            # Move to approach position with safe speed
             result = self.runner.arm.set_position(
                 x=approach_coords[0], 
                 y=approach_coords[1], 
                 z=approach_coords[2],
-                roll=0, pitch=90, yaw=tcp_rpy[2],  # Keep current yaw
-                speed=100,
+                roll=0, pitch=90, yaw=-70,  # Fixed orientation
+                speed=200,  # Moderate speed for safety
                 wait=True
             )
             
             if result == 0:
-                print(f"[ARC_APPROACH] Successfully approached {target_label} from arc position")
+                print(f"[ARC_APPROACH] ✅ Successfully approached {target_label} from arc position")
                 return True
             else:
                 print(f"[ARC_APPROACH] ERROR: Movement failed with code {result}")
