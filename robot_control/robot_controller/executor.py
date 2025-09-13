@@ -490,13 +490,18 @@ class TaskExecutor:
             target_objects, interrupt_on_detection
         )
         
-        if original_pos:
-            print(f"[HIERARCHICAL_SCAN] Returning to original position: {original_pos}")
+        # Get current position to optionally return to
+        current_pos = self.runner.get_current_position()
+        if current_pos:
+            print(f"[HIERARCHICAL_SCAN] Returning to safe position")
             try:
-                self.runner.move_pose(original_pos, original_rpy)
-                print(f"[HIERARCHICAL_SCAN] Successfully returned to original position")
+                # Return to a safe height above current XY coordinates
+                safe_pos = [current_pos[0], current_pos[1], 200]  # Z=200mm is a safe height
+                safe_rpy = [0, 90, 0]  # Standard orientation
+                self.runner.move_pose(safe_pos, safe_rpy)
+                print(f"[HIERARCHICAL_SCAN] Successfully returned to safe position")
             except Exception as e:
-                print(f"[HIERARCHICAL_SCAN] Failed to return to original position: {e}")
+                print(f"[HIERARCHICAL_SCAN] Failed to return to safe position: {e}")
 
         if found_objects:
             print(f"[HIERARCHICAL_SCAN] Overhead scan found targets: {found_objects}")
@@ -638,32 +643,32 @@ class TaskExecutor:
         """Perform arc pattern scan using joint angles for safe collision-free movement."""
         print(f"[ARC_SCAN] Performing procedural arc scan with hardcoded positions")
         
-        # Using hardcoded values for precise arc scan positions - sequence: LEFT -> CENTER -> RIGHT
-        left_arc_joints = [46, -57, -74, -74, -90.4, -18.4]  # LEFT side position
-        center_joints = [-0.7, 3.3, 1.1, -180.5, -90.2, -2]  # CENTER position
+        # Using hardcoded values for precise arc scan positions - sequence: RIGHT -> CENTER -> LEFT
         right_arc_joints = [-46, -61, 71, -275, -90, 13]  # RIGHT side position
+        center_joints = [-0.7, 3.3, 1.1, -180.5, -90.2, -2]  # CENTER position
+        left_arc_joints = [46, -57, -74, -74, -90.4, -18.4]  # LEFT side position
         
         # Overhead scanning position
         overhead_joints = [0, -60, -120, 90, 33, 180]  # Wrist down, looking from above
         
         try:
-            # Step 1: Move directly to LEFT position first
-            print(f"[ARC_SCAN] Step 1/3: Moving to LEFT position: {left_arc_joints}")
+            # Step 1: Move directly to RIGHT position first
+            print(f"[ARC_SCAN] Step 1/3: Moving to RIGHT position: {right_arc_joints}")
             if not self.dry_run:
-                result = self.runner.arm.set_servo_angle(angle=left_arc_joints, speed=25, wait=True)
+                result = self.runner.arm.set_servo_angle(angle=right_arc_joints, speed=25, wait=True)
                 if result != 0:
-                    print(f"[ARC_SCAN] Failed to move to LEFT position: error {result}")
+                    print(f"[ARC_SCAN] Failed to move to RIGHT position: error {result}")
                 else:
                     time.sleep(0.5)  # Stabilize
-                    print(f"[ARC_SCAN] At LEFT position, pausing {pause_sec}s for detection...")
+                    print(f"[ARC_SCAN] At RIGHT position, pausing {pause_sec}s for detection...")
                     
-                    # Check for objects at left position
+                    # Check for objects at right position
                     found_targets = self._check_for_objects_during_pause(
                         pause_sec, target_objects, interrupt_on_detection
                     )
                     
                     if found_targets and interrupt_on_detection:
-                        print(f"[ARC_SCAN] TARGETS DETECTED at LEFT position: {found_targets}")
+                        print(f"[ARC_SCAN] TARGETS DETECTED at RIGHT position: {found_targets}")
                         return found_targets
             
             # Step 2: Move to CENTER position
@@ -685,27 +690,27 @@ class TaskExecutor:
                         print(f"[ARC_SCAN] TARGETS DETECTED at CENTER position: {found_targets}")
                         return found_targets
             
-            # Step 3: Move to RIGHT position
-            print(f"[ARC_SCAN] Step 3/3: Moving to RIGHT position: {right_arc_joints}")
+            # Step 3: Move to LEFT position
+            print(f"[ARC_SCAN] Step 3/3: Moving to LEFT position: {left_arc_joints}")
             if not self.dry_run:
-                result = self.runner.arm.set_servo_angle(angle=right_arc_joints, speed=25, wait=True)
+                result = self.runner.arm.set_servo_angle(angle=left_arc_joints, speed=25, wait=True)
                 if result != 0:
-                    print(f"[ARC_SCAN] Failed to move to RIGHT position: error {result}")
+                    print(f"[ARC_SCAN] Failed to move to LEFT position: error {result}")
                 else:
                     time.sleep(0.5)  # Stabilize
-                    print(f"[ARC_SCAN] At RIGHT position, pausing {pause_sec}s for detection...")
+                    print(f"[ARC_SCAN] At LEFT position, pausing {pause_sec}s for detection...")
                     
-                    # Check for objects at right position
+                    # Check for objects at LEFT position
                     found_targets = self._check_for_objects_during_pause(
                         pause_sec, target_objects, interrupt_on_detection
                     )
                     
                     if found_targets and interrupt_on_detection:
-                        print(f"[ARC_SCAN] TARGETS DETECTED at RIGHT position: {found_targets}")
+                        print(f"[ARC_SCAN] TARGETS DETECTED at LEFT position: {found_targets}")
                         # Approach object directly from current position
                         approach_success = self._approach_detected_object_from_arc(found_targets[0])
                         if approach_success:
-                            print(f"[ARC_SCAN] ✅ Successfully approached {found_targets[0]} from RIGHT position")
+                            print(f"[ARC_SCAN] ✅ Successfully approached {found_targets[0]} from LEFT position")
                             return found_targets
                         else:
                             print(f"[ARC_SCAN] ⚠️ Approach failed, returning to center for safety")
