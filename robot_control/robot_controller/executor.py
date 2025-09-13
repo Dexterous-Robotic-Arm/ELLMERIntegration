@@ -794,7 +794,7 @@ class TaskExecutor:
                 print(f"[ARC_SCAN] Failed to recover to center: {recovery_error}")
             return []
     
-    def _perform_straight_tcp_approach_from_detection_position(self, target_coords, detection_position="center", target_yaw=-70):
+    def _perform_straight_tcp_approach_from_detection_position(self, target_coords, detection_position="center"):
         """Perform straight TCP approach maintaining linear path regardless of joint angles."""
         print(f"[TCP_APPROACH] Straight TCP approach from {detection_position} detection position")
         
@@ -859,7 +859,7 @@ class TaskExecutor:
         result = self.runner.arm.set_position(
             x=target_robot_coords[0], 
             y=target_robot_coords[1], 
-            z=target_robot_coords[2] + 20,  # 20mm above target
+            z=target_robot_coords[2] ,  # 20mm above target
             roll=0, pitch=90, yaw=target_yaw,
             speed=30,  # Very slow for final approach
             wait=True
