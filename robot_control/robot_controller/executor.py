@@ -643,7 +643,9 @@ class TaskExecutor:
         #center_joints = [0, -45, -90, 45, 90, 0]  # Safe neutral position
         #center_joints = [-0.8, -4, -3, 179.2, -89.3, 2.2]  # Your specified center
         #center_joints = [-0.8, -4, -3, 179.2, -89.3, 2.2]
-        center_joints = [3.9, -11.9, -5.9, 183.8, -96.7, 2]  # Image 1 center position
+        # Calculate proper center position with yaw as average of left and right positions
+        # Left yaw = -9.2, right yaw = -1.1, so center yaw should be around -5.15
+        center_joints = [3.9, -11.9, -5.9, 183.8, -96.7, -5.15]  # Corrected yaw for center position
         
         # Left arc position (approximate values based on your specifications)
         #left_arc_joints = [39.6, -80.2, -122.4, 276.3, -96.1, -41.3]  # Updated left position
