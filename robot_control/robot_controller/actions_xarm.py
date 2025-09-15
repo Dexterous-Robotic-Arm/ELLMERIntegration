@@ -26,6 +26,9 @@ import numpy as np
 from typing import Optional, Tuple, List, Dict, Any
 from dataclasses import dataclass
 from xarm.wrapper import XArmAPI
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .executor import XArmRunner
 
 try:
     import dynamixel_sdk as dxl
@@ -35,83 +38,83 @@ except ImportError:
     print("Warning: Dynamixel SDK not available. Install with: pip install dynamixel-sdk")
 
 
-class CameraToRobotTransformer:
-    """Handles coordinate transformation from camera to robot base frame."""
+# class CameraToRobotTransformer:
+#     """Handles coordinate transformation from camera to robot base frame."""
     
-    def __init__(self, camera_offset_mm: List[float] = [0, 0, 22.5]):
-        """
-        Initialize transformer with camera offset from TCP.
+#     def __init__(self, camera_offset_mm: List[float] = [0, 0, 22.5]):
+#         """
+#         Initialize transformer with camera offset from TCP.
         
-        Args:
-            camera_offset_mm: [x, y, z] offset from TCP to camera optical center (mm)
-        """
-        self.camera_offset = np.array(camera_offset_mm)
+#         Args:
+#             camera_offset_mm: [x, y, z] offset from TCP to camera optical center (mm)
+#         """
+#         self.camera_offset = np.array(camera_offset_mm)
         
-        # Transformation matrix from camera frame to robot TCP frame
-        # Camera: X=left/right, Y=up/down, Z=forward/backward
-        # Robot:  X=forward/backward, Y=left/right, Z=up/down
-        self.camera_to_tcp_matrix = np.array([
-            [0,  0,  1],   # Camera Z (forward/backward) -> Robot X (forward/backward)
-            [1,  0,  0],   # Camera X (left/right) -> Robot Y (left/right)
-            [0,  1,  0]    # Camera Y (up/down) -> Robot Z (up/down)
-        ])
+#         # Transformation matrix from camera frame to robot TCP frame
+#         # Camera: X=left/right, Y=up/down, Z=forward/backward
+#         # Robot:  X=forward/backward, Y=left/right, Z=up/down
+#         self.camera_to_tcp_matrix = np.array([
+#             [0,  0,  1],   # Camera Z (forward/backward) -> Robot X (forward/backward)
+#             [1,  0,  0],   # Camera X (left/right) -> Robot Y (left/right)
+#             [0,  1,  0]    # Camera Y (up/down) -> Robot Z (up/down)
+#         ])
     
-    def transform_camera_to_robot_base(self, 
-                                    camera_coords: List[float], 
-                                    robot_tcp_position: List[float]) -> List[float]:
-        """
-        Transform camera coordinates to robot base coordinates.
+#     def transform_camera_to_robot_base(self, 
+#                                     camera_coords: List[float], 
+#                                     robot_tcp_position: List[float]) -> List[float]:
+#         """
+#         Transform camera coordinates to robot base coordinates.
         
-        Args:
-            camera_coords: [x, y, z] in camera frame (mm)
-            robot_tcp_position: Current robot TCP position [x, y, z] (mm)
+#         Args:
+#             camera_coords: [x, y, z] in camera frame (mm)
+#             robot_tcp_position: Current robot TCP position [x, y, z] (mm)
             
-        Returns:
-            robot_base_coords: [x, y, z] in robot base frame (mm)
-        """
-        # Convert to numpy arrays
-        cam_coords = np.array(camera_coords)
-        tcp_pos = np.array(robot_tcp_position)
+#         Returns:
+#             robot_base_coords: [x, y, z] in robot base frame (mm)
+#         """
+#         # Convert to numpy arrays
+#         cam_coords = np.array(camera_coords)
+#         tcp_pos = np.array(robot_tcp_position)
         
-        # Step 1: Transform camera coordinates to TCP-relative coordinates
-        tcp_relative = self.camera_to_tcp_matrix @ cam_coords
+#         # Step 1: Transform camera coordinates to TCP-relative coordinates
+#         tcp_relative = self.camera_to_tcp_matrix @ cam_coords
         
-        # Step 2: Subtract camera offset from TCP (we want TCP to move to object position)
-        # Camera offset represents where camera is relative to TCP, so we subtract it
-        tcp_relative -= self.camera_offset
+#         # Step 2: Subtract camera offset from TCP (we want TCP to move to object position)
+#         # Camera offset represents where camera is relative to TCP, so we subtract it
+#         tcp_relative -= self.camera_offset
         
-        # Step 3: Add current TCP position to get robot base coordinates
-        robot_base_coords = tcp_pos + tcp_relative
+#         # Step 3: Add current TCP position to get robot base coordinates
+#         robot_base_coords = tcp_pos + tcp_relative
         
-        return robot_base_coords.tolist()
+#         return robot_base_coords.tolist()
     
-    def transform_robot_base_to_camera(self, 
-                                     robot_base_coords: List[float], 
-                                     robot_tcp_position: List[float]) -> List[float]:
-        """
-        Transform robot base coordinates to camera coordinates (inverse transform).
+#     def transform_robot_base_to_camera(self, 
+#                                      robot_base_coords: List[float], 
+#                                      robot_tcp_position: List[float]) -> List[float]:
+#         """
+#         Transform robot base coordinates to camera coordinates (inverse transform).
         
-        Args:
-            robot_base_coords: [x, y, z] in robot base frame (mm)
-            robot_tcp_position: Current robot TCP position [x, y, z] (mm)
+#         Args:
+#             robot_base_coords: [x, y, z] in robot base frame (mm)
+#             robot_tcp_position: Current robot TCP position [x, y, z] (mm)
             
-        Returns:
-            camera_coords: [x, y, z] in camera frame (mm)
-        """
-        # Convert to numpy arrays
-        robot_coords = np.array(robot_base_coords)
-        tcp_pos = np.array(robot_tcp_position)
+#         Returns:
+#             camera_coords: [x, y, z] in camera frame (mm)
+#         """
+#         # Convert to numpy arrays
+#         robot_coords = np.array(robot_base_coords)
+#         tcp_pos = np.array(robot_tcp_position)
         
-        # Step 1: Get TCP-relative coordinates
-        tcp_relative = robot_coords - tcp_pos
+#         # Step 1: Get TCP-relative coordinates
+#         tcp_relative = robot_coords - tcp_pos
         
-        # Step 2: Add camera offset (inverse of subtraction)
-        tcp_relative += self.camera_offset
+#         # Step 2: Add camera offset (inverse of subtraction)
+#         tcp_relative += self.camera_offset
         
-        # Step 3: Transform from robot TCP frame to camera frame
-        camera_coords = self.camera_to_tcp_matrix.T @ tcp_relative
+#         # Step 3: Transform from robot TCP frame to camera frame
+#         camera_coords = self.camera_to_tcp_matrix.T @ tcp_relative
         
-        return camera_coords.tolist()
+#         return camera_coords.tolist()
 
 
 @dataclass
